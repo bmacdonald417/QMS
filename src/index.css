@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* — MacTech TQMS/QAMS — Dark theme, scrollbar, focus states */
+
+:root {
+  --surface: #0a0a0a;
+  --surface-elevated: #121212;
+  --surface-border: #2a2a2a;
+  --mactech-blue: #007aff;
+  --compliance-green: #28cd41;
+  --transition-default: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  @apply bg-surface text-gray-100;
+  background-color: var(--surface);
+  min-height: 100vh;
+}
+
+/* Custom scrollbar — subtle, on-brand */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-elevated);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a3a;
+}
+
+/* Focus states — accessibility & GxP usability */
+:focus-visible {
+  outline: 2px solid var(--mactech-blue);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+[tabindex="0"]:focus-visible {
+  outline: 2px solid var(--mactech-blue);
+  outline-offset: 2px;
+}
+
+/* Typographic hierarchy */
+h1 {
+  @apply text-2xl font-semibold tracking-tight text-white;
+}
+
+h2 {
+  @apply text-lg font-medium text-gray-200;
+}
+
+.label-caps {
+  @apply text-xs font-medium uppercase tracking-wider text-gray-500;
+}
+
+/* Motion — fluid transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--transition-default), transform var(--transition-default);
+}
+
+.modal-enter {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+.modal-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity var(--transition-default), transform var(--transition-default);
+}

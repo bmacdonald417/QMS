@@ -1,0 +1,10 @@
+export { ExecutiveDashboard } from './ExecutiveDashboard';
+export { DocumentControl } from './DocumentControl';
+export { TrainingCompetency } from './TrainingCompetency';
+export { AuditManagement } from './AuditManagement';
+export { CAPA } from './CAPA';
+export { ChangeControl } from './ChangeControl';
+export { RiskManagement } from './RiskManagement';
+export { EquipmentAssets } from './EquipmentAssets';
+export { SupplierQuality } from './SupplierQuality';
+export { PageShell } from './PageShell';
