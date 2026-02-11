@@ -1,6 +1,7 @@
-import { useLocation, Link } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { Search, LogOut } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '@/components/ui';
 
 const pathToBreadcrumb: Record<string, string> = {
   '': 'Dashboard',
@@ -16,6 +17,7 @@ const pathToBreadcrumb: Record<string, string> = {
 
 export function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
 
   const segments = location.pathname.split('/').filter(Boolean);
@@ -46,15 +48,26 @@ export function Header() {
           </span>
         ))}
       </nav>
-      <div className="relative w-72">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-        <input
-          type="search"
-          placeholder="Search documents, CAPAs, audits..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-lg border border-surface-border bg-surface-overlay py-2 pl-9 pr-3 text-sm text-gray-100 placeholder-gray-500 focus:border-mactech-blue focus:outline-none focus:ring-1 focus:ring-mactech-blue"
-        />
+      <div className="flex items-center gap-4">
+        <div className="relative w-64 hidden sm:block">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+          <input
+            type="search"
+            placeholder="Search documents, CAPAs, audits..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-lg border border-surface-border bg-surface-overlay py-2 pl-9 pr-3 text-sm text-gray-100 placeholder-gray-500 focus:border-mactech-blue focus:outline-none focus:ring-1 focus:ring-mactech-blue"
+          />
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-2 text-xs text-gray-300"
+          onClick={() => navigate('/login')}
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="hidden md:inline">Sign out</span>
+        </Button>
       </div>
     </header>
   );
