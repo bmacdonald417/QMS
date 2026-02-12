@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
       orderBy: { createdAt: 'desc' },
       take: 25,
     });
-    const unreadCount = notifications.filter((n) => !n.isRead).length;
+    const unreadCount = notifications.filter((n) => !n.read).length;
     res.json({ notifications, unreadCount });
   } catch (err) {
     console.error('List notifications error:', err);
@@ -19,15 +19,14 @@ router.get('/', async (req, res) => {
   }
 });
 
-// PATCH /api/notifications/:id/read
-router.patch('/:id/read', async (req, res) => {
+async function markReadHandler(req, res) {
   try {
     const result = await prisma.notification.updateMany({
       where: {
         id: req.params.id,
         userId: req.user.id,
       },
-      data: { isRead: true },
+      data: { read: true },
     });
     if (result.count === 0) {
       return res.status(404).json({ error: 'Notification not found' });
@@ -37,6 +36,12 @@ router.patch('/:id/read', async (req, res) => {
     console.error('Read notification error:', err);
     res.status(500).json({ error: 'Failed to mark notification as read' });
   }
-});
+}
+
+// PUT /api/notifications/:id/read
+router.put('/:id/read', markReadHandler);
+
+// Backward-compatible alias
+router.patch('/:id/read', markReadHandler);
 
 export default router;

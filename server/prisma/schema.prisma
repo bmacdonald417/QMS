@@ -1,5 +1,3 @@
-// MacTech QMS — GxP/ISO compliant. PostgreSQL + Prisma.
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -20,9 +18,11 @@ enum DocumentType {
 enum DocumentStatus {
   DRAFT
   IN_REVIEW
+  APPROVED
   PENDING_APPROVAL
   PENDING_QUALITY_RELEASE
   EFFECTIVE
+  OBSOLETE
   ARCHIVED
 }
 
@@ -39,9 +39,10 @@ enum AssignmentStatus {
 }
 
 model Role {
-  id    Int    @id @default(autoincrement())
-  name  String @unique // e.g. System Administrator, Quality, Manager, User, Read-Only
-  users User[]
+  id          Int      @id @default(autoincrement())
+  name        String   @unique // Admin, Quality Manager, Manager, User
+  permissions String[] @default([])
+  users       User[]
 }
 
 model User {
@@ -55,10 +56,12 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  documentsAuthored    Document[]
+  documentsAuthored    Document[]          @relation("DocumentAuthor")
   documentHistoryItems DocumentHistory[]
-  documentAssignments  DocumentAssignment[]
+  documentAssignments  DocumentAssignment[] @relation("DocumentAssignee")
   notifications        Notification[]
+  documentRevisions    DocumentRevision[]
+  documentSignatures   DocumentSignature[]
   changeControls       ChangeControl[]
   capasAssigned        CAPA[]            @relation("CAPAAssignee")
 
@@ -66,24 +69,31 @@ model User {
 }
 
 model Document {
-  id        String         @id @default(uuid())
-  docId     String         @map("doc_id") // e.g. MAC-SOP-001
-  title     String
-  docType   DocumentType   @map("doc_type")
-  majorVersion Int         @default(1) @map("major_version")
-  minorVersion Int         @default(0) @map("minor_version")
-  status    DocumentStatus @default(DRAFT)
-  content   String?        @db.Text
-  authorId  String         @map("author_id")
-  createdAt DateTime       @default(now()) @map("created_at")
-  updatedAt DateTime       @updatedAt @map("updated_at")
+  id                  String         @id @default(uuid())
+  documentId          String         @map("doc_id") // e.g. MAC-SOP-014
+  title               String
+  documentType        DocumentType   @map("doc_type") // SOP, POLICY, WORK_INSTRUCTION, etc.
+  versionMajor        Int            @default(1) @map("major_version")
+  versionMinor        Int            @default(0) @map("minor_version")
+  effectiveDate       DateTime?      @map("effective_date")
+  status              DocumentStatus @default(DRAFT)
+  content             String?        @db.Text // Markdown
+  authorId            String         @map("author_id")
+  supersedesDocumentId String?       @map("supersedes_document_id")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
 
-  author      User                 @relation(fields: [authorId], references: [id], onDelete: Restrict)
-  history     DocumentHistory[]
-  assignments DocumentAssignment[]
+  author              User                @relation("DocumentAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  supersedesDocument  Document?           @relation("DocumentSupersedes", fields: [supersedesDocumentId], references: [id], onDelete: SetNull)
+  supersededBy        Document[]          @relation("DocumentSupersedes")
+  history             DocumentHistory[]
+  revisions           DocumentRevision[]
+  signatures          DocumentSignature[]
+  assignments         DocumentAssignment[]
 
   @@map("documents")
-  @@index([docId])
+  @@index([documentId])
+  @@unique([documentId, versionMajor, versionMinor], map: "document_version_unique")
 }
 
 model DocumentHistory {
@@ -101,18 +111,51 @@ model DocumentHistory {
   @@map("document_history")
 }
 
+model DocumentRevision {
+  id              String   @id @default(uuid())
+  documentId      String   @map("document_id")
+  versionMajor    Int      @map("version_major")
+  versionMinor    Int      @map("version_minor")
+  effectiveDate   DateTime @map("effective_date")
+  authorId        String   @map("author_id")
+  summaryOfChange String   @map("summary_of_change")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  author   User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@map("document_revisions")
+}
+
+model DocumentSignature {
+  id               String   @id @default(uuid())
+  documentId       String   @map("document_id")
+  signerId         String   @map("signer_id")
+  signatureMeaning String   @map("signature_meaning")
+  signedAt         DateTime @default(now()) @map("signed_at")
+  documentHash     String   @map("document_hash")
+  signatureHash    String   @map("signature_hash")
+  passwordHash     String   @map("password_hash")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  signer   User     @relation(fields: [signerId], references: [id], onDelete: Restrict)
+
+  @@map("document_signatures")
+}
+
 model DocumentAssignment {
-  id          String             @id @default(uuid())
-  documentId  String             @map("document_id")
-  assigneeId  String             @map("assignee_id")
-  taskType    AssignmentTaskType @map("task_type")
-  status      AssignmentStatus   @default(PENDING)
-  completedAt DateTime?          @map("completed_at")
+  id            String                  @id @default(uuid())
+  documentId    String                  @map("document_id")
+  assignedToId  String                  @map("assignee_id")
+  assignmentType AssignmentTaskType  @map("task_type")
+  status        AssignmentStatus     @default(PENDING)
+  dueDate       DateTime?               @map("due_date")
+  completedAt   DateTime?               @map("completed_at")
   comments    String?            @db.Text
   createdAt   DateTime           @default(now()) @map("created_at")
 
-  document Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
-  assignee User     @relation(fields: [assigneeId], references: [id], onDelete: Restrict)
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  assignedTo User     @relation("DocumentAssignee", fields: [assignedToId], references: [id], onDelete: Restrict)
 
   @@map("document_assignments")
 }
@@ -121,7 +164,7 @@ model Notification {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
   message   String
-  isRead    Boolean  @default(false) @map("is_read")
+  read      Boolean  @default(false) @map("is_read")
   link      String
   createdAt DateTime @default(now()) @map("created_at")
 

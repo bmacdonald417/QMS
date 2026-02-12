@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import { Badge, Button, Card, Input, Modal } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
-import { apiRequest } from '@/lib/api';
+import { apiRequest, apiUrl } from '@/lib/api';
 
 interface UserRef {
   id: string;
@@ -10,16 +11,17 @@ interface UserRef {
   lastName: string;
   email: string;
   roleName?: string;
+  permissions?: string[];
 }
 
 interface DocumentAssignment {
   id: string;
-  assigneeId: string;
-  taskType: 'REVIEW' | 'APPROVAL' | 'QUALITY_RELEASE';
+  assignedToId: string;
+  assignmentType: 'REVIEW' | 'APPROVAL' | 'QUALITY_RELEASE';
   status: 'PENDING' | 'COMPLETED' | 'REJECTED';
   comments?: string | null;
   completedAt?: string | null;
-  assignee: UserRef;
+  assignedTo: UserRef;
 }
 
 interface DocumentHistoryItem {
@@ -31,32 +33,51 @@ interface DocumentHistoryItem {
   user: UserRef;
 }
 
+interface DocumentRevisionItem {
+  id: string;
+  versionMajor: number;
+  versionMinor: number;
+  effectiveDate: string;
+  summaryOfChange: string;
+  author: UserRef;
+}
+
+interface DocumentSignatureItem {
+  id: string;
+  signatureMeaning: string;
+  signedAt: string;
+  signer: UserRef;
+}
+
 interface DocumentDetailModel {
   id: string;
-  docId: string;
+  documentId: string;
   title: string;
-  docType: string;
-  majorVersion: number;
-  minorVersion: number;
-  status: 'DRAFT' | 'IN_REVIEW' | 'PENDING_APPROVAL' | 'PENDING_QUALITY_RELEASE' | 'EFFECTIVE' | 'ARCHIVED';
+  documentType: string;
+  versionMajor: number;
+  versionMinor: number;
+  status: 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'EFFECTIVE' | 'OBSOLETE';
   content?: string | null;
   authorId: string;
+  effectiveDate?: string | null;
   author: UserRef;
   assignments: DocumentAssignment[];
   history: DocumentHistoryItem[];
+  revisions: DocumentRevisionItem[];
+  signatures: DocumentSignatureItem[];
 }
 
 export function DocumentDetail() {
   const { id } = useParams<{ id: string }>();
   const { token, user } = useAuth();
   const navigate = useNavigate();
-  const [document, setDocument] = useState<DocumentDetailModel | null>(null);
+  const [doc, setDoc] = useState<DocumentDetailModel | null>(null);
   const [users, setUsers] = useState<UserRef[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const [title, setTitle] = useState('');
-  const [docType, setDocType] = useState('SOP');
+  const [documentType, setDocumentType] = useState('SOP');
   const [content, setContent] = useState('');
   const [reviewComment, setReviewComment] = useState('');
   const [submitComment, setSubmitComment] = useState('');
@@ -72,10 +93,11 @@ export function DocumentDetail() {
     if (!token || !id) return;
     try {
       setLoading(true);
+      setError('');
       const data = await apiRequest<{ document: DocumentDetailModel }>(`/api/documents/${id}`, { token });
-      setDocument(data.document);
+      setDoc(data.document);
       setTitle(data.document.title);
-      setDocType(data.document.docType);
+      setDocumentType(data.document.documentType);
       setContent(data.document.content || '');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load document');
@@ -97,59 +119,106 @@ export function DocumentDetail() {
 
   const pendingMyReview = useMemo(
     () =>
-      document?.assignments.find(
-        (a) => a.assigneeId === user?.id && a.taskType === 'REVIEW' && a.status === 'PENDING'
+      doc?.assignments.find(
+        (a) => a.assignedToId === user?.id && a.assignmentType === 'REVIEW' && a.status === 'PENDING'
       ),
-    [document, user?.id]
+    [doc, user?.id]
   );
   const pendingMyApproval = useMemo(
     () =>
-      document?.assignments.find(
-        (a) => a.assigneeId === user?.id && a.taskType === 'APPROVAL' && a.status === 'PENDING'
+      doc?.assignments.find(
+        (a) => a.assignedToId === user?.id && a.assignmentType === 'APPROVAL' && a.status === 'PENDING'
       ),
-    [document, user?.id]
+    [doc, user?.id]
   );
   const pendingMyRelease = useMemo(
     () =>
-      document?.assignments.find(
-        (a) => a.assigneeId === user?.id && a.taskType === 'QUALITY_RELEASE' && a.status === 'PENDING'
+      doc?.assignments.find(
+        (a) => a.assignedToId === user?.id && a.assignmentType === 'QUALITY_RELEASE' && a.status === 'PENDING'
       ),
-    [document, user?.id]
+    [doc, user?.id]
   );
 
-  if (loading) return <p className="text-gray-400">Loading document…</p>;
+  if (loading) return <p className="text-gray-400">Loading document...</p>;
   if (error) return <p className="text-compliance-red">{error}</p>;
-  if (!document) return <p className="text-gray-400">Document not found.</p>;
+  if (!doc) return <p className="text-gray-400">Document not found.</p>;
 
-  const isAuthor = user?.id === document.authorId;
-  const canEditDraft = isAuthor && document.status === 'DRAFT';
+  const isAuthor = user?.id === doc.authorId;
+  const canEdit = isAuthor && (doc.status === 'DRAFT' || doc.status === 'IN_REVIEW');
+  const canSubmitReview = isAuthor && doc.status === 'DRAFT';
+  const canApprove = !!pendingMyApproval && doc.status === 'IN_REVIEW';
+  const canRelease = (!!pendingMyRelease || user?.roleName === 'Admin') && doc.status === 'APPROVED';
+  const canRevise = doc.status === 'EFFECTIVE';
 
   const reviewers = users.filter((u) => u.id !== user?.id);
-  const approvers = users.filter((u) => ['Manager', 'Quality'].includes(u.roleName || '') && u.id !== user?.id);
+  const approvers = users.filter(
+    (u) => ['Manager', 'Quality Manager', 'Admin'].includes(u.roleName || '') && u.id !== user?.id
+  );
+
+  const openPdf = async (uncontrolled: boolean) => {
+    if (!token) return;
+    try {
+      const response = await fetch(
+        apiUrl(`/api/documents/${doc.id}/pdf?uncontrolled=${uncontrolled ? 'true' : 'false'}`),
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error((payload as { error?: string }).error || 'Failed to generate PDF');
+      }
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      if (uncontrolled) {
+        const anchor = window.document.createElement('a');
+        anchor.href = blobUrl;
+        anchor.download = `${doc.documentId}-v${doc.versionMajor}.${doc.versionMinor}.pdf`;
+        window.document.body.appendChild(anchor);
+        anchor.click();
+        window.document.body.removeChild(anchor);
+      } else {
+        window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      }
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to open PDF');
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1>{document.docId} — {document.title}</h1>
-          <p className="text-gray-500 mt-1">
-            {document.docType} • Version {document.majorVersion}.{document.minorVersion} • Author: {document.author.firstName} {document.author.lastName}
+          <h1>
+            {doc.documentId} - {doc.title}
+          </h1>
+          <p className="mt-1 text-gray-500">
+            {doc.documentType} • Version {doc.versionMajor}.{doc.versionMinor} • Author:{' '}
+            {doc.author.firstName} {doc.author.lastName}
           </p>
         </div>
-        <Badge variant="info">{document.status.replace(/_/g, ' ')}</Badge>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" onClick={() => openPdf(false)}>
+            View PDF
+          </Button>
+          <Button variant="secondary" onClick={() => openPdf(true)}>
+            Download Uncontrolled Copy
+          </Button>
+          <Badge variant="info">{doc.status.replace(/_/g, ' ')}</Badge>
+        </div>
       </div>
 
       <Card padding="md">
-        <h2 className="text-lg text-white mb-4">Document</h2>
-
-        {canEditDraft ? (
+        <h2 className="mb-4 text-lg text-white">Document</h2>
+        {canEdit ? (
           <div className="space-y-4">
             <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
             <div>
-              <label className="label-caps block mb-1.5">Document Type</label>
+              <label className="label-caps mb-1.5 block">Document Type</label>
               <select
-                value={docType}
-                onChange={(e) => setDocType(e.target.value)}
+                value={documentType}
+                onChange={(e) => setDocumentType(e.target.value)}
                 className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
               >
                 <option value="SOP">SOP</option>
@@ -160,7 +229,7 @@ export function DocumentDetail() {
               </select>
             </div>
             <div>
-              <label className="label-caps block mb-1.5">Content</label>
+              <label className="label-caps mb-1.5 block">Content (Markdown)</label>
               <textarea
                 rows={12}
                 value={content}
@@ -168,37 +237,37 @@ export function DocumentDetail() {
                 className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
               />
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={async () => {
-                  if (!token) return;
-                  await apiRequest(`/api/documents/${document.id}`, {
-                    token,
-                    method: 'PATCH',
-                    body: { title, docType, content },
-                  });
-                  fetchDocument();
-                }}
-              >
-                Save Draft
-              </Button>
-            </div>
+            <Button
+              onClick={async () => {
+                if (!token) return;
+                await apiRequest(`/api/documents/${doc.id}`, {
+                  token,
+                  method: 'PUT',
+                  body: { title, documentType, content },
+                });
+                await fetchDocument();
+              }}
+            >
+              Save Changes
+            </Button>
           </div>
         ) : (
-          <div className="rounded-lg border border-surface-border bg-surface-overlay p-4 whitespace-pre-wrap text-gray-200 min-h-[240px]">
-            {document.content || 'No content provided.'}
+          <div className="min-h-[240px] rounded-lg border border-surface-border bg-surface-overlay p-4">
+            <div className="prose prose-invert max-w-none prose-p:text-gray-200 prose-headings:text-white">
+              <ReactMarkdown>{doc.content || 'No content provided.'}</ReactMarkdown>
+            </div>
           </div>
         )}
       </Card>
 
-      {canEditDraft && (
+      {canSubmitReview && (
         <Card padding="md">
-          <h2 className="text-lg text-white mb-4">Submit for Review</h2>
-          <p className="text-sm text-gray-500 mb-3">Select reviewers and one final approver.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <h2 className="mb-4 text-lg text-white">Submit for Review</h2>
+          <p className="mb-3 text-sm text-gray-500">Select reviewers and one approver.</p>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="label-caps block mb-1.5">Reviewers</label>
-              <div className="space-y-2 max-h-48 overflow-y-auto rounded-lg border border-surface-border p-3">
+              <label className="label-caps mb-1.5 block">Reviewers</label>
+              <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-surface-border p-3">
                 {reviewers.map((reviewer) => (
                   <label key={reviewer.id} className="flex items-center gap-2 text-sm text-gray-300">
                     <input
@@ -206,7 +275,9 @@ export function DocumentDetail() {
                       checked={reviewerIds.includes(reviewer.id)}
                       onChange={(e) =>
                         setReviewerIds((prev) =>
-                          e.target.checked ? [...prev, reviewer.id] : prev.filter((id) => id !== reviewer.id)
+                          e.target.checked
+                            ? [...new Set([...prev, reviewer.id])]
+                            : prev.filter((value) => value !== reviewer.id)
                         )
                       }
                     />
@@ -216,7 +287,7 @@ export function DocumentDetail() {
               </div>
             </div>
             <div>
-              <label className="label-caps block mb-1.5">Approver</label>
+              <label className="label-caps mb-1.5 block">Approver</label>
               <select
                 value={approverId}
                 onChange={(e) => setApproverId(e.target.value)}
@@ -230,7 +301,7 @@ export function DocumentDetail() {
                 ))}
               </select>
               <div className="mt-3">
-                <label className="label-caps block mb-1.5">Submission Comments</label>
+                <label className="label-caps mb-1.5 block">Comments</label>
                 <textarea
                   value={submitComment}
                   onChange={(e) => setSubmitComment(e.target.value)}
@@ -244,12 +315,15 @@ export function DocumentDetail() {
             <Button
               onClick={async () => {
                 if (!token) return;
-                await apiRequest(`/api/documents/${document.id}/submit`, {
+                await apiRequest(`/api/documents/${doc.id}/submit-review`, {
                   token,
                   method: 'POST',
                   body: { reviewerIds, approverId, comments: submitComment },
                 });
-                fetchDocument();
+                setReviewerIds([]);
+                setApproverId('');
+                setSubmitComment('');
+                await fetchDocument();
               }}
             >
               Submit for Review
@@ -258,9 +332,9 @@ export function DocumentDetail() {
         </Card>
       )}
 
-      {pendingMyReview && document.status === 'IN_REVIEW' && (
+      {pendingMyReview && doc.status === 'IN_REVIEW' && (
         <Card padding="md">
-          <h2 className="text-lg text-white mb-2">Review Decision</h2>
+          <h2 className="mb-2 text-lg text-white">Review Decision</h2>
           <textarea
             rows={4}
             value={reviewComment}
@@ -273,13 +347,13 @@ export function DocumentDetail() {
               variant="secondary"
               onClick={async () => {
                 if (!token) return;
-                await apiRequest(`/api/documents/${document.id}/review`, {
+                await apiRequest(`/api/documents/${doc.id}/review`, {
                   token,
                   method: 'POST',
                   body: { decision: 'APPROVED_WITH_COMMENTS', comments: reviewComment },
                 });
                 setReviewComment('');
-                fetchDocument();
+                await fetchDocument();
               }}
             >
               Approve with Comments
@@ -288,13 +362,13 @@ export function DocumentDetail() {
               variant="danger"
               onClick={async () => {
                 if (!token) return;
-                await apiRequest(`/api/documents/${document.id}/review`, {
+                await apiRequest(`/api/documents/${doc.id}/review`, {
                   token,
                   method: 'POST',
                   body: { decision: 'REQUIRES_REVISION', comments: reviewComment },
                 });
                 setReviewComment('');
-                fetchDocument();
+                await fetchDocument();
               }}
             >
               Requires Revision
@@ -303,21 +377,21 @@ export function DocumentDetail() {
         </Card>
       )}
 
-      {pendingMyApproval && document.status === 'PENDING_APPROVAL' && (
+      {canApprove && (
         <Card padding="md">
-          <h2 className="text-lg text-white mb-2">Approval</h2>
-          <p className="text-sm text-gray-400 mb-3">
-            Approval requires your password and records a SHA-256 signature for 21 CFR Part 11 evidence.
+          <h2 className="mb-2 text-lg text-white">Approval</h2>
+          <p className="mb-3 text-sm text-gray-400">
+            Approval requires password re-entry and records a 21 CFR Part 11 digital signature.
           </p>
           <Button onClick={() => setPasswordModal('approve')}>Approve Document</Button>
         </Card>
       )}
 
-      {(pendingMyRelease || user?.roleName === 'Quality') && document.status === 'PENDING_QUALITY_RELEASE' && (
+      {canRelease && (
         <Card padding="md">
-          <h2 className="text-lg text-white mb-2">Quality Release</h2>
-          <p className="text-sm text-gray-400 mb-3">
-            Final quality release requires your password and records digital signature evidence.
+          <h2 className="mb-2 text-lg text-white">Quality Release</h2>
+          <p className="mb-3 text-sm text-gray-400">
+            Final quality release requires password re-entry and records digital signature evidence.
           </p>
           <Button variant="success" onClick={() => setPasswordModal('release')}>
             Release Document
@@ -325,42 +399,98 @@ export function DocumentDetail() {
         </Card>
       )}
 
-      {document.status === 'EFFECTIVE' && (
+      {canRevise && (
         <Card padding="md">
-          <h2 className="text-lg text-white mb-2">Revise Document</h2>
-          <p className="text-sm text-gray-400 mb-3">
-            Create a new draft revision from this effective version.
+          <h2 className="mb-2 text-lg text-white">Revise Document</h2>
+          <p className="mb-3 text-sm text-gray-400">
+            Create a new major or minor revision from this effective document.
           </p>
           <Button onClick={() => setShowReviseModal(true)}>Revise</Button>
         </Card>
       )}
 
       <Card padding="md">
-        <h2 className="text-lg text-white mb-4">History</h2>
-        {document.history.length === 0 ? (
+        <h2 className="mb-4 text-lg text-white">Approval & Signature History</h2>
+        {doc.signatures.length === 0 ? (
+          <p className="text-sm text-gray-500">No signatures captured yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-surface-border text-left text-gray-400">
+                  <th className="py-2">Meaning</th>
+                  <th className="py-2">Signer</th>
+                  <th className="py-2">Signed At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {doc.signatures.map((signature) => (
+                  <tr key={signature.id} className="border-b border-surface-border text-gray-200">
+                    <td className="py-2">{signature.signatureMeaning}</td>
+                    <td className="py-2">
+                      {signature.signer.firstName} {signature.signer.lastName}
+                    </td>
+                    <td className="py-2">{new Date(signature.signedAt).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <Card padding="md">
+        <h2 className="mb-4 text-lg text-white">Revision History</h2>
+        {doc.revisions.length === 0 ? (
+          <p className="text-sm text-gray-500">No revision entries yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-surface-border text-left text-gray-400">
+                  <th className="py-2">Version</th>
+                  <th className="py-2">Effective Date</th>
+                  <th className="py-2">Author</th>
+                  <th className="py-2">Summary</th>
+                </tr>
+              </thead>
+              <tbody>
+                {doc.revisions.map((revision) => (
+                  <tr key={revision.id} className="border-b border-surface-border text-gray-200">
+                    <td className="py-2">
+                      {revision.versionMajor}.{revision.versionMinor}
+                    </td>
+                    <td className="py-2">{new Date(revision.effectiveDate).toLocaleDateString()}</td>
+                    <td className="py-2">
+                      {revision.author.firstName} {revision.author.lastName}
+                    </td>
+                    <td className="py-2">{revision.summaryOfChange}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <Card padding="md">
+        <h2 className="mb-4 text-lg text-white">Audit Trail</h2>
+        {doc.history.length === 0 ? (
           <p className="text-sm text-gray-500">No history entries yet.</p>
         ) : (
           <ul className="space-y-3">
-            {document.history.map((item) => (
+            {doc.history.map((item) => (
               <li key={item.id} className="rounded-lg border border-surface-border bg-surface-overlay p-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-gray-200">
-                    {item.action} — {item.user.firstName} {item.user.lastName}
+                    {item.action} - {item.user.firstName} {item.user.lastName}
                   </p>
                   <p className="text-xs text-gray-500">{new Date(item.timestamp).toLocaleString()}</p>
                 </div>
                 {item.details && (
-                  <pre className="mt-2 text-xs text-gray-400 whitespace-pre-wrap">
+                  <pre className="mt-2 whitespace-pre-wrap text-xs text-gray-400">
                     {JSON.stringify(item.details, null, 2)}
                   </pre>
-                )}
-                {item.digitalSignature && (
-                  <div className="mt-2 rounded-md border border-mactech-blue/40 bg-mactech-blue-muted p-2 text-xs text-gray-200">
-                    <p className="font-medium mb-1">Digital Signature Evidence</p>
-                    <pre className="whitespace-pre-wrap">
-                      {JSON.stringify(item.digitalSignature, null, 2)}
-                    </pre>
-                  </div>
                 )}
               </li>
             ))}
@@ -368,29 +498,21 @@ export function DocumentDetail() {
         )}
       </Card>
 
-      <Modal
-        isOpen={showReviseModal}
-        onClose={() => setShowReviseModal(false)}
-        title="Choose Revision Type"
-      >
+      <Modal isOpen={showReviseModal} onClose={() => setShowReviseModal(false)} title="Choose Revision Type">
         <div className="space-y-3">
           <p className="text-sm text-gray-400">
-            Major revision: increments major version and resets minor to 0. Minor revision:
-            increments only the minor version.
+            Major revision increments major and resets minor to 0. Minor revision increments only the minor version.
           </p>
           <div className="flex gap-2">
             <Button
               variant="secondary"
               onClick={async () => {
                 if (!token) return;
-                const data = await apiRequest<{ document: DocumentDetailModel }>(
-                  `/api/documents/${document.id}/revise`,
-                  {
-                    token,
-                    method: 'POST',
-                    body: { revisionType: 'minor' },
-                  }
-                );
+                const data = await apiRequest<{ document: DocumentDetailModel }>(`/api/documents/${doc.id}/revise`, {
+                  token,
+                  method: 'POST',
+                  body: { revisionType: 'minor' },
+                });
                 setShowReviseModal(false);
                 navigate(`/documents/${data.document.id}`);
               }}
@@ -400,14 +522,11 @@ export function DocumentDetail() {
             <Button
               onClick={async () => {
                 if (!token) return;
-                const data = await apiRequest<{ document: DocumentDetailModel }>(
-                  `/api/documents/${document.id}/revise`,
-                  {
-                    token,
-                    method: 'POST',
-                    body: { revisionType: 'major' },
-                  }
-                );
+                const data = await apiRequest<{ document: DocumentDetailModel }>(`/api/documents/${doc.id}/revise`, {
+                  token,
+                  method: 'POST',
+                  body: { revisionType: 'major' },
+                });
                 setShowReviseModal(false);
                 navigate(`/documents/${data.document.id}`);
               }}
@@ -425,7 +544,11 @@ export function DocumentDetail() {
           setSignaturePassword('');
           setSignatureComment('');
         }}
-        title={passwordModal === 'approve' ? 'Approve Document (Digital Signature)' : 'Quality Release (Digital Signature)'}
+        title={
+          passwordModal === 'approve'
+            ? 'Approve Document (Digital Signature)'
+            : 'Quality Release (Digital Signature)'
+        }
         footer={
           <>
             <Button
@@ -443,8 +566,8 @@ export function DocumentDetail() {
                 if (!token || !passwordModal) return;
                 await apiRequest(
                   passwordModal === 'approve'
-                    ? `/api/documents/${document.id}/approve`
-                    : `/api/documents/${document.id}/release`,
+                    ? `/api/documents/${doc.id}/approve`
+                    : `/api/documents/${doc.id}/quality-release`,
                   {
                     token,
                     method: 'POST',
@@ -454,7 +577,7 @@ export function DocumentDetail() {
                 setPasswordModal(null);
                 setSignaturePassword('');
                 setSignatureComment('');
-                fetchDocument();
+                await fetchDocument();
               }}
             >
               Sign & Submit
@@ -470,7 +593,7 @@ export function DocumentDetail() {
             onChange={(e) => setSignaturePassword(e.target.value)}
           />
           <div>
-            <label className="label-caps block mb-1.5">Comment</label>
+            <label className="label-caps mb-1.5 block">Comment</label>
             <textarea
               value={signatureComment}
               onChange={(e) => setSignatureComment(e.target.value)}

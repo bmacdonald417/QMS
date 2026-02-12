@@ -12,7 +12,7 @@ router.get('/', async (_req, res) => {
         firstName: true,
         lastName: true,
         email: true,
-        role: { select: { name: true } },
+        role: { select: { name: true, permissions: true } },
       },
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
     });
@@ -23,6 +23,7 @@ router.get('/', async (_req, res) => {
         lastName: u.lastName,
         email: u.email,
         roleName: u.role.name,
+        permissions: u.role.permissions || [],
       })),
     });
   } catch (err) {

@@ -9,6 +9,7 @@ export interface AuthUser {
   lastName: string;
   email: string;
   roleName: string;
+  permissions?: string[];
 }
 
 interface AuthState {

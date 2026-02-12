@@ -8,14 +8,14 @@ router.get('/', async (req, res) => {
   try {
     const assignments = await prisma.documentAssignment.findMany({
       where: {
-        assigneeId: req.user.id,
+        assignedToId: req.user.id,
         status: 'PENDING',
       },
       include: {
         document: {
           select: {
             id: true,
-            docId: true,
+            documentId: true,
             title: true,
             status: true,
           },
@@ -26,10 +26,10 @@ router.get('/', async (req, res) => {
 
     const tasks = assignments.map((assignment) => ({
       id: assignment.id,
-      taskType: assignment.taskType,
+      taskType: assignment.assignmentType,
       status: assignment.status,
       documentId: assignment.document.id,
-      docId: assignment.document.docId,
+      docId: assignment.document.documentId,
       title: assignment.document.title,
       documentStatus: assignment.document.status,
       link: `/documents/${assignment.document.id}`,

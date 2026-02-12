@@ -39,8 +39,10 @@ const icons = {
  */
 export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
   switch (roleName) {
+    case 'Admin':
     case 'System Administrator':
       return [{ path: '/system', label: 'System Management', icon: icons.system }];
+    case 'Quality Manager':
     case 'Quality':
       return [
         { path: '/', label: 'Dashboard', icon: icons.dashboard },
@@ -51,6 +53,7 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
         { path: '/audits', label: 'Audits', icon: icons.audits },
         { path: '/suppliers', label: 'Suppliers', icon: icons.suppliers },
         { path: '/risk', label: 'Risk Management', icon: icons.risk },
+        { path: '/equipment', label: 'Equipment & Assets', icon: icons.equipment },
       ];
     case 'Manager':
       return [
@@ -65,8 +68,6 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
         { path: '/my-training', label: 'My Training', icon: icons.training },
         { path: '/documents', label: 'Documents', icon: icons.documents },
       ];
-    case 'Read-Only':
-      return [{ path: '/documents', label: 'Documents', icon: icons.documents }];
     default:
       return [{ path: '/', label: 'Dashboard', icon: icons.dashboard }];
   }

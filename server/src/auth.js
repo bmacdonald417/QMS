@@ -43,6 +43,7 @@ router.post('/login', async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         roleName: user.role.name,
+        permissions: user.role.permissions || [],
       },
     });
   } catch (err) {
@@ -71,7 +72,7 @@ export async function authMiddleware(req, res, next) {
         firstName: true,
         lastName: true,
         email: true,
-        role: { select: { name: true } },
+        role: { select: { name: true, permissions: true } },
       },
     });
     if (!user) {
@@ -84,6 +85,7 @@ export async function authMiddleware(req, res, next) {
       lastName: user.lastName,
       email: user.email,
       roleName: user.role.name,
+      permissions: user.role.permissions || [],
     };
     return next();
   } catch (err) {
@@ -96,6 +98,18 @@ export function requireRoles(...allowedRoles) {
     const role = req.user?.roleName;
     if (!role || !allowedRoles.includes(role)) {
       return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    next();
+  };
+}
+
+export function requirePermission(permission) {
+  return (req, res, next) => {
+    const roleName = req.user?.roleName;
+    const permissions = req.user?.permissions || [];
+    if (roleName === 'Admin') return next();
+    if (!permissions.includes(permission)) {
+      return res.status(403).json({ error: `Missing permission: ${permission}` });
     }
     next();
   };

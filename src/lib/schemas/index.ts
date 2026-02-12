@@ -7,21 +7,20 @@ export const requiredString = z.string().min(1, 'Required').trim();
 export const documentStatusSchema = z.enum([
   'DRAFT',
   'IN_REVIEW',
-  'PENDING_APPROVAL',
-  'PENDING_QUALITY_RELEASE',
+  'APPROVED',
   'EFFECTIVE',
-  'ARCHIVED',
+  'OBSOLETE',
 ]);
 
 /** Document metadata for Document Control */
 export const documentSchema = z.object({
   id: z.string(),
   title: requiredString,
-  docId: requiredString,
-  majorVersion: z.number().int().min(1),
-  minorVersion: z.number().int().min(0),
+  documentId: requiredString,
+  versionMajor: z.number().int().min(1),
+  versionMinor: z.number().int().min(0),
   status: documentStatusSchema,
-  docType: requiredString,
+  documentType: requiredString,
   authorId: z.string(),
   effectiveDate: z.string().datetime().optional(),
   createdAt: z.string().datetime(),

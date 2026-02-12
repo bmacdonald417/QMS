@@ -5,22 +5,63 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 const ROLES = [
-  { name: 'System Administrator' },
-  { name: 'Quality' },
-  { name: 'Manager' },
-  { name: 'User' },
-  { name: 'Read-Only' },
+  {
+    name: 'Admin',
+    permissions: [
+      'document.create',
+      'document.review',
+      'document.approve',
+      'document.release',
+      'document.revise.major',
+      'document.revise.minor',
+    ],
+  },
+  {
+    name: 'Quality Manager',
+    permissions: [
+      'document.create',
+      'document.review',
+      'document.approve',
+      'document.release',
+      'document.revise.major',
+      'document.revise.minor',
+    ],
+  },
+  {
+    name: 'Manager',
+    permissions: [
+      'document.create',
+      'document.review',
+      'document.approve',
+      'document.revise.major',
+      'document.revise.minor',
+    ],
+  },
+  {
+    name: 'User',
+    permissions: [
+      'document.create',
+      'document.review',
+      'document.revise.major',
+      'document.revise.minor',
+    ],
+  },
 ];
 
-const DEMO_PASSWORD = 'Password123!';
+const DEMO_PASSWORD = 'password123';
 const SALT_ROUNDS = 10;
 
 const DEMO_USERS = [
-  { firstName: 'Alex', lastName: 'Admin', email: 'alex.admin@qms.demo', roleName: 'System Administrator' },
-  { firstName: 'Brenda', lastName: 'Quality', email: 'brenda.quality@qms.demo', roleName: 'Quality' },
+  { firstName: 'Admin', lastName: 'User', email: 'admin@mactech.com', roleName: 'Admin' },
+  { firstName: 'Quality', lastName: 'Manager', email: 'quality@mactech.com', roleName: 'Quality Manager' },
+  { firstName: 'Department', lastName: 'Manager', email: 'manager@mactech.com', roleName: 'Manager' },
+  { firstName: 'General', lastName: 'User', email: 'user@mactech.com', roleName: 'User' },
+
+  // Backward-compatible demo users used in previous setup/docs.
+  { firstName: 'Alex', lastName: 'Admin', email: 'alex.admin@qms.demo', roleName: 'Admin' },
+  { firstName: 'Brenda', lastName: 'Quality', email: 'brenda.quality@qms.demo', roleName: 'Quality Manager' },
   { firstName: 'Charles', lastName: 'Manager', email: 'charles.manager@qms.demo', roleName: 'Manager' },
   { firstName: 'David', lastName: 'User', email: 'david.user@qms.demo', roleName: 'User' },
-  { firstName: 'Evelyn', lastName: 'Readonly', email: 'evelyn.readonly@qms.demo', roleName: 'Read-Only' },
 ];
 
 async function main() {
@@ -30,7 +71,7 @@ async function main() {
     await prisma.role.upsert({
       where: { name: r.name },
       create: r,
-      update: {},
+      update: { permissions: r.permissions },
     });
   }
 
@@ -50,7 +91,9 @@ async function main() {
     });
   }
 
-  console.log('Seeded 5 roles and 5 demo users. Password for all: ' + DEMO_PASSWORD);
+  console.log(
+    `Seeded ${ROLES.length} roles and ${DEMO_USERS.length} demo users. Password for all: ${DEMO_PASSWORD}`
+  );
 }
 
 main()

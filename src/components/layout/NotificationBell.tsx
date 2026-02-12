@@ -8,7 +8,7 @@ interface NotificationItem {
   id: string;
   message: string;
   link: string;
-  isRead: boolean;
+  read: boolean;
   createdAt: string;
 }
 
@@ -19,7 +19,7 @@ export function NotificationBell() {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const unreadCount = useMemo(() => items.filter((n) => !n.isRead).length, [items]);
+  const unreadCount = useMemo(() => items.filter((n) => !n.read).length, [items]);
 
   useEffect(() => {
     if (!token) return;
@@ -58,11 +58,11 @@ export function NotificationBell() {
 
   const markRead = async (notificationId: string) => {
     if (!token) return;
-    setItems((prev) => prev.map((item) => (item.id === notificationId ? { ...item, isRead: true } : item)));
+    setItems((prev) => prev.map((item) => (item.id === notificationId ? { ...item, read: true } : item)));
     try {
       await apiRequest(`/api/notifications/${notificationId}/read`, {
         token,
-        method: 'PATCH',
+        method: 'PUT',
       });
     } catch {
       // Keep UX optimistic; refetch will reconcile.
@@ -102,7 +102,7 @@ export function NotificationBell() {
                     <Link
                       to={item.link}
                       className={`block px-4 py-3 text-sm transition-colors ${
-                        item.isRead
+                        item.read
                           ? 'text-gray-400 hover:bg-surface-overlay'
                           : 'text-gray-200 bg-mactech-blue-muted/30 hover:bg-surface-overlay'
                       }`}

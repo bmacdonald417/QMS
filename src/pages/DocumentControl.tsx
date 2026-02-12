@@ -8,11 +8,11 @@ import { apiRequest } from '@/lib/api';
 
 interface DocumentListItem {
   id: string;
-  docId: string;
+  documentId: string;
   title: string;
-  docType: string;
-  majorVersion: number;
-  minorVersion: number;
+  documentType: string;
+  versionMajor: number;
+  versionMinor: number;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -27,10 +27,9 @@ interface DocumentListItem {
 const statusVariant: Record<string, 'default' | 'info' | 'success' | 'warning' | 'neutral' | 'danger'> = {
   DRAFT: 'neutral',
   IN_REVIEW: 'warning',
-  PENDING_APPROVAL: 'info',
-  PENDING_QUALITY_RELEASE: 'info',
+  APPROVED: 'info',
   EFFECTIVE: 'success',
-  ARCHIVED: 'default',
+  OBSOLETE: 'default',
 };
 
 export function DocumentControl() {
@@ -40,7 +39,7 @@ export function DocumentControl() {
   const [loading, setLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState('');
-  const [docType, setDocType] = useState('SOP');
+  const [documentType, setDocumentType] = useState('SOP');
   const [content, setContent] = useState('');
   const [error, setError] = useState('');
 
@@ -62,14 +61,14 @@ export function DocumentControl() {
   }, [token]);
 
   const columns: Column<DocumentListItem>[] = [
-    { key: 'docId', header: 'Doc ID', width: '140px' },
+    { key: 'documentId', header: 'Doc ID', width: '140px' },
     { key: 'title', header: 'Title' },
-    { key: 'docType', header: 'Type', width: '140px' },
+    { key: 'documentType', header: 'Type', width: '140px' },
     {
       key: 'version',
       header: 'Version',
       width: '100px',
-      render: (row) => `v${row.majorVersion}.${row.minorVersion}`,
+      render: (row) => `v${row.versionMajor}.${row.versionMinor}`,
     },
     {
       key: 'status',
@@ -116,12 +115,12 @@ export function DocumentControl() {
                   const data = await apiRequest<{ document: DocumentListItem }>('/api/documents', {
                     token,
                     method: 'POST',
-                    body: { title, docType, content },
+                    body: { title, documentType, content },
                   });
                   setShowCreate(false);
                   setTitle('');
                   setContent('');
-                  setDocType('SOP');
+                  setDocumentType('SOP');
                   navigate(`/documents/${data.document.id}`);
                 } catch (err) {
                   setError(err instanceof Error ? err.message : 'Failed to create draft');
@@ -138,8 +137,8 @@ export function DocumentControl() {
           <div>
             <label className="label-caps block mb-1.5">Document Type</label>
             <select
-              value={docType}
-              onChange={(e) => setDocType(e.target.value)}
+              value={documentType}
+              onChange={(e) => setDocumentType(e.target.value)}
               className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
             >
               <option value="SOP">SOP</option>
