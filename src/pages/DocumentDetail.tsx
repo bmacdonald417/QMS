@@ -168,6 +168,22 @@ export function DocumentDetail() {
         const payload = await response.json().catch(() => ({}));
         throw new Error((payload as { error?: string }).error || 'Failed to generate PDF');
       }
+      const contentType = (response.headers.get('content-type') || '').toLowerCase();
+      if (!contentType.includes('application/pdf')) {
+        const bodyText = await response.text().catch(() => '');
+        let serverError = '';
+        if (bodyText) {
+          try {
+            serverError = (JSON.parse(bodyText) as { error?: string }).error || '';
+          } catch {
+            // Non-JSON body; keep generic message below.
+          }
+        }
+        throw new Error(
+          serverError ||
+            'PDF endpoint returned a non-PDF response. Verify API URL and backend PDF runtime.'
+        );
+      }
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       if (uncontrolled) {
@@ -177,10 +193,15 @@ export function DocumentDetail() {
         window.document.body.appendChild(anchor);
         anchor.click();
         window.document.body.removeChild(anchor);
+        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 15000);
       } else {
-        window.open(blobUrl, '_blank', 'noopener,noreferrer');
+        const opened = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+        if (!opened) {
+          throw new Error('Popup blocked while opening PDF. Please allow popups for this site.');
+        }
+        // Keep the object URL alive long enough for embedded viewers to finish loading.
+        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 300000);
       }
-      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to open PDF');
     }
