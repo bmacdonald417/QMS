@@ -2,22 +2,30 @@ import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { Search, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui';
+import { useAuth } from '@/context/AuthContext';
 
 const pathToBreadcrumb: Record<string, string> = {
   '': 'Dashboard',
   documents: 'Document Control',
   training: 'Training & Competency',
+  'team-documents': 'Team Documents',
+  'team-training': 'Team Training',
+  'my-tasks': 'My Tasks',
+  'my-training': 'My Training',
   audits: 'Audit Management',
   capa: 'CAPA',
   'change-control': 'Change Control',
   risk: 'Risk Management',
   equipment: 'Equipment & Assets',
   suppliers: 'Supplier Quality',
+  system: 'System Management',
+  approvals: 'Approvals',
 };
 
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
 
   const segments = location.pathname.split('/').filter(Boolean);
@@ -59,11 +67,17 @@ export function Header() {
             className="w-full rounded-lg border border-surface-border bg-surface-overlay py-2 pl-9 pr-3 text-sm text-gray-100 placeholder-gray-500 focus:border-mactech-blue focus:outline-none focus:ring-1 focus:ring-mactech-blue"
           />
         </div>
+        <span className="text-xs text-gray-400 hidden sm:inline">
+          {user ? `${user.firstName} ${user.lastName}` : ''}
+        </span>
         <Button
           variant="ghost"
           size="sm"
           className="gap-2 text-xs text-gray-300"
-          onClick={() => navigate('/login')}
+          onClick={() => {
+            logout();
+            navigate('/login');
+          }}
         >
           <LogOut className="h-4 w-4" />
           <span className="hidden md:inline">Sign out</span>

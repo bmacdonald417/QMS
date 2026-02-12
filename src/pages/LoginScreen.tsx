@@ -2,13 +2,12 @@ import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useNavigate } from 'react-router-dom';
 import { Input, Button } from '@/components/ui';
+import { useAuth } from '@/context/AuthContext';
 
 const loginSchema = z.object({
-  username: z
-    .string()
-    .min(1, 'Username or email is required')
-    .max(120, 'Too long'),
+  email: z.string().min(1, 'Email is required').email('Invalid email').max(120, 'Too long'),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
@@ -112,14 +111,17 @@ function AuthPanel() {
 }
 
 function AuthForm() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: '',
+      email: '',
       password: '',
       rememberMe: true,
     },
@@ -127,20 +129,28 @@ function AuthForm() {
   });
 
   const onSubmit = async (values: LoginFormValues) => {
-    // Placeholder: integrate with real auth later.
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    console.log('Login submitted', values);
+    const result = await login(values.email, values.password);
+    if (result.ok) {
+      navigate('/', { replace: true });
+    } else {
+      setError('root', { type: 'manual', message: result.error });
+    }
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      {errors.root?.message && (
+        <p className="text-sm text-compliance-red" role="alert">
+          {errors.root.message}
+        </p>
+      )}
       <Input
-        label="Username / Email"
-        type="text"
-        autoComplete="username"
+        label="Email"
+        type="email"
+        autoComplete="email"
         placeholder="you@organization.gov"
-        error={errors.username?.message}
-        {...register('username')}
+        error={errors.email?.message}
+        {...register('email')}
       />
 
       <Input

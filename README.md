@@ -31,13 +31,41 @@ Integrated **Total Quality Management System** and **Quality Assurance Managemen
 8. **Equipment & Assets** — Calibration, maintenance, validation
 9. **Supplier Quality** — Tiers, scorecards, audit logs
 
+## Backend (API + Auth)
+
+The app uses a Node.js/Express API with PostgreSQL and Prisma for auth and QMS data. See **`server/README.md`** for setup.
+
+**Demo users** (password for all: **`Password123!`**):
+
+| Role                | Email                      |
+|---------------------|----------------------------|
+| System Administrator | alex.admin@qms.demo     |
+| Quality             | brenda.quality@qms.demo   |
+| Manager             | charles.manager@qms.demo  |
+| User                | david.user@qms.demo       |
+| Read-Only           | evelyn.readonly@qms.demo  |
+
+Sidebar navigation is **role-based**: each user sees only the links allowed for their role (e.g. System Admin sees only System Management; Quality sees all QMS modules; Read-Only sees only Documents).
+
 ## Commands
+
+**Frontend (from project root):**
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
+npm run dev      # http://localhost:5173 (proxies /api to backend)
 npm run build
-npm run preview  # preview production build
+npm run preview
+```
+
+**Backend (from `server/`):**
+
+```bash
+cd server && npm install
+# Set DATABASE_URL and JWT_SECRET in .env, then:
+npx prisma generate && npx prisma db push
+npm run db:seed
+npm run dev      # http://localhost:3001
 ```
 
 ## Structure

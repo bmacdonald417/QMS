@@ -1,34 +1,14 @@
 import { NavLink } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  FileText,
-  GraduationCap,
-  ClipboardCheck,
-  AlertTriangle,
-  GitBranch,
-  Shield,
-  Wrench,
-  Truck,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const navItems: { path: string; label: string; icon: React.ReactNode }[] = [
-  { path: '/', label: 'Executive Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
-  { path: '/documents', label: 'Document Control', icon: <FileText className="h-5 w-5" /> },
-  { path: '/training', label: 'Training & Competency', icon: <GraduationCap className="h-5 w-5" /> },
-  { path: '/audits', label: 'Audit Management', icon: <ClipboardCheck className="h-5 w-5" /> },
-  { path: '/capa', label: 'CAPA', icon: <AlertTriangle className="h-5 w-5" /> },
-  { path: '/change-control', label: 'Change Control', icon: <GitBranch className="h-5 w-5" /> },
-  { path: '/risk', label: 'Risk Management', icon: <Shield className="h-5 w-5" /> },
-  { path: '/equipment', label: 'Equipment & Assets', icon: <Wrench className="h-5 w-5" /> },
-  { path: '/suppliers', label: 'Supplier Quality', icon: <Truck className="h-5 w-5" /> },
-];
+import { useAuth } from '@/context/AuthContext';
+import { getSidebarItemsForRole } from '@/lib/sidebarConfig';
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const { user } = useAuth();
+  const navItems = user ? getSidebarItemsForRole(user.roleName) : [];
 
   return (
     <motion.aside
