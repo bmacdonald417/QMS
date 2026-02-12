@@ -226,12 +226,16 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       position: absolute;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%) rotate(-45deg);
-      font-size: 48pt;
+      transform: translate(-50%, -50%) rotate(-35deg);
+      font-size: 30pt;
       font-weight: bold;
       color: rgba(255, 0, 0, 0.15);
       text-transform: uppercase;
-      white-space: nowrap;
+      width: 165mm;
+      text-align: center;
+      line-height: 1.15;
+      white-space: normal;
+      word-break: keep-all;
       pointer-events: none;
       z-index: 1000;
     }
