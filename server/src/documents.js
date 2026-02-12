@@ -106,6 +106,71 @@ router.get('/', async (_req, res) => {
   }
 });
 
+// GET /api/documents/search?query=...&tags=tag1,tag2
+router.get('/search', async (req, res) => {
+  try {
+    const query = typeof req.query.query === 'string' ? req.query.query.trim() : '';
+    const tagsParam = typeof req.query.tags === 'string' ? req.query.tags : '';
+    const tagsFilter = tagsParam
+      ? tagsParam.split(',').map((t) => t.trim()).filter(Boolean)
+      : [];
+
+    const conditions = [];
+    if (tagsFilter.length) {
+      conditions.push({ tags: { hasEvery: tagsFilter } });
+    }
+    if (query) {
+      conditions.push({
+        OR: [
+          { documentId: { contains: query, mode: 'insensitive' } },
+          { title: { contains: query, mode: 'insensitive' } },
+          { content: { contains: query, mode: 'insensitive' } },
+        ],
+      });
+    }
+    const where = conditions.length ? (conditions.length === 1 ? conditions[0] : { AND: conditions }) : undefined;
+
+    const documents = await prisma.document.findMany({
+      where,
+      include: {
+        author: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 100,
+    });
+    res.json({ documents });
+  } catch (err) {
+    console.error('Search documents error:', err);
+    res.status(500).json({ error: 'Failed to search documents' });
+  }
+});
+
+// PUT /api/documents/comments/:commentId (must be before /:id)
+router.put('/comments/:commentId', requirePermission('document.review'), async (req, res) => {
+  try {
+    const { status } = req.body;
+    const normalized = typeof status === 'string' ? status.trim().toUpperCase().replace(/-/g, '_') : '';
+    if (!['OPEN', 'RESOLVED', 'REJECTED'].includes(normalized)) {
+      return res.status(400).json({ error: 'status must be OPEN, RESOLVED, or REJECTED' });
+    }
+
+    const comment = await prisma.documentComment.findUnique({
+      where: { id: req.params.commentId },
+      include: { document: true },
+    });
+    if (!comment) return res.status(404).json({ error: 'Comment not found' });
+
+    const updated = await prisma.documentComment.update({
+      where: { id: req.params.commentId },
+      data: { status: normalized },
+    });
+    res.json({ comment: updated });
+  } catch (err) {
+    console.error('Update comment error:', err);
+    res.status(500).json({ error: 'Failed to update comment' });
+  }
+});
+
 // GET /api/documents/:id/pdf
 router.get('/:id/pdf', async (req, res) => {
   try {
@@ -184,6 +249,11 @@ router.get('/:id', async (req, res) => {
           include: { signer: { select: { id: true, firstName: true, lastName: true } } },
           orderBy: { signedAt: 'desc' },
         },
+        trainingModules: {
+          select: { id: true, title: true, dueDate: true },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
       },
     });
     if (!document) return res.status(404).json({ error: 'Document not found' });
@@ -193,6 +263,153 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch document' });
   }
 });
+
+// GET /api/documents/:id/links
+router.get('/:id/links', async (req, res) => {
+  try {
+    const docId = req.params.id;
+    const document = await prisma.document.findUnique({ where: { id: docId } });
+    if (!document) return res.status(404).json({ error: 'Document not found' });
+
+    const links = await prisma.documentLink.findMany({
+      where: {
+        OR: [{ sourceDocumentId: docId }, { targetDocumentId: docId }],
+      },
+      include: {
+        sourceDocument: { select: { id: true, documentId: true, title: true, versionMajor: true, versionMinor: true } },
+        targetDocument: { select: { id: true, documentId: true, title: true, versionMajor: true, versionMinor: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ links });
+  } catch (err) {
+    console.error('Get document links error:', err);
+    res.status(500).json({ error: 'Failed to fetch links' });
+  }
+});
+
+// POST /api/documents/:id/link
+router.post('/:id/link', requirePermission('document.create'), async (req, res) => {
+  try {
+    const { sourceDocumentId, targetDocumentId, linkType } = req.body;
+    const sourceId = sourceDocumentId || req.params.id;
+    if (!targetDocumentId || !linkType || typeof linkType !== 'string') {
+      return res.status(400).json({ error: 'targetDocumentId and linkType are required' });
+    }
+    const doc = await prisma.document.findUnique({ where: { id: sourceId } });
+    if (!doc) return res.status(404).json({ error: 'Source document not found' });
+    const target = await prisma.document.findUnique({ where: { id: targetDocumentId } });
+    if (!target) return res.status(404).json({ error: 'Target document not found' });
+    if (doc.authorId !== req.user.id) {
+      return res.status(403).json({ error: 'Only the author can add links from this document' });
+    }
+
+    const link = await prisma.documentLink.create({
+      data: {
+        sourceDocumentId: sourceId,
+        targetDocumentId,
+        linkType: linkType.trim(),
+      },
+      include: {
+        sourceDocument: { select: { id: true, documentId: true, title: true } },
+        targetDocument: { select: { id: true, documentId: true, title: true } },
+      },
+    });
+    res.status(201).json({ link });
+  } catch (err) {
+    console.error('Create document link error:', err);
+    res.status(500).json({ error: 'Failed to create link' });
+  }
+});
+
+// GET /api/documents/:id/comments
+router.get('/:id/comments', async (req, res) => {
+  try {
+    const docId = req.params.id;
+    const document = await prisma.document.findUnique({ where: { id: docId } });
+    if (!document) return res.status(404).json({ error: 'Document not found' });
+
+    const comments = await prisma.documentComment.findMany({
+      where: { documentId: docId },
+      include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    res.json({ comments });
+  } catch (err) {
+    console.error('Get document comments error:', err);
+    res.status(500).json({ error: 'Failed to fetch comments' });
+  }
+});
+
+// POST /api/documents/:id/comment
+router.post('/:id/comment', requirePermission('document.review'), async (req, res) => {
+  try {
+    const { commentText, sectionIdentifier } = req.body;
+    if (!commentText || typeof commentText !== 'string' || !commentText.trim()) {
+      return res.status(400).json({ error: 'commentText is required' });
+    }
+    const docId = req.params.id;
+    const document = await prisma.document.findUnique({ where: { id: docId } });
+    if (!document) return res.status(404).json({ error: 'Document not found' });
+
+    const comment = await prisma.documentComment.create({
+      data: {
+        documentId: docId,
+        userId: req.user.id,
+        commentText: commentText.trim(),
+        sectionIdentifier: typeof sectionIdentifier === 'string' ? sectionIdentifier.trim() || null : null,
+      },
+      include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+    });
+    res.status(201).json({ comment });
+  } catch (err) {
+    console.error('Add comment error:', err);
+    res.status(500).json({ error: 'Failed to add comment' });
+  }
+});
+
+// POST /api/documents/:id/initiate-periodic-review
+router.post(
+  '/:id/initiate-periodic-review',
+  requirePermission('document.review'),
+  async (req, res) => {
+    try {
+      const docId = req.params.id;
+      const document = await prisma.document.findUnique({ where: { id: docId } });
+      if (!document) return res.status(404).json({ error: 'Document not found' });
+      if (document.status !== 'EFFECTIVE') {
+        return res.status(400).json({ error: 'Only effective documents can have a periodic review initiated' });
+      }
+
+      const existing = await prisma.periodicReview.findFirst({
+        where: { documentId: docId, status: { in: ['PENDING', 'OVERDUE'] } },
+      });
+      if (existing) {
+        return res.status(400).json({ error: 'A periodic review is already pending for this document' });
+      }
+
+      const reviewDate = document.nextReviewDate || new Date();
+      const review = await prisma.periodicReview.create({
+        data: {
+          documentId: docId,
+          reviewDate,
+          status: reviewDate < new Date() ? 'OVERDUE' : 'PENDING',
+          reviewerId: document.authorId,
+        },
+        include: { document: { select: { id: true, documentId: true, title: true } } },
+      });
+      await createNotifications(
+        [document.authorId],
+        `Document ${document.documentId} periodic review initiated`,
+        `/documents/${docId}`
+      );
+      res.status(201).json({ review });
+    } catch (err) {
+      console.error('Initiate periodic review error:', err);
+      res.status(500).json({ error: 'Failed to initiate periodic review' });
+    }
+  }
+);
 
 // POST /api/documents
 router.post('/', requirePermission('document.create'), async (req, res) => {
@@ -252,7 +469,7 @@ router.post('/', requirePermission('document.create'), async (req, res) => {
 // PUT /api/documents/:id
 router.put('/:id', requirePermission('document.create'), async (req, res) => {
   try {
-    const { title, content, documentType } = req.body;
+    const { title, content, documentType, tags, nextReviewDate, isUnderReview } = req.body;
     const existing = await prisma.document.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: 'Document not found' });
     if (existing.authorId !== req.user.id) {
@@ -270,6 +487,12 @@ router.put('/:id', requirePermission('document.create'), async (req, res) => {
       if (!normalizedType) return res.status(400).json({ error: 'Invalid documentType' });
       updateData.documentType = normalizedType;
     }
+    if (Array.isArray(tags)) updateData.tags = tags.filter((t) => typeof t === 'string').map((t) => t.trim()).filter(Boolean);
+    if (nextReviewDate !== undefined) {
+      const d = nextReviewDate ? new Date(nextReviewDate) : null;
+      updateData.nextReviewDate = d && Number.isFinite(d.valueOf()) ? d : null;
+    }
+    if (typeof isUnderReview === 'boolean') updateData.isUnderReview = isUnderReview;
 
     const updated = await prisma.document.update({
       where: { id: req.params.id },
@@ -705,6 +928,38 @@ async function qualityReleaseHandler(req, res) {
       `Document ${document.documentId} is now effective.`,
       `/documents/${document.id}`
     );
+
+    // Automated Training Trigger: create training module and assign to required roles
+    const defaultRequiredRoles = ['User', 'Manager', 'Quality Manager'];
+    const dueDate = new Date(now);
+    dueDate.setDate(dueDate.getDate() + 30);
+    const trainingModule = await prisma.trainingModule.create({
+      data: {
+        documentId: document.id,
+        title: `Training for ${document.documentId} v${document.versionMajor}.${document.versionMinor}`,
+        description: `Complete training for document: ${document.title}`,
+        requiredRoles: defaultRequiredRoles,
+        dueDate,
+      },
+    });
+    const usersToAssign = await prisma.user.findMany({
+      where: { role: { name: { in: defaultRequiredRoles } } },
+      select: { id: true },
+    });
+    if (usersToAssign.length) {
+      await prisma.userTrainingRecord.createMany({
+        data: usersToAssign.map((u) => ({
+          trainingModuleId: trainingModule.id,
+          userId: u.id,
+          status: 'ASSIGNED',
+        })),
+      });
+      await createNotifications(
+        usersToAssign.map((u) => u.id),
+        `New training assigned: ${document.title}`,
+        `/training?module=${trainingModule.id}`
+      );
+    }
 
     res.json({ ok: true, status: 'EFFECTIVE' });
   } catch (err) {

@@ -49,6 +49,30 @@ interface DocumentSignatureItem {
   signer: UserRef;
 }
 
+interface DocumentLinkRef {
+  id: string;
+  sourceDocumentId: string;
+  targetDocumentId: string;
+  linkType: string;
+  sourceDocument: { id: string; documentId: string; title: string; versionMajor: number; versionMinor: number };
+  targetDocument: { id: string; documentId: string; title: string; versionMajor: number; versionMinor: number };
+}
+
+interface DocumentCommentRef {
+  id: string;
+  commentText: string;
+  sectionIdentifier?: string | null;
+  status: 'OPEN' | 'RESOLVED' | 'REJECTED';
+  createdAt: string;
+  user: UserRef;
+}
+
+interface TrainingModuleRef {
+  id: string;
+  title: string;
+  dueDate: string;
+}
+
 interface DocumentDetailModel {
   id: string;
   documentId: string;
@@ -60,11 +84,15 @@ interface DocumentDetailModel {
   content?: string | null;
   authorId: string;
   effectiveDate?: string | null;
+  tags?: string[];
+  nextReviewDate?: string | null;
+  isUnderReview?: boolean;
   author: UserRef;
   assignments: DocumentAssignment[];
   history: DocumentHistoryItem[];
   revisions: DocumentRevisionItem[];
   signatures: DocumentSignatureItem[];
+  trainingModules?: TrainingModuleRef[];
 }
 
 export function DocumentDetail() {
@@ -89,6 +117,15 @@ export function DocumentDetail() {
   const [signatureComment, setSignatureComment] = useState('');
   const [showReviseModal, setShowReviseModal] = useState(false);
 
+  const [links, setLinks] = useState<DocumentLinkRef[]>([]);
+  const [comments, setComments] = useState<DocumentCommentRef[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [newCommentSection, setNewCommentSection] = useState('');
+  const [linkTargetId, setLinkTargetId] = useState('');
+  const [linkType, setLinkType] = useState('references');
+  const [documentsForLink, setDocumentsForLink] = useState<{ id: string; documentId: string; title: string }[]>([]);
+
   const fetchDocument = async () => {
     if (!token || !id) return;
     try {
@@ -109,6 +146,30 @@ export function DocumentDetail() {
   useEffect(() => {
     fetchDocument();
   }, [token, id]);
+
+  useEffect(() => {
+    if (!doc) {
+      setLinks([]);
+      setComments([]);
+      setTags([]);
+      return;
+    }
+    setTags(doc.tags || []);
+    if (!token || !doc.id) return;
+    apiRequest<{ links: DocumentLinkRef[] }>(`/api/documents/${doc.id}/links`, { token })
+      .then((d) => setLinks(d.links))
+      .catch(() => setLinks([]));
+    apiRequest<{ comments: DocumentCommentRef[] }>(`/api/documents/${doc.id}/comments`, { token })
+      .then((d) => setComments(d.comments))
+      .catch(() => setComments([]));
+  }, [token, doc?.id, doc?.tags]);
+
+  useEffect(() => {
+    if (!token || !doc?.id) return;
+    apiRequest<{ documents: { id: string; documentId: string; title: string }[] }>('/api/documents', { token })
+      .then((d) => setDocumentsForLink((d.documents || []).filter((x) => x.id !== doc.id)))
+      .catch(() => setDocumentsForLink([]));
+  }, [token, doc?.id]);
 
   useEffect(() => {
     if (!token) return;
@@ -233,8 +294,40 @@ export function DocumentDetail() {
             {doc.documentType} • Version {doc.versionMajor}.{doc.versionMinor} • Author:{' '}
             {doc.author.firstName} {doc.author.lastName}
           </p>
+          {(doc.tags?.length ?? 0) > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {(doc.tags ?? []).map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded bg-surface-elevated px-2 py-0.5 text-xs text-gray-300"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {doc.status === 'EFFECTIVE' && doc.trainingModules?.length ? (
+            <Button
+              variant="secondary"
+              onClick={() => navigate(`/training?module=${doc.trainingModules![0].id}`)}
+            >
+              View Training Module
+            </Button>
+          ) : null}
+          {doc.status === 'EFFECTIVE' && (isAuthor || user?.roleName === 'Quality Manager' || user?.roleName === 'Admin') ? (
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                if (!token) return;
+                await apiRequest(`/api/documents/${doc.id}/initiate-periodic-review`, { token, method: 'POST' });
+                await fetchDocument();
+              }}
+            >
+              Initiate Periodic Review
+            </Button>
+          ) : null}
           <Button variant="secondary" onClick={() => openPdf(false)}>
             View PDF
           </Button>
@@ -242,6 +335,11 @@ export function DocumentDetail() {
             Download Uncontrolled Copy
           </Button>
           <Badge variant="info">{doc.status.replace(/_/g, ' ')}</Badge>
+          {doc.nextReviewDate && (
+            <span className="text-sm text-gray-400">
+              Next review: {new Date(doc.nextReviewDate).toLocaleDateString()}
+            </span>
+          )}
         </div>
       </div>
 
@@ -273,13 +371,30 @@ export function DocumentDetail() {
                 className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
               />
             </div>
+            {(canEdit || user?.roleName === 'Quality Manager' || user?.roleName === 'Admin') && (
+              <div>
+                <label className="label-caps mb-1.5 block">Tags (comma-separated)</label>
+                <Input
+                  value={tags.join(', ')}
+                  onChange={(e) =>
+                    setTags(
+                      e.target.value
+                        .split(',')
+                        .map((t) => t.trim())
+                        .filter(Boolean)
+                    )
+                  }
+                  placeholder="e.g. CMMC, ISO13485, Safety"
+                />
+              </div>
+            )}
             <Button
               onClick={async () => {
                 if (!token) return;
                 await apiRequest(`/api/documents/${doc.id}`, {
                   token,
                   method: 'PUT',
-                  body: { title, documentType, content },
+                  body: { title, documentType, content, tags },
                 });
                 await fetchDocument();
               }}
@@ -444,6 +559,184 @@ export function DocumentDetail() {
           <Button onClick={() => setShowReviseModal(true)}>Revise</Button>
         </Card>
       )}
+
+      <Card padding="md">
+        <h2 className="mb-4 text-lg text-white">Where Used</h2>
+        {links.length === 0 ? (
+          <p className="text-sm text-gray-500">No document links recorded.</p>
+        ) : (
+          <ul className="space-y-2">
+            {links.map((link) => {
+              const isSource = link.sourceDocumentId === doc.id;
+              const other = isSource ? link.targetDocument : link.sourceDocument;
+              return (
+                <li key={link.id} className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-400">{link.linkType}:</span>
+                  <button
+                    type="button"
+                    className="text-mactech-blue hover:underline"
+                    onClick={() => navigate(`/documents/${other.id}`)}
+                  >
+                    {other.documentId} v{other.versionMajor}.{other.versionMinor} – {other.title}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {isAuthor && doc.status !== 'OBSOLETE' && (
+          <div className="mt-4 flex flex-wrap items-end gap-2">
+            <select
+              value={linkType}
+              onChange={(e) => setLinkType(e.target.value)}
+              className="rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
+            >
+              <option value="references">references</option>
+              <option value="impacts">impacts</option>
+              <option value="supersedes">supersedes</option>
+            </select>
+            <select
+              value={linkTargetId}
+              onChange={(e) => setLinkTargetId(e.target.value)}
+              className="min-w-[200px] rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
+            >
+              <option value="">Select document</option>
+              {documentsForLink.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.documentId} – {d.title}
+                </option>
+              ))}
+            </select>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                if (!token || !linkTargetId) return;
+                await apiRequest(`/api/documents/${doc.id}/link`, {
+                  token,
+                  method: 'POST',
+                  body: { sourceDocumentId: doc.id, targetDocumentId: linkTargetId, linkType },
+                });
+                setLinkTargetId('');
+                const data = await apiRequest<{ links: DocumentLinkRef[] }>(`/api/documents/${doc.id}/links`, { token });
+                setLinks(data.links);
+              }}
+            >
+              Add Link
+            </Button>
+          </div>
+        )}
+      </Card>
+
+      <Card padding="md">
+        <h2 className="mb-4 text-lg text-white">Collaboration / Comments</h2>
+        {comments.length === 0 ? (
+          <p className="text-sm text-gray-500">No comments yet.</p>
+        ) : (
+          <ul className="space-y-3">
+            {comments.map((c) => (
+              <li
+                key={c.id}
+                className={`rounded-lg border p-3 ${
+                  c.status === 'OPEN'
+                    ? 'border-surface-border bg-surface-overlay'
+                    : 'border-surface-border/50 bg-surface-elevated/50'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm text-gray-200">{c.commentText}</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {c.user.firstName} {c.user.lastName}
+                      {c.sectionIdentifier ? ` • Section ${c.sectionIdentifier}` : ''} •{' '}
+                      {new Date(c.createdAt).toLocaleString()} • {c.status}
+                    </p>
+                  </div>
+                  {(user?.roleName === 'Admin' || user?.roleName === 'Quality Manager' || isAuthor) &&
+                    c.status === 'OPEN' && (
+                      <div className="flex gap-1">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={async () => {
+                            if (!token) return;
+                            await apiRequest(`/api/documents/comments/${c.id}`, {
+                              token,
+                              method: 'PUT',
+                              body: { status: 'RESOLVED' },
+                            });
+                            const data = await apiRequest<{ comments: DocumentCommentRef[] }>(
+                              `/api/documents/${doc.id}/comments`,
+                              { token }
+                            );
+                            setComments(data.comments);
+                          }}
+                        >
+                          Resolve
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={async () => {
+                            if (!token) return;
+                            await apiRequest(`/api/documents/comments/${c.id}`, {
+                              token,
+                              method: 'PUT',
+                              body: { status: 'REJECTED' },
+                            });
+                            const data = await apiRequest<{ comments: DocumentCommentRef[] }>(
+                              `/api/documents/${doc.id}/comments`,
+                              { token }
+                            );
+                            setComments(data.comments);
+                          }}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {doc.isUnderReview && (
+          <div className="mt-4 space-y-2">
+            <Input
+              placeholder="Section (e.g. 1.0, 2.1)"
+              value={newCommentSection}
+              onChange={(e) => setNewCommentSection(e.target.value)}
+            />
+            <textarea
+              rows={3}
+              value={newCommentText}
+              onChange={(e) => setNewCommentText(e.target.value)}
+              className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
+              placeholder="Add a comment..."
+            />
+            <Button
+              size="sm"
+              onClick={async () => {
+                if (!token || !newCommentText.trim()) return;
+                await apiRequest(`/api/documents/${doc.id}/comment`, {
+                  token,
+                  method: 'POST',
+                  body: { commentText: newCommentText.trim(), sectionIdentifier: newCommentSection || undefined },
+                });
+                setNewCommentText('');
+                setNewCommentSection('');
+                const data = await apiRequest<{ comments: DocumentCommentRef[] }>(
+                  `/api/documents/${doc.id}/comments`,
+                  { token }
+                );
+                setComments(data.comments);
+              }}
+            >
+              Add Comment
+            </Button>
+          </div>
+        )}
+      </Card>
 
       <Card padding="md">
         <h2 className="mb-4 text-lg text-white">Approval & Signature History</h2>

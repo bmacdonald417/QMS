@@ -7,8 +7,11 @@ import { NotificationBell } from './NotificationBell';
 
 const pathToBreadcrumb: Record<string, string> = {
   '': 'Dashboard',
+  dashboard: 'Quality Health',
+  search: 'Search',
   documents: 'Document Control',
-  training: 'Training & Competency',
+  training: 'Training',
+  'periodic-reviews': 'Periodic Reviews',
   'team-documents': 'Team Documents',
   'team-training': 'Team Training',
   'my-tasks': 'My Tasks',

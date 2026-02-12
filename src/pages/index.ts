@@ -8,4 +8,7 @@ export { ChangeControl } from './ChangeControl';
 export { RiskManagement } from './RiskManagement';
 export { EquipmentAssets } from './EquipmentAssets';
 export { SupplierQuality } from './SupplierQuality';
+export { QualityHealthDashboard } from './QualityHealthDashboard';
+export { SearchPage } from './SearchPage';
+export { PeriodicReviewsPage } from './PeriodicReviewsPage';
 export { PageShell } from './PageShell';

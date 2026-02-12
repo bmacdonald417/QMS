@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma2/client"
 }
 
 datasource db {
@@ -64,24 +65,30 @@ model User {
   documentSignatures   DocumentSignature[]
   changeControls       ChangeControl[]
   capasAssigned        CAPA[]            @relation("CAPAAssignee")
+  trainingRecords      UserTrainingRecord[]
+  documentComments     DocumentComment[]
+  periodicReviews      PeriodicReview[]
 
   @@map("users")
 }
 
 model Document {
-  id                  String         @id @default(uuid())
-  documentId          String         @map("doc_id") // e.g. MAC-SOP-014
-  title               String
-  documentType        DocumentType   @map("doc_type") // SOP, POLICY, WORK_INSTRUCTION, etc.
-  versionMajor        Int            @default(1) @map("major_version")
-  versionMinor        Int            @default(0) @map("minor_version")
-  effectiveDate       DateTime?      @map("effective_date")
-  status              DocumentStatus @default(DRAFT)
-  content             String?        @db.Text // Markdown
-  authorId            String         @map("author_id")
-  supersedesDocumentId String?       @map("supersedes_document_id")
-  createdAt           DateTime       @default(now()) @map("created_at")
-  updatedAt           DateTime       @updatedAt @map("updated_at")
+  id                   String         @id @default(uuid())
+  documentId           String         @map("doc_id") // e.g. MAC-SOP-014
+  title                String
+  documentType         DocumentType   @map("doc_type")
+  versionMajor         Int            @default(1) @map("major_version")
+  versionMinor         Int            @default(0) @map("minor_version")
+  effectiveDate        DateTime?      @map("effective_date")
+  status               DocumentStatus @default(DRAFT)
+  content              String?        @db.Text
+  authorId             String         @map("author_id")
+  supersedesDocumentId String?        @map("supersedes_document_id")
+  tags                 String[]       @default([])
+  nextReviewDate       DateTime?      @map("next_review_date")
+  isUnderReview        Boolean        @default(false) @map("is_under_review")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
 
   author              User                @relation("DocumentAuthor", fields: [authorId], references: [id], onDelete: Restrict)
   supersedesDocument  Document?           @relation("DocumentSupersedes", fields: [supersedesDocumentId], references: [id], onDelete: SetNull)
@@ -90,10 +97,108 @@ model Document {
   revisions           DocumentRevision[]
   signatures          DocumentSignature[]
   assignments         DocumentAssignment[]
+  linksAsSource       DocumentLink[]      @relation("DocumentLinkSource")
+  linksAsTarget       DocumentLink[]      @relation("DocumentLinkTarget")
+  comments            DocumentComment[]
+  trainingModules     TrainingModule[]
+  periodicReviews     PeriodicReview[]
 
   @@map("documents")
   @@index([documentId])
   @@unique([documentId, versionMajor, versionMinor], map: "document_version_unique")
+}
+
+enum DocumentCommentStatus {
+  OPEN
+  RESOLVED
+  REJECTED
+}
+
+enum TrainingRecordStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+}
+
+enum PeriodicReviewStatus {
+  PENDING
+  COMPLETED
+  OVERDUE
+}
+
+model DocumentLink {
+  id               String   @id @default(uuid())
+  sourceDocumentId String   @map("source_document_id")
+  targetDocumentId String   @map("target_document_id")
+  linkType         String   @map("link_type") // references, impacts, supersedes
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  sourceDocument Document @relation("DocumentLinkSource", fields: [sourceDocumentId], references: [id], onDelete: Restrict)
+  targetDocument Document @relation("DocumentLinkTarget", fields: [targetDocumentId], references: [id], onDelete: Restrict)
+
+  @@map("document_links")
+}
+
+model TrainingModule {
+  id           String   @id @default(uuid())
+  documentId   String   @map("document_id")
+  title        String
+  description  String   @db.Text
+  requiredRoles String[] @map("required_roles")
+  dueDate      DateTime @map("due_date")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  records  UserTrainingRecord[]
+
+  @@map("training_modules")
+}
+
+model UserTrainingRecord {
+  id               String              @id @default(uuid())
+  trainingModuleId String             @map("training_module_id")
+  userId           String              @map("user_id")
+  status           TrainingRecordStatus @default(ASSIGNED)
+  completionDate   DateTime?           @map("completion_date")
+  score            Int?
+  assignedAt       DateTime            @default(now()) @map("assigned_at")
+
+  trainingModule TrainingModule @relation(fields: [trainingModuleId], references: [id], onDelete: Restrict)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("user_training_records")
+}
+
+model DocumentComment {
+  id               String               @id @default(uuid())
+  documentId       String               @map("document_id")
+  userId           String               @map("user_id")
+  commentText      String               @map("comment_text") @db.Text
+  sectionIdentifier String?             @map("section_identifier")
+  status           DocumentCommentStatus @default(OPEN)
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("document_comments")
+}
+
+model PeriodicReview {
+  id          String               @id @default(uuid())
+  documentId  String                @map("document_id")
+  reviewDate  DateTime              @map("review_date")
+  status      PeriodicReviewStatus  @default(PENDING)
+  reviewerId  String                @map("reviewer_id")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  completedAt DateTime?            @map("completed_at")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  reviewer User     @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
+
+  @@map("periodic_reviews")
 }
 
 model DocumentHistory {

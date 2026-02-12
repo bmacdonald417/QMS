@@ -11,6 +11,9 @@ import {
   Settings,
   CheckSquare,
   ListTodo,
+  Search,
+  CalendarCheck,
+  HeartPulse,
 } from 'lucide-react';
 
 export interface SidebarItem {
@@ -32,6 +35,9 @@ const icons = {
   system: <Settings className="h-5 w-5" />,
   approvals: <CheckSquare className="h-5 w-5" />,
   myTasks: <ListTodo className="h-5 w-5" />,
+  search: <Search className="h-5 w-5" />,
+  periodicReviews: <CalendarCheck className="h-5 w-5" />,
+  qualityHealth: <HeartPulse className="h-5 w-5" />,
 };
 
 /**
@@ -46,8 +52,11 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
     case 'Quality':
       return [
         { path: '/', label: 'Dashboard', icon: icons.dashboard },
+        { path: '/dashboard', label: 'Quality Health', icon: icons.qualityHealth },
         { path: '/documents', label: 'Document Control', icon: icons.documents },
+        { path: '/search', label: 'Search', icon: icons.search },
         { path: '/training', label: 'Training', icon: icons.training },
+        { path: '/periodic-reviews', label: 'Periodic Reviews', icon: icons.periodicReviews },
         { path: '/change-control', label: 'Change Control', icon: icons.changeControl },
         { path: '/capa', label: 'CAPA', icon: icons.capa },
         { path: '/audits', label: 'Audits', icon: icons.audits },
@@ -58,6 +67,8 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
     case 'Manager':
       return [
         { path: '/', label: 'Dashboard', icon: icons.dashboard },
+        { path: '/training', label: 'Training', icon: icons.training },
+        { path: '/periodic-reviews', label: 'Periodic Reviews', icon: icons.periodicReviews },
         { path: '/team-documents', label: 'Team Documents', icon: icons.documents },
         { path: '/team-training', label: 'Team Training', icon: icons.training },
         { path: '/approvals', label: 'Approvals', icon: icons.approvals },
@@ -65,8 +76,9 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
     case 'User':
       return [
         { path: '/my-tasks', label: 'My Tasks', icon: icons.myTasks },
-        { path: '/my-training', label: 'My Training', icon: icons.training },
+        { path: '/training', label: 'My Training', icon: icons.training },
         { path: '/documents', label: 'Documents', icon: icons.documents },
+        { path: '/search', label: 'Search', icon: icons.search },
       ];
     default:
       return [{ path: '/', label: 'Dashboard', icon: icons.dashboard }];

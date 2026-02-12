@@ -12,6 +12,9 @@ import {
   RiskManagement,
   EquipmentAssets,
   SupplierQuality,
+  QualityHealthDashboard,
+  SearchPage,
+  PeriodicReviewsPage,
 } from '@/pages';
 import {
   SystemManagement,
@@ -38,9 +41,12 @@ function AppRoutes() {
       <Route path="/" element={<ProtectedLayout />}>
         <Route element={<MainLayout />}>
           <Route index element={<ExecutiveDashboard />} />
+          <Route path="dashboard" element={<QualityHealthDashboard />} />
+          <Route path="search" element={<SearchPage />} />
           <Route path="documents" element={<DocumentControl />} />
           <Route path="documents/:id" element={<DocumentDetail />} />
           <Route path="training" element={<TrainingCompetency />} />
+          <Route path="periodic-reviews" element={<PeriodicReviewsPage />} />
           <Route path="audits" element={<AuditManagement />} />
           <Route path="capa" element={<CAPA />} />
           <Route path="change-control" element={<ChangeControl />} />
