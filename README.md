@@ -68,6 +68,25 @@ npm run db:seed
 npm run dev      # http://localhost:3001
 ```
 
+## Deploying to Railway (fix 405 on login)
+
+The **405 Method Not Allowed** on `POST /api/auth/login` happens when the frontend is deployed (e.g. `qms-production-0607.up.railway.app`) but the app calls `/api/auth/login` on that **same** host. The static frontend doesn’t handle POST, so the server returns 405.
+
+**Fix:** Use **two** Railway services and point the frontend at the API URL when building.
+
+1. **API service**
+   - Deploy the **backend** (e.g. set root to `server/` or run `node server/src/index.js`).
+   - Attach your Postgres and set `DATABASE_URL` and `JWT_SECRET`.
+   - Run `npx prisma db push` and `npm run db:seed` (e.g. in a one-off command or deploy script).
+   - Note the API’s public URL, e.g. `https://your-qms-api.up.railway.app`.
+
+2. **Frontend service**
+   - Deploy the **frontend** (build with `npm run build`, serve the `dist/` folder).
+   - In the **frontend** service, add a build-time variable:  
+     **`VITE_API_URL`** = your API URL (e.g. `https://your-qms-api.up.railway.app`)  
+     No trailing slash.
+   - Rebuild and redeploy the frontend so the built app uses that API URL for login. After that, login should stop returning 405.
+
 ## Structure
 
 - `src/components/ui` — Button, Card, Table, Badge, Modal, Input
