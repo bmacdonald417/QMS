@@ -4,6 +4,7 @@ import { ProtectedLayout } from '@/components/ProtectedLayout';
 import {
   ExecutiveDashboard,
   DocumentControl,
+  DocumentDetail,
   TrainingCompetency,
   AuditManagement,
   CAPA,
@@ -38,6 +39,7 @@ function AppRoutes() {
         <Route element={<MainLayout />}>
           <Route index element={<ExecutiveDashboard />} />
           <Route path="documents" element={<DocumentControl />} />
+          <Route path="documents/:id" element={<DocumentDetail />} />
           <Route path="training" element={<TrainingCompetency />} />
           <Route path="audits" element={<AuditManagement />} />
           <Route path="capa" element={<CAPA />} />

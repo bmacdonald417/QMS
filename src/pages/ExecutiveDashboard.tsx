@@ -1,7 +1,10 @@
-import { Card, Badge, Button } from '@/components/ui';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Card, Badge } from '@/components/ui';
 import { PageShell } from './PageShell';
-import { TrendingUp, AlertCircle, FileCheck, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext';
+import { apiRequest } from '@/lib/api';
 
 const kpis = [
   { label: 'Open CAPAs', value: '12', trend: '+2', variant: 'warning' as const },
@@ -10,11 +13,13 @@ const kpis = [
   { label: 'Compliance Score', value: '94%', trend: '+1%', variant: 'success' as const },
 ];
 
-const actionItems = [
-  { id: '1', title: 'CAPA-2024-008 requires root cause by Feb 15', type: 'CAPA', priority: 'High' },
-  { id: '2', title: 'SOP-QA-001 pending approval', type: 'Document', priority: 'Medium' },
-  { id: '3', title: 'Internal audit Q1 scheduled', type: 'Audit', priority: 'Medium' },
-];
+interface PendingTask {
+  id: string;
+  taskType: 'REVIEW' | 'APPROVAL' | 'QUALITY_RELEASE';
+  docId: string;
+  title: string;
+  link: string;
+}
 
 /** Compliance health: 0–100 */
 const radarScores = [
@@ -27,6 +32,16 @@ const radarScores = [
 ];
 
 export function ExecutiveDashboard() {
+  const { token } = useAuth();
+  const [tasks, setTasks] = useState<PendingTask[]>([]);
+
+  useEffect(() => {
+    if (!token) return;
+    apiRequest<{ tasks: PendingTask[] }>('/api/tasks', { token })
+      .then((data) => setTasks(data.tasks))
+      .catch(() => setTasks([]));
+  }, [token]);
+
   return (
     <PageShell title="Executive Dashboard" subtitle="Quality and compliance at a glance">
       <div className="space-y-6">
@@ -58,29 +73,29 @@ export function ExecutiveDashboard() {
           >
             <Card padding="md">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium text-white">Action Required</h2>
-                <Button variant="ghost" size="sm">
-                  View all
-                </Button>
+                <h2 className="text-lg font-medium text-white">My Pending Tasks</h2>
               </div>
-              <ul className="space-y-2">
-                {actionItems.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-center justify-between rounded-lg border border-surface-border bg-surface-overlay px-4 py-3"
-                  >
-                    <span className="text-sm text-gray-200">{item.title}</span>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="neutral" size="sm">
-                        {item.type}
-                      </Badge>
-                      <Badge variant={item.priority === 'High' ? 'danger' : 'default'} size="sm">
-                        {item.priority}
-                      </Badge>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              {tasks.length === 0 ? (
+                <p className="text-sm text-gray-500">No pending assignments.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {tasks.map((task) => (
+                    <li key={task.id}>
+                      <Link
+                        to={task.link}
+                        className="flex items-center justify-between rounded-lg border border-surface-border bg-surface-overlay px-4 py-3 hover:border-mactech-blue/50 hover:bg-surface-elevated transition-colors"
+                      >
+                        <span className="text-sm text-gray-200">
+                          {task.taskType} {task.docId} — {task.title}
+                        </span>
+                        <Badge variant="info" size="sm">
+                          Open
+                        </Badge>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Card>
           </motion.div>
 

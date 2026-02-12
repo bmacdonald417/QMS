@@ -2,6 +2,10 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import authRoutes, { authMiddleware } from './auth.js';
+import documentRoutes from './documents.js';
+import notificationRoutes from './notifications.js';
+import taskRoutes from './tasks.js';
+import userRoutes from './users.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -13,6 +17,10 @@ app.use('/api/auth', authRoutes);
 app.get('/api/auth/me', authMiddleware, (req, res) => {
   res.json({ user: req.user });
 });
+app.use('/api/documents', authMiddleware, documentRoutes);
+app.use('/api/notifications', authMiddleware, notificationRoutes);
+app.use('/api/tasks', authMiddleware, taskRoutes);
+app.use('/api/users', authMiddleware, userRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });

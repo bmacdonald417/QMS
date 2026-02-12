@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { apiUrl } from '@/lib/api';
 
 const STORAGE_KEY = 'qms_auth';
 
@@ -52,8 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      const base = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
-      const res = await fetch(`${base}/api/auth/login`, {
+      const res = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), password }),

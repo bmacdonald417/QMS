@@ -1,5 +1,6 @@
 export { ExecutiveDashboard } from './ExecutiveDashboard';
 export { DocumentControl } from './DocumentControl';
+export { DocumentDetail } from './DocumentDetail';
 export { TrainingCompetency } from './TrainingCompetency';
 export { AuditManagement } from './AuditManagement';
 export { CAPA } from './CAPA';

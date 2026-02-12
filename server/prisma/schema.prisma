@@ -9,47 +9,125 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum DocumentType {
+  SOP
+  POLICY
+  WORK_INSTRUCTION
+  FORM
+  OTHER
+}
+
+enum DocumentStatus {
+  DRAFT
+  IN_REVIEW
+  PENDING_APPROVAL
+  PENDING_QUALITY_RELEASE
+  EFFECTIVE
+  ARCHIVED
+}
+
+enum AssignmentTaskType {
+  REVIEW
+  APPROVAL
+  QUALITY_RELEASE
+}
+
+enum AssignmentStatus {
+  PENDING
+  COMPLETED
+  REJECTED
+}
+
 model Role {
-  id        Int     @id @default(autoincrement())
-  name      String  @unique // e.g. System Administrator, Quality, Manager, User, Read-Only
-  users     User[]
+  id    Int    @id @default(autoincrement())
+  name  String @unique // e.g. System Administrator, Quality, Manager, User, Read-Only
+  users User[]
 }
 
 model User {
   id        String   @id @default(uuid())
-  firstName String  @map("first_name")
-  lastName  String  @map("last_name")
-  email     String  @unique
-  password  String  // bcrypt hash
-  roleId    Int     @map("role_id")
-  role      Role    @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  email     String   @unique
+  password  String // bcrypt hash
+  roleId    Int      @map("role_id")
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Restrict)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  documentsAuthored   Document[]       @relation("DocumentAuthor")
-  documentsApproved   Document[]       @relation("DocumentApprover")
-  changeControls      ChangeControl[]
-  capasAssigned       CAPA[]           @relation("CAPAAssignee")
+  documentsAuthored    Document[]
+  documentHistoryItems DocumentHistory[]
+  documentAssignments  DocumentAssignment[]
+  notifications        Notification[]
+  changeControls       ChangeControl[]
+  capasAssigned        CAPA[]            @relation("CAPAAssignee")
 
   @@map("users")
 }
 
 model Document {
-  id         String   @id @default(uuid())
-  title      String
-  documentId String   @map("document_id") // e.g. SOP-001
-  version    String
-  status     String   // Draft, In Review, Approved, Obsolete
-  content    String?  @db.Text
-  authorId   String?  @map("author_id")
-  approverId String?  @map("approver_id")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id        String         @id @default(uuid())
+  docId     String         @map("doc_id") // e.g. MAC-SOP-001
+  title     String
+  docType   DocumentType   @map("doc_type")
+  majorVersion Int         @default(1) @map("major_version")
+  minorVersion Int         @default(0) @map("minor_version")
+  status    DocumentStatus @default(DRAFT)
+  content   String?        @db.Text
+  authorId  String         @map("author_id")
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
 
-  author   User? @relation("DocumentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
-  approver User? @relation("DocumentApprover", fields: [approverId], references: [id], onDelete: SetNull)
+  author      User                 @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  history     DocumentHistory[]
+  assignments DocumentAssignment[]
 
   @@map("documents")
+  @@index([docId])
+}
+
+model DocumentHistory {
+  id               String   @id @default(uuid())
+  documentId       String   @map("document_id")
+  userId           String   @map("user_id")
+  action           String
+  timestamp        DateTime @default(now())
+  details          Json?
+  digitalSignature Json?    @map("digital_signature")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("document_history")
+}
+
+model DocumentAssignment {
+  id          String             @id @default(uuid())
+  documentId  String             @map("document_id")
+  assigneeId  String             @map("assignee_id")
+  taskType    AssignmentTaskType @map("task_type")
+  status      AssignmentStatus   @default(PENDING)
+  completedAt DateTime?          @map("completed_at")
+  comments    String?            @db.Text
+  createdAt   DateTime           @default(now()) @map("created_at")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  assignee User     @relation(fields: [assigneeId], references: [id], onDelete: Restrict)
+
+  @@map("document_assignments")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  message   String
+  isRead    Boolean  @default(false) @map("is_read")
+  link      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("notifications")
 }
 
 model ChangeControl {
@@ -58,7 +136,7 @@ model ChangeControl {
   changeId       String   @map("change_id")
   description    String   @db.Text
   riskAssessment String?  @map("risk_assessment") @db.Text
-  status         String   // Pending, Approved, Rejected, Closed
+  status         String // Pending, Approved, Rejected, Closed
   initiatorId    String?  @map("initiator_id")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
@@ -74,7 +152,7 @@ model CAPA {
   capaId      String   @map("capa_id")
   description String   @db.Text
   rootCause   String?  @map("root_cause") @db.Text
-  status      String   // Open, In Progress, Closed
+  status      String // Open, In Progress, Closed
   assigneeId  String?  @map("assignee_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

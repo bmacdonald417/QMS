@@ -4,16 +4,25 @@ import { z } from 'zod';
 export const requiredString = z.string().min(1, 'Required').trim();
 
 /** Document lifecycle states */
-export const documentStatusSchema = z.enum(['draft', 'review', 'approved', 'retired']);
+export const documentStatusSchema = z.enum([
+  'DRAFT',
+  'IN_REVIEW',
+  'PENDING_APPROVAL',
+  'PENDING_QUALITY_RELEASE',
+  'EFFECTIVE',
+  'ARCHIVED',
+]);
 
 /** Document metadata for Document Control */
 export const documentSchema = z.object({
   id: z.string(),
   title: requiredString,
-  docNumber: requiredString,
-  version: z.string().regex(/^\d+\.\d+$/, 'Version must be e.g. 1.0'),
+  docId: requiredString,
+  majorVersion: z.number().int().min(1),
+  minorVersion: z.number().int().min(0),
   status: documentStatusSchema,
-  owner: requiredString,
+  docType: requiredString,
+  authorId: z.string(),
   effectiveDate: z.string().datetime().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),

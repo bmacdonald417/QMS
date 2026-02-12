@@ -3,6 +3,7 @@ import { Search, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
+import { NotificationBell } from './NotificationBell';
 
 const pathToBreadcrumb: Record<string, string> = {
   '': 'Dashboard',
@@ -70,6 +71,7 @@ export function Header() {
         <span className="text-xs text-gray-400 hidden sm:inline">
           {user ? `${user.firstName} ${user.lastName}` : ''}
         </span>
+        <NotificationBell />
         <Button
           variant="ghost"
           size="sm"
