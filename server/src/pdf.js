@@ -1,5 +1,23 @@
 import puppeteer from 'puppeteer';
 import { marked } from 'marked';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const LOGO_PATH = path.resolve(__dirname, '../assets/mactech-logo-black.png');
+
+function loadLogoDataUri() {
+  try {
+    const logoBuffer = fs.readFileSync(LOGO_PATH);
+    return `data:image/png;base64,${logoBuffer.toString('base64')}`;
+  } catch {
+    return '';
+  }
+}
+
+const LOGO_DATA_URI = loadLogoDataUri();
 
 function esc(value) {
   return String(value ?? '')
@@ -60,6 +78,9 @@ function watermark(uncontrolled) {
 }
 
 function logoLockup() {
+  if (LOGO_DATA_URI) {
+    return `<img src="${LOGO_DATA_URI}" class="logo-image" alt="MacTech Solutions logo" />`;
+  }
   return `
     <div class="logo-lockup" aria-label="MacTech Solutions logo">
       <svg class="logo-mark" viewBox="0 0 52 34" xmlns="http://www.w3.org/2000/svg" role="img">
@@ -125,6 +146,12 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       align-items: center;
       gap: 2mm;
       color: #000;
+    }
+    .logo-image {
+      display: block;
+      height: 7mm;
+      width: auto;
+      object-fit: contain;
     }
     .logo-mark {
       width: 8mm;
