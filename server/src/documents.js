@@ -137,12 +137,14 @@ router.get('/:id/pdf', async (req, res) => {
       revisions,
       uncontrolled,
     });
+    const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
 
     const filename = `${document.documentId}-v${document.versionMajor}.${document.versionMinor}.pdf`;
     const disposition = uncontrolled ? 'attachment' : 'inline';
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"`);
-    res.send(pdf);
+    res.setHeader('Content-Length', String(pdfBuffer.length));
+    res.send(pdfBuffer);
   } catch (err) {
     console.error('Generate PDF error:', err);
     res.status(500).json({ error: 'Failed to generate PDF' });
