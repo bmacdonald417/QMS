@@ -59,6 +59,22 @@ function watermark(uncontrolled) {
     : '';
 }
 
+function logoLockup() {
+  return `
+    <div class="logo-lockup" aria-label="MacTech Solutions logo">
+      <svg class="logo-mark" viewBox="0 0 52 34" xmlns="http://www.w3.org/2000/svg" role="img">
+        <path d="M1 31V13.5L13.5 18.8V31H1Z" fill="#000"/>
+        <path d="M18 31V7.8L30.5 13.2V31H18Z" fill="#000"/>
+        <path d="M35 31V2.3L47.5 7.7V31H35Z" fill="#000"/>
+      </svg>
+      <div class="logo-text">
+        <div class="logo-word">MacTech</div>
+        <div class="logo-sub">SOLUTIONS</div>
+      </div>
+    </div>
+  `;
+}
+
 function buildHtml({ document, signatures, revisions, uncontrolled }) {
   const version = `${document.versionMajor}.${document.versionMinor}`;
   const markdownHtml = marked.parse(document.content || '');
@@ -104,11 +120,35 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     .header-left { width: 20%; text-align: left; }
     .header-center { width: 60%; text-align: center; }
     .header-right { width: 20%; text-align: right; }
-    .logo-box {
-      width: 18mm; height: 6mm; border-radius: 3mm;
-      background: linear-gradient(90deg,#007AFF,#28CD41);
-      color: #fff; font-size: 8pt; font-weight: bold;
-      display:flex; align-items:center; justify-content:center;
+    .logo-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 2mm;
+      color: #000;
+    }
+    .logo-mark {
+      width: 8mm;
+      height: auto;
+      display: block;
+    }
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      line-height: 1;
+    }
+    .logo-word {
+      font-size: 9pt;
+      font-weight: 700;
+      color: #000;
+      letter-spacing: 0.1pt;
+    }
+    .logo-sub {
+      font-size: 4.6pt;
+      font-weight: 600;
+      color: #000;
+      letter-spacing: 0.5pt;
+      margin-top: 0.3mm;
     }
     .header-title, .header-meta {
       font-size: 11pt; font-weight: bold; color: #707070; line-height: 1.2;
@@ -174,7 +214,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
   <div class="page">
     ${watermark(uncontrolled)}
     <div class="header">
-      <div class="header-cell header-left"><div class="logo-box">MT</div></div>
+      <div class="header-cell header-left">${logoLockup()}</div>
       <div class="header-cell header-center"><div class="header-title">Document Control & Management</div></div>
       <div class="header-cell header-right"><div class="header-meta">${esc(document.documentId)}/${esc(version)}</div></div>
     </div>
@@ -194,7 +234,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
   <div class="page">
     ${watermark(uncontrolled)}
     <div class="header">
-      <div class="header-cell header-left"><div class="logo-box">MT</div></div>
+      <div class="header-cell header-left">${logoLockup()}</div>
       <div class="header-cell header-center"><div class="header-title">${esc(document.title)}</div></div>
       <div class="header-cell header-right"><div class="header-meta">${esc(document.documentId)}/${esc(version)}</div></div>
     </div>
@@ -207,7 +247,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
   <div class="page">
     ${watermark(uncontrolled)}
     <div class="header">
-      <div class="header-cell header-left"><div class="logo-box">MT</div></div>
+      <div class="header-cell header-left">${logoLockup()}</div>
       <div class="header-cell header-center"><div class="header-title">${esc(document.title)}</div></div>
       <div class="header-cell header-right"><div class="header-meta">${esc(document.documentId)}/${esc(version)}</div></div>
     </div>
