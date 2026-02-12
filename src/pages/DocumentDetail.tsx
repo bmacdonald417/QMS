@@ -166,7 +166,6 @@ export function DocumentDetail() {
       previewTab.document.title = 'Loading PDF...';
       previewTab.document.body.innerHTML =
         '<p style="font-family: Arial, sans-serif; padding: 16px;">Loading PDF preview...</p>';
-      previewTab.opener = null;
     }
 
     try {
