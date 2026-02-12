@@ -130,9 +130,12 @@ export function QualityHealthDashboard() {
                         Due: {new Date(doc.nextReviewDate).toLocaleDateString()}
                       </span>
                     )}
-                    <Button variant="secondary" size="sm" asChild>
-                      <Link to={`/documents/${doc.id}`}>Open</Link>
-                    </Button>
+                    <Link
+                      to={`/documents/${doc.id}`}
+                      className="inline-flex items-center justify-center gap-2 rounded-md border border-surface-border bg-surface-elevated px-3 py-1.5 text-sm font-medium text-gray-200 transition-colors hover:bg-surface-overlay focus:outline-none focus-visible:ring-2 focus-visible:ring-mactech-blue"
+                    >
+                      Open
+                    </Link>
                   </div>
                 </li>
               ))}

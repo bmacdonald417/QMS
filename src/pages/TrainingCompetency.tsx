@@ -163,9 +163,12 @@ export function TrainingCompetency() {
                         </Link>
                       </p>
                     </div>
-                    <Button variant="secondary" size="sm" asChild>
-                      <Link to={`/documents/${mod.document.id}`}>View document</Link>
-                    </Button>
+                    <Link
+                      to={`/documents/${mod.document.id}`}
+                      className="inline-flex items-center justify-center gap-2 rounded-md border border-surface-border bg-surface-elevated px-3 py-1.5 text-sm font-medium text-gray-200 transition-colors hover:bg-surface-overlay focus:outline-none focus-visible:ring-2 focus-visible:ring-mactech-blue"
+                    >
+                      View document
+                    </Link>
                   </div>
                 </li>
               ))}
