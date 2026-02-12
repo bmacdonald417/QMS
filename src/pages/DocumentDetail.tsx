@@ -157,7 +157,20 @@ export function DocumentDetail() {
 
   const openPdf = async (uncontrolled: boolean) => {
     if (!token) return;
+    const previewTab = uncontrolled ? null : window.open('', '_blank');
+    if (!uncontrolled && !previewTab) {
+      setError('Popup blocked while opening PDF. Please allow popups for this site.');
+      return;
+    }
+    if (previewTab) {
+      previewTab.document.title = 'Loading PDF...';
+      previewTab.document.body.innerHTML =
+        '<p style="font-family: Arial, sans-serif; padding: 16px;">Loading PDF preview...</p>';
+      previewTab.opener = null;
+    }
+
     try {
+      setError('');
       const response = await fetch(
         apiUrl(`/api/documents/${doc.id}/pdf?uncontrolled=${uncontrolled ? 'true' : 'false'}`),
         {
@@ -195,14 +208,17 @@ export function DocumentDetail() {
         window.document.body.removeChild(anchor);
         setTimeout(() => window.URL.revokeObjectURL(blobUrl), 15000);
       } else {
-        const opened = window.open(blobUrl, '_blank', 'noopener,noreferrer');
-        if (!opened) {
-          throw new Error('Popup blocked while opening PDF. Please allow popups for this site.');
+        if (!previewTab) {
+          throw new Error('Popup window was closed before PDF could load.');
         }
+        previewTab.location.href = blobUrl;
         // Keep the object URL alive long enough for embedded viewers to finish loading.
         setTimeout(() => window.URL.revokeObjectURL(blobUrl), 300000);
       }
     } catch (err) {
+      if (previewTab && !previewTab.closed) {
+        previewTab.close();
+      }
       setError(err instanceof Error ? err.message : 'Failed to open PDF');
     }
   };
