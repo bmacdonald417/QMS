@@ -25,11 +25,24 @@ interface RolesResponse {
   roles: { id: number; name: string }[];
 }
 
+const FORBIDDEN_MSG = "You don't have permission to perform this action.";
+
+function isForbiddenError(e: unknown): boolean {
+  if (e instanceof Error) {
+    const m = e.message.toLowerCase();
+    return m.includes('permission') || m.includes('cannot edit') || m.includes('only assign');
+  }
+  return false;
+}
+
 export function SystemUsers() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const canCreateUsers = Boolean(user?.permissions?.includes('users:create'));
+  const canDeleteUsers = Boolean(user?.permissions?.includes('users:delete'));
   const [users, setUsers] = useState<UserRow[]>([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
+  const [assignableRoles, setAssignableRoles] = useState<{ id: number; name: string }[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -38,6 +51,8 @@ export function SystemUsers() {
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addSubmitting, setAddSubmitting] = useState(false);
+  const [addError, setAddError] = useState('');
   const [addForm, setAddForm] = useState({
     firstName: '', lastName: '', email: '', roleId: '', departmentId: '', siteId: '', jobTitle: '', temporaryPassword: '',
   });
@@ -72,17 +87,38 @@ export function SystemUsers() {
       .catch(() => {});
   }, [token]);
 
+  useEffect(() => {
+    if (!token || !showAddModal || !canCreateUsers) return;
+    apiRequest<RolesResponse>('/api/system/users/assignable-roles', { token })
+      .then((data) => {
+        const list = data.roles || [];
+        setAssignableRoles(list);
+        setAddForm((f) => ({
+          ...f,
+          roleId: list.length ? String(list[0].id) : '',
+        }));
+      })
+      .catch(() => setAssignableRoles([]));
+  }, [token, showAddModal, canCreateUsers]);
+
   const runAction = async () => {
-    if (!token || !actionModal || !reason.trim()) return;
+    if (!token || !actionModal) return;
     const { user, action } = actionModal;
-    const url = `/api/system/users/${user.id}/${action}`;
+    const needsReason = action !== 'delete' && !reason.trim();
+    if (needsReason) return;
+    const isDelete = action === 'delete';
+    const url = isDelete ? `/api/system/users/${user.id}` : `/api/system/users/${user.id}/${action}`;
     try {
-      await apiRequest(url, { token, method: 'POST', body: { reason: reason.trim() } });
+      await apiRequest(url, {
+        token,
+        method: isDelete ? 'DELETE' : 'POST',
+        body: isDelete ? (reason.trim() ? { reason: reason.trim() } : undefined) : { reason: reason.trim() },
+      });
       setActionModal(null);
       setReason('');
       fetchUsers(pagination.page);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Action failed');
+      setError(isForbiddenError(e) ? FORBIDDEN_MSG : (e instanceof Error ? e.message : 'Action failed'));
     }
   };
 
@@ -108,7 +144,7 @@ export function SystemUsers() {
       key: 'actions',
       header: 'Actions',
       render: (r) => (
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           {r.status === 'ACTIVE' && (
             <Button size="sm" variant="danger" onClick={() => setActionModal({ user: r, action: 'deactivate' })}>
               Deactivate
@@ -132,13 +168,31 @@ export function SystemUsers() {
           <Button size="sm" variant="ghost" onClick={() => setActionModal({ user: r, action: 'revoke-sessions' })}>
             Revoke sessions
           </Button>
+          {canDeleteUsers && (
+            <Button size="sm" variant="danger" onClick={() => setActionModal({ user: r, action: 'delete' })}>
+              Delete
+            </Button>
+          )}
         </div>
       ),
     },
   ];
 
   const createUser = async () => {
-    if (!token || !addForm.firstName.trim() || !addForm.lastName.trim() || !addForm.email.trim() || !addForm.roleId || !addForm.temporaryPassword.trim()) return;
+    if (!token) {
+      setAddError('Not signed in.');
+      return;
+    }
+    if (!addForm.firstName.trim() || !addForm.lastName.trim() || !addForm.email.trim() || !addForm.roleId || !addForm.temporaryPassword.trim()) {
+      setAddError('Please fill in first name, last name, email, role, and temporary password.');
+      return;
+    }
+    if (addForm.temporaryPassword.length < 8) {
+      setAddError('Temporary password must be at least 8 characters.');
+      return;
+    }
+    setAddError('');
+    setAddSubmitting(true);
     try {
       await apiRequest('/api/system/users', {
         token,
@@ -158,7 +212,9 @@ export function SystemUsers() {
       setAddForm({ firstName: '', lastName: '', email: '', roleId: '', departmentId: '', siteId: '', jobTitle: '', temporaryPassword: '' });
       fetchUsers(1);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Create failed');
+      setAddError(isForbiddenError(e) ? FORBIDDEN_MSG : (e instanceof Error ? e.message : 'Create failed'));
+    } finally {
+      setAddSubmitting(false);
     }
   };
 
@@ -166,7 +222,7 @@ export function SystemUsers() {
     <PageShell
       title="Users & Access"
       subtitle="Manage user accounts and access control"
-      primaryAction={{ label: 'Add User', onClick: () => setShowAddModal(true) }}
+      primaryAction={canCreateUsers ? { label: 'Add User', onClick: () => { setShowAddModal(true); setAddError(''); } } : undefined}
     >
       <div className="space-y-4">
         <div className="flex flex-wrap gap-4">
@@ -255,7 +311,7 @@ export function SystemUsers() {
             <Button variant="secondary" onClick={() => { setActionModal(null); setReason(''); }}>
               Cancel
             </Button>
-            <Button onClick={runAction} disabled={!reason.trim()}>
+            <Button onClick={runAction} disabled={actionModal?.action !== 'delete' && !reason.trim()}>
               Confirm
             </Button>
           </>
@@ -280,14 +336,15 @@ export function SystemUsers() {
         title="Add User"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setShowAddModal(false)}>Cancel</Button>
-            <Button onClick={createUser} disabled={!addForm.firstName.trim() || !addForm.lastName.trim() || !addForm.email.trim() || !addForm.roleId || !addForm.temporaryPassword.trim()}>
+            <Button variant="secondary" onClick={() => setShowAddModal(false)} disabled={addSubmitting}>Cancel</Button>
+            <Button onClick={createUser} loading={addSubmitting} disabled={!addForm.firstName.trim() || !addForm.lastName.trim() || !addForm.email.trim() || !addForm.roleId || !addForm.temporaryPassword.trim() || addForm.temporaryPassword.length < 8}>
               Create user
             </Button>
           </>
         }
       >
         <div className="space-y-4">
+          {addError && <p className="text-compliance-red text-sm">{addError}</p>}
           <Input label="First name" value={addForm.firstName} onChange={(e) => setAddForm((f) => ({ ...f, firstName: e.target.value }))} />
           <Input label="Last name" value={addForm.lastName} onChange={(e) => setAddForm((f) => ({ ...f, lastName: e.target.value }))} />
           <Input label="Email" type="email" value={addForm.email} onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))} />
@@ -300,7 +357,7 @@ export function SystemUsers() {
               className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
             >
               <option value="">Select role</option>
-              {roles.map((r) => (
+              {assignableRoles.map((r) => (
                 <option key={r.id} value={r.id}>{r.name}</option>
               ))}
             </select>

@@ -4,7 +4,14 @@ import { randomBytes, createHash } from 'node:crypto';
 import { z } from 'zod';
 import { prisma } from '../db.js';
 import { auditFromRequest, countUsersWithRole } from '../systemMiddleware.js';
-import { requireSystemRole, requireSystemPermission, systemSensitiveLimiter } from '../systemMiddleware.js';
+import { requireSystemRole, requireSystemPermission, requireAnySystemPermission, systemSensitiveLimiter } from '../systemMiddleware.js';
+import {
+  assertCanAssignRole,
+  assertCanEditTarget,
+  assertCanDeleteUser,
+  getAllowedUpdateFields,
+  canChangeRole,
+} from '../userAuthz.js';
 
 const SYSTEM_ADMIN_ROLE = 'System Admin';
 
@@ -39,6 +46,8 @@ const updateUserSchema = z.object({
   siteId: z.string().uuid().optional().nullable(),
   jobTitle: z.string().max(200).optional().nullable(),
   roleId: z.number().int().positive().optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'LOCKED']).optional(),
+  mfaEnabled: z.boolean().optional(),
 });
 
 const reasonSchema = z.object({ reason: z.string().min(1).max(2000) });
@@ -136,6 +145,14 @@ router.post(
   async (req, res) => {
     try {
       const body = createUserSchema.parse(req.body);
+      const requestedRole = await prisma.role.findUnique({ where: { id: body.roleId } });
+      if (!requestedRole) return res.status(400).json({ error: 'Invalid role' });
+      try {
+        assertCanAssignRole(req.user, requestedRole.name);
+      } catch (e) {
+        return res.status(e.statusCode || 403).json({ error: e.message });
+      }
+
       const existing = await prisma.user.findUnique({ where: { email: body.email.trim() } });
       if (existing) {
         return res.status(400).json({ error: 'Email already in use' });
@@ -173,6 +190,9 @@ router.post(
         temporaryPassword: body.temporaryPassword ? undefined : tempPassword,
       });
     } catch (err) {
+      if (err.statusCode === 403) {
+        return res.status(403).json({ error: err.message });
+      }
       if (err instanceof z.ZodError) {
         return res.status(400).json({ error: err.errors[0].message, details: err.errors });
       }
@@ -234,6 +254,31 @@ router.post(
   }
 );
 
+// GET /api/system/users/assignable-roles - roles the current user can assign (for dropdown)
+router.get(
+  '/assignable-roles',
+  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireAnySystemPermission('users:create', 'users:assign_roles:basic', 'users:assign_roles:any'),
+  async (req, res) => {
+    try {
+      const { getAssignableRoleNames } = await import('../userAuthz.js');
+      const allowedNames = getAssignableRoleNames(req.user?.roleName);
+      if (allowedNames === null) {
+        const all = await prisma.role.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } });
+        return res.json({ roles: all });
+      }
+      const roles = await prisma.role.findMany({
+        where: { name: { in: allowedNames } },
+        orderBy: { name: 'asc' },
+        select: { id: true, name: true },
+      });
+      res.json({ roles });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to load assignable roles' });
+    }
+  }
+);
+
 // GET /api/system/users/:id
 router.get(
   '/:id',
@@ -257,17 +302,37 @@ router.get(
 router.put(
   '/:id',
   requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
-  requireSystemPermission('users:update'),
+  requireAnySystemPermission('users:update', 'users:update:basic', 'users:update:compliance'),
   async (req, res) => {
     try {
       const body = updateUserSchema.parse(req.body);
-      const existing = await prisma.user.findUnique({ where: { id: req.params.id } });
+      const existing = await prisma.user.findUnique({
+        where: { id: req.params.id },
+        include: { role: true, department: true, site: true },
+      });
       if (!existing) return res.status(404).json({ error: 'User not found' });
 
-      if (body.roleId !== undefined && body.roleId !== existing.roleId) {
-        const existingRole = await prisma.role.findUnique({ where: { id: existing.roleId } });
+      try {
+        assertCanEditTarget(req.user, existing);
+      } catch (e) {
+        return res.status(e.statusCode || 403).json({ error: e.message });
+      }
+
+      const allowedFields = getAllowedUpdateFields(req.user);
+      const isRoleChange = body.roleId !== undefined && body.roleId !== existing.roleId;
+
+      if (isRoleChange) {
+        if (!canChangeRole(req.user)) {
+          return res.status(403).json({ error: 'You do not have permission to change user roles.' });
+        }
         const newRole = await prisma.role.findUnique({ where: { id: body.roleId } });
-        if (existingRole?.name === SYSTEM_ADMIN_ROLE && newRole?.name !== SYSTEM_ADMIN_ROLE) {
+        if (!newRole) return res.status(400).json({ error: 'Invalid role' });
+        try {
+          assertCanAssignRole(req.user, newRole.name);
+        } catch (e) {
+          return res.status(e.statusCode || 403).json({ error: e.message });
+        }
+        if (existing.role?.name === SYSTEM_ADMIN_ROLE && newRole.name !== SYSTEM_ADMIN_ROLE) {
           const count = await countUsersWithRole(SYSTEM_ADMIN_ROLE);
           if (count <= 1) {
             return res.status(400).json({ error: 'Cannot remove the last System Admin. Assign System Admin to another user first.' });
@@ -275,22 +340,26 @@ router.put(
         }
       }
 
+      const data = {};
+      if (allowedFields.includes('firstName') && body.firstName !== undefined) data.firstName = body.firstName.trim();
+      if (allowedFields.includes('lastName') && body.lastName !== undefined) data.lastName = body.lastName.trim();
+      if (allowedFields.includes('departmentId')) data.departmentId = body.departmentId;
+      if (allowedFields.includes('siteId')) data.siteId = body.siteId;
+      if (allowedFields.includes('jobTitle')) data.jobTitle = body.jobTitle?.trim() || null;
+      if (allowedFields.includes('status') && body.status !== undefined) data.status = body.status;
+      if (allowedFields.includes('mfaEnabled') && body.mfaEnabled !== undefined) data.mfaEnabled = body.mfaEnabled;
+      if (allowedFields.includes('roleId') && body.roleId !== undefined) data.roleId = body.roleId;
+
       const before = sanitizeUser(existing);
       const updated = await prisma.user.update({
         where: { id: req.params.id },
-        data: {
-          ...(body.firstName !== undefined && { firstName: body.firstName.trim() }),
-          ...(body.lastName !== undefined && { lastName: body.lastName.trim() }),
-          ...(body.departmentId !== undefined && { departmentId: body.departmentId }),
-          ...(body.siteId !== undefined && { siteId: body.siteId }),
-          ...(body.jobTitle !== undefined && { jobTitle: body.jobTitle?.trim() || null }),
-          ...(body.roleId !== undefined && { roleId: body.roleId }),
-        },
+        data,
         include: { role: true, department: true, site: true },
       });
 
+      const action = isRoleChange ? 'USER_ROLE_CHANGED' : 'USER_UPDATED';
       await auditFromRequest(req, {
-        action: 'USER_UPDATED',
+        action,
         entityType: 'User',
         entityId: updated.id,
         beforeValue: before,
@@ -300,10 +369,64 @@ router.put(
 
       res.json({ user: sanitizeUser(updated) });
     } catch (err) {
+      if (err.statusCode === 403) return res.status(403).json({ error: err.message });
       if (err instanceof z.ZodError) {
         return res.status(400).json({ error: err.errors[0].message });
       }
       res.status(500).json({ error: 'Failed to update user' });
+    }
+  }
+);
+
+// DELETE /api/system/users/:id - soft-delete (set INACTIVE); sys_admin only
+router.delete(
+  '/:id',
+  requireSystemRole('System Admin', 'Admin'),
+  requireSystemPermission('users:delete'),
+  systemSensitiveLimiter,
+  async (req, res) => {
+    try {
+      try {
+        assertCanDeleteUser(req.user);
+      } catch (e) {
+        return res.status(e.statusCode || 403).json({ error: e.message });
+      }
+      if (req.params.id === req.user.id) {
+        return res.status(400).json({ error: 'Cannot delete your own account' });
+      }
+      const user = await prisma.user.findUnique({
+        where: { id: req.params.id },
+        include: { role: true, department: true, site: true },
+      });
+      if (!user) return res.status(404).json({ error: 'User not found' });
+      if (user.role?.name === SYSTEM_ADMIN_ROLE) {
+        const count = await countUsersWithRole(SYSTEM_ADMIN_ROLE);
+        if (count <= 1) {
+          return res.status(400).json({ error: 'Cannot delete the last System Admin.' });
+        }
+      }
+      const before = sanitizeUser(user);
+      await prisma.user.update({
+        where: { id: req.params.id },
+        data: { status: 'INACTIVE', lockedAt: null },
+      });
+      const afterUser = await prisma.user.findUnique({
+        where: { id: req.params.id },
+        include: { role: true, department: true, site: true },
+      });
+      await auditFromRequest(req, {
+        action: 'USER_DELETED',
+        entityType: 'User',
+        entityId: user.id,
+        beforeValue: before,
+        afterValue: afterUser ? sanitizeUser(afterUser) : { status: 'INACTIVE' },
+        reason: req.body?.reason,
+      });
+      res.json({ ok: true });
+    } catch (err) {
+      if (err.statusCode === 403) return res.status(403).json({ error: err.message });
+      console.error('System delete user error:', err);
+      res.status(500).json({ error: 'Failed to delete user' });
     }
   }
 );
@@ -322,6 +445,11 @@ router.post(
       }
       const user = await prisma.user.findUnique({ where: { id: req.params.id }, include: { role: true } });
       if (!user) return res.status(404).json({ error: 'User not found' });
+      try {
+        assertCanEditTarget(req.user, user);
+      } catch (e) {
+        return res.status(e.statusCode || 403).json({ error: e.message });
+      }
       if (user.role?.name === SYSTEM_ADMIN_ROLE) {
         const count = await countUsersWithRole(SYSTEM_ADMIN_ROLE);
         if (count <= 1) {
@@ -343,6 +471,7 @@ router.post(
       });
       res.json({ ok: true });
     } catch (err) {
+      if (err.statusCode === 403) return res.status(403).json({ error: err.message });
       if (err instanceof z.ZodError) return res.status(400).json({ error: 'Reason is required' });
       res.status(500).json({ error: 'Failed to deactivate user' });
     }
@@ -353,12 +482,17 @@ router.post(
 router.post(
   '/:id/reactivate',
   requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
-  requireSystemPermission('users:update'),
+  requireAnySystemPermission('users:update', 'users:update:basic', 'users:update:compliance'),
   async (req, res) => {
     try {
       const { reason } = reasonSchema.parse(req.body);
-      const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+      const user = await prisma.user.findUnique({ where: { id: req.params.id }, include: { role: true } });
       if (!user) return res.status(404).json({ error: 'User not found' });
+      try {
+        assertCanEditTarget(req.user, user);
+      } catch (e) {
+        return res.status(e.statusCode || 403).json({ error: e.message });
+      }
       const before = { status: user.status };
       await prisma.user.update({
         where: { id: req.params.id },
@@ -392,8 +526,13 @@ router.post(
       if (req.params.id === req.user.id) {
         return res.status(400).json({ error: 'Cannot lock your own account' });
       }
-      const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+      const user = await prisma.user.findUnique({ where: { id: req.params.id }, include: { role: true } });
       if (!user) return res.status(404).json({ error: 'User not found' });
+      try {
+        assertCanEditTarget(req.user, user);
+      } catch (e) {
+        return res.status(e.statusCode || 403).json({ error: e.message });
+      }
       const now = new Date();
       await prisma.user.update({
         where: { id: req.params.id },
@@ -418,12 +557,17 @@ router.post(
 router.post(
   '/:id/unlock',
   requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
-  requireSystemPermission('users:update'),
+  requireAnySystemPermission('users:update', 'users:update:basic', 'users:update:compliance'),
   async (req, res) => {
     try {
       const { reason } = reasonSchema.parse(req.body);
-      const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+      const user = await prisma.user.findUnique({ where: { id: req.params.id }, include: { role: true } });
       if (!user) return res.status(404).json({ error: 'User not found' });
+      try {
+        assertCanEditTarget(req.user, user);
+      } catch (e) {
+        return res.status(e.statusCode || 403).json({ error: e.message });
+      }
       await prisma.user.update({
         where: { id: req.params.id },
         data: { status: 'ACTIVE', lockedAt: null },

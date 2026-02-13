@@ -38,6 +38,20 @@ export function requireSystemPermission(permissionCode) {
 }
 
 /**
+ * Require at least one of the given permissions. System Admin and Admin bypass.
+ */
+export function requireAnySystemPermission(...permissionCodes) {
+  return (req, res, next) => {
+    const roleName = req.user?.roleName;
+    const permissions = req.user?.permissions || [];
+    if (roleName === SYSTEM_ADMIN_ROLE || roleName === ADMIN_ROLE) return next();
+    const hasAny = permissionCodes.some((code) => permissions.includes(code));
+    if (hasAny) return next();
+    return res.status(403).json({ error: `Missing permission: one of [${permissionCodes.join(', ')}] required` });
+  };
+}
+
+/**
  * Rate limiter for sensitive system actions (invite, reset password, lock/unlock).
  */
 export const systemSensitiveLimiter = rateLimit({
