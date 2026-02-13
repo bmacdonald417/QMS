@@ -11,6 +11,7 @@ const updateSchema = z.object({
   documentRetentionYears: z.number().int().min(1).max(50).nullable().optional(),
   trainingRetentionYears: z.number().int().min(1).max(50).nullable().optional(),
   capaRetentionYears: z.number().int().min(1).max(50).nullable().optional(),
+  changeRetentionYears: z.number().int().min(1).max(50).nullable().optional(),
 });
 
 // GET /api/system/retention

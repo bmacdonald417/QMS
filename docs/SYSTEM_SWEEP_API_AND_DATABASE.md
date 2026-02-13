@@ -1,6 +1,6 @@
 # MacTech QMS – System Sweep: API & PostgreSQL Database
 
-Complete mapping of **API endpoints** (functions) and their **PostgreSQL tables** (Prisma schema).
+Complete mapping of **API endpoints** (functions) and their **PostgreSQL tables** (Prisma schema). **CAPA workflows are highlighted** in §2.4 and §2.4.1.
 
 ---
 
@@ -20,6 +20,10 @@ Complete mapping of **API endpoints** (functions) and their **PostgreSQL tables*
 | `DocumentCommentStatus` | OPEN, RESOLVED, REJECTED |
 | `TrainingRecordStatus` | ASSIGNED, IN_PROGRESS, COMPLETED, OVERDUE |
 | `PeriodicReviewStatus` | PENDING, COMPLETED, OVERDUE |
+| **`CapaStatus`** | **DRAFT, OPEN, CONTAINMENT, INVESTIGATION, RCA_COMPLETE, PLAN_APPROVAL, IMPLEMENTATION, EFFECTIVENESS_CHECK, PENDING_CLOSURE, CLOSED, CANCELLED, ARCHIVED** |
+| **`CapaTaskType`** | **CONTAINMENT_ACTION, INVESTIGATION_STEP, ROOT_CAUSE_ANALYSIS, CORRECTIVE_ACTION, PREVENTIVE_ACTION, EFFECTIVENESS_CHECK, APPROVAL, CLOSURE_REVIEW** |
+| **`CapaTaskStatus`** | **PENDING, IN_PROGRESS, COMPLETED, REJECTED, OVERDUE** |
+| **`LinkEntityType`** | **DOCUMENT, CAPA, CHANGE_CONTROL, TRAINING_MODULE** |
 
 ### 1.2 Tables (Prisma models → `@@map`)
 
@@ -37,7 +41,7 @@ Complete mapping of **API endpoints** (functions) and their **PostgreSQL tables*
 | `password_reset_tokens` | PasswordResetToken | Reset token (hashed), userId, expiresAt, consumedAt. |
 | `security_policies` | SecurityPolicy | Single-row: password/session/MFA policy (length, complexity, lockout, timeout, mfaPolicy, allowedDomains). |
 | `retention_policies` | RetentionPolicy | Single-row: auditLogRetentionYears, documentRetentionYears, trainingRetentionYears, capaRetentionYears. |
-| `esign_config` | ESignConfig | Single-row: requireForDocumentApproval, requireForCapaClosure, requireForTrainingSignOff. |
+| `esign_config` | ESignConfig | Single-row: requireForDocumentApproval, **requireForCapaPlanApproval**, requireForCapaClosure, requireForTrainingSignOff. |
 | `documents` | Document | Document: documentId, title, documentType, versionMajor, versionMinor, effectiveDate, status, content, authorId, supersedesDocumentId, tags, nextReviewDate, isUnderReview. |
 | `document_links` | DocumentLink | Where-used: sourceDocumentId, targetDocumentId, linkType. |
 | `document_comments` | DocumentComment | Comment: documentId, userId, commentText, sectionIdentifier, status. |
@@ -50,7 +54,13 @@ Complete mapping of **API endpoints** (functions) and their **PostgreSQL tables*
 | `periodic_reviews` | PeriodicReview | Periodic review: documentId, reviewDate, status, reviewerId, completedAt. |
 | `notifications` | Notification | In-app notification: userId, message, read, link. |
 | `change_controls` | ChangeControl | Change control record: title, changeId, description, riskAssessment, status, initiatorId. |
-| `capas` | CAPA | CAPA record: title, capaId, description, rootCause, status, assigneeId. |
+| **`capas`** | **CAPA** | **CAPA: capaId (e.g. CAPA-YYYY-NNNN), title, description, status (CapaStatus), initiatorId, ownerId, assigneeId, severity, siteId, departmentId, rootCause, containmentSummary, correctiveSummary, preventiveSummary, effectivenessPlan, effectivenessResult, dueDate, closedAt, isArchived.** |
+| **`capa_tasks`** | **CapaTask** | **CAPA task: capaId, taskType, status, stepNumber, title, description, assignedToId, dueDate, completedAt, completionNotes, requiresEsign, completedById, createdById.** |
+| **`capa_history`** | **CapaHistory** | **CAPA event stream (inspector-friendly): capaId, userId, action, timestamp, details (json), digitalSignatureId.** |
+| **`capa_signatures`** | **CapaSignature** | **CAPA e-sign: capaId, signerId, signatureMeaning (e.g. PLAN_APPROVAL, CLOSURE), signedAt, recordHash, signatureHash, passwordHash.** |
+| **`file_assets`** | **FileAsset** | **Stored file: storageKey, filename, contentType, sizeBytes, sha256, uploadedById, isDeleted, deletedAt.** |
+| **`file_links`** | **FileLink** | **Polymorphic link: fileAssetId, entityType, entityId, purpose (e.g. evidence, report).** |
+| **`entity_links`** | **EntityLink** | **Cross-entity links: sourceType, sourceId, targetType, targetId, linkType (CAPA ↔ DOCUMENT, CHANGE_CONTROL, TRAINING_MODULE).** |
 
 ---
 
@@ -111,11 +121,61 @@ Base URL for API: `/api`. All routes under `/api/*` except `/api/auth/login` and
 
 | Method | Path | Function | PostgreSQL tables |
 |--------|------|----------|--------------------|
-| GET | `/api/tasks` | Pending document assignments for current user (review/approval/release). | **document_assignments**, **documents** |
+| GET | `/api/tasks` | **Unified “My Tasks”:** pending document assignments + CAPA tasks (assignedToId = current user, status in PENDING/IN_PROGRESS/OVERDUE). Response includes `type`: `DOCUMENT_ASSIGNMENT` \| `CAPA_TASK`. | **document_assignments**, **documents**, **capa_tasks**, **capas** |
 
 ---
 
-### 2.5 Users (picker) – `server/src/users.js`  
+### 2.5 CAPA Workflows – `server/src/capas.js`  
+**Mount:** `app.use('/api/capas', authMiddleware, capaRoutes)`
+
+All CAPA write endpoints enforce **RBAC** (capa:view, capa:create, capa:update, capa:assign_tasks, capa:approve_plan, capa:close, capa:esign, file:upload/file:delete), **Zod validation**, **append-only audit** via `createAuditLog()`, and **CAPA history** via `capa_history`. Regulated actions require a **reason** in the request body.
+
+#### 2.5.1 CAPA status lifecycle (allowed transitions)
+
+| From | Allowed to |
+|------|------------|
+| DRAFT | OPEN, CANCELLED |
+| OPEN | CONTAINMENT, CANCELLED |
+| CONTAINMENT | INVESTIGATION, OPEN |
+| INVESTIGATION | RCA_COMPLETE, CONTAINMENT |
+| RCA_COMPLETE | PLAN_APPROVAL, INVESTIGATION |
+| PLAN_APPROVAL | IMPLEMENTATION, RCA_COMPLETE |
+| IMPLEMENTATION | EFFECTIVENESS_CHECK, PLAN_APPROVAL |
+| EFFECTIVENESS_CHECK | PENDING_CLOSURE, IMPLEMENTATION |
+| PENDING_CLOSURE | CLOSED, EFFECTIVENESS_CHECK |
+| CLOSED, CANCELLED, ARCHIVED | (none) |
+
+#### 2.5.2 CAPA API endpoints
+
+| Method | Path | Permission | Function | PostgreSQL tables |
+|--------|------|------------|----------|--------------------|
+| GET | `/api/capas` | capa:view | List CAPAs: filters (status, search, ownerId, siteId, departmentId, dateFrom, dateTo), pagination, sort. | **capas**, initiator, owner, site, department |
+| POST | `/api/capas` | capa:create | Create CAPA; generate capaId (CAPA-YYYY-NNNN); default status DRAFT or OPEN; audit + capa_history; notify owner if set. | **capas**, **capa_history**, **audit_logs**, **notifications** |
+| GET | `/api/capas/:id` | capa:view | Get one CAPA with tasks, history, signatures, attachments (file_links for entityType=CAPA), entity_links. | **capas**, **capa_tasks**, **capa_history**, **capa_signatures**, **file_links**, **file_assets**, **entity_links** |
+| PUT | `/api/capas/:id` | capa:update | Update CAPA fields (title, description, owner, severity, rootCause, summaries, dueDate, etc.); body must include `reason`; audit + capa_history. | **capas**, **capa_history**, **audit_logs** |
+| POST | `/api/capas/:id/transition` | capa:update | Status transition: body `{ toStatus, reason }`; validate allowed transition; set closedAt when toStatus=CLOSED; audit + capa_history; notify owner. | **capas**, **capa_history**, **audit_logs**, **notifications** |
+| POST | `/api/capas/:id/tasks` | capa:assign_tasks | Create one or more CAPA tasks (batch); body `{ tasks: [{ taskType, title, description?, assignedToId?, dueDate?, requiresEsign?, stepNumber? }], reason }`; audit + capa_history; notify assignees. | **capa_tasks**, **capa_history**, **audit_logs**, **notifications** |
+| PUT | `/api/capas/:id/tasks/:taskId` | capa:assign_tasks | Update task (title, description, assignedToId, dueDate, status); body must include `reason`; audit + capa_history. | **capa_tasks**, **capa_history**, **audit_logs** |
+| POST | `/api/capas/:id/tasks/:taskId/complete` | capa:assign_tasks | Complete task: completionNotes, optional e-sign if task.requiresEsign; audit + capa_history; notify CAPA owner. | **capa_tasks**, **capa_history**, **audit_logs**, **notifications** |
+| POST | `/api/capas/:id/approve-plan` | capa:approve_plan | Approve CAPA plan: if esign_config.requireForCapaPlanApproval, require password/signature; set status IMPLEMENTATION; write capa_signatures + capa_history + audit; notify owner. | **capas**, **capa_signatures**, **capa_history**, **audit_logs**, **esign_config**, **notifications** |
+| POST | `/api/capas/:id/close` | capa:close | Close CAPA: validate at least one corrective action completed and effectiveness check completed or waived with justification; if esign_config.requireForCapaClosure, require e-sign; set CLOSED + closedAt; write signature + capa_history + audit. | **capas**, **capa_tasks**, **capa_signatures**, **capa_history**, **audit_logs**, **esign_config** |
+| POST | `/api/capas/:id/files` | file:upload | Upload file (multipart, field `file`); optional body `purpose`; create file_assets + file_links (entityType=CAPA); store under UPLOAD_DIR/capa/:id/; audit + capa_history. | **file_assets**, **file_links**, **capa_history**, **audit_logs** |
+| POST | `/api/capas/:id/link` | capa:update | Create entity_link: CAPA → Document/ChangeControl/TrainingModule; body `{ targetType, targetId, linkType }`. | **entity_links**, **audit_logs** |
+| GET | `/api/capas/:id/links` | capa:view | List entity_links where CAPA is source or target. | **entity_links** |
+
+---
+
+### 2.6 Files – `server/src/files.js`  
+**Mount:** `app.use('/api/files', authMiddleware, fileRoutes)`
+
+| Method | Path | Permission | Function | PostgreSQL tables |
+|--------|------|------------|----------|--------------------|
+| GET | `/api/files/:fileId` | (access: user must have capa:view and file must be linked to a CAPA the user can access) | Stream file from disk (UPLOAD_DIR + file_asset.storageKey). | **file_assets**, **file_links**, **capas** |
+| DELETE | `/api/files/:fileId` | file:delete | Soft delete file_asset (isDeleted=true, deletedAt); audit. | **file_assets**, **audit_logs** |
+
+---
+
+### 2.7 Users (picker) – `server/src/users.js`  
 **Mount:** `app.use('/api/users', authMiddleware, userRoutes)`
 
 | Method | Path | Function | PostgreSQL tables |
@@ -124,7 +184,7 @@ Base URL for API: `/api`. All routes under `/api/*` except `/api/auth/login` and
 
 ---
 
-### 2.6 Training – `server/src/training.js`  
+### 2.8 Training – `server/src/training.js`  
 **Mount:** `app.use('/api/training', authMiddleware, trainingRoutes)`
 
 | Method | Path | Function | PostgreSQL tables |
@@ -135,7 +195,7 @@ Base URL for API: `/api`. All routes under `/api/*` except `/api/auth/login` and
 
 ---
 
-### 2.7 Periodic reviews – `server/src/periodicReviews.js`  
+### 2.9 Periodic reviews – `server/src/periodicReviews.js`  
 **Mount:** `app.use('/api/periodic-reviews', authMiddleware, periodicReviewsRoutes)`
 
 | Method | Path | Function | PostgreSQL tables |
@@ -145,7 +205,7 @@ Base URL for API: `/api`. All routes under `/api/*` except `/api/auth/login` and
 
 ---
 
-### 2.8 Dashboard – `server/src/dashboard.js`  
+### 2.10 Dashboard – `server/src/dashboard.js`  
 **Mount:** `app.use('/api/dashboard', authMiddleware, dashboardRoutes)`
 
 | Method | Path | Function | PostgreSQL tables |
@@ -154,17 +214,17 @@ Base URL for API: `/api`. All routes under `/api/*` except `/api/auth/login` and
 
 ---
 
-### 2.9 System – `server/src/system/index.js` + sub-routers  
+### 2.11 System – `server/src/system/index.js` + sub-routers  
 **Mount:** `app.use('/api/system', systemRoutes)`  
 All system routes use **authMiddleware** and **requestIdMiddleware**; sub-routers add **requireSystemRole** and often **requireSystemPermission**. Sensitive actions use **systemSensitiveLimiter**.
 
-#### 2.9.1 System dashboard – `server/src/system/index.js`
+#### 2.11.1 System dashboard – `server/src/system/index.js`
 
 | Method | Path | Function | PostgreSQL tables |
 |--------|------|----------|--------------------|
 | GET | `/api/system/dashboard` | Counts: userCount, roleCount, auditCount. | **users**, **roles**, **audit_logs** |
 
-#### 2.9.2 System users – `server/src/system/users.js`  
+#### 2.11.2 System users – `server/src/system/users.js`  
 **Mount:** `router.use('/users', usersRouter)` → base `/api/system/users`
 
 | Method | Path | Function | PostgreSQL tables |
@@ -181,7 +241,7 @@ All system routes use **authMiddleware** and **requestIdMiddleware**; sub-router
 | POST | `/api/system/users/:id/revoke-sessions` | Increment user tokenVersion; audit. | **users**, **audit_logs** |
 | POST | `/api/system/users/:id/reset-password` | Create PasswordResetToken, return reset link; audit. | **password_reset_tokens**, **audit_logs** |
 
-#### 2.9.3 System roles – `server/src/system/roles.js`  
+#### 2.11.3 System roles – `server/src/system/roles.js`  
 **Mount:** `/api/system/roles`
 
 | Method | Path | Function | PostgreSQL tables |
@@ -191,7 +251,7 @@ All system routes use **authMiddleware** and **requestIdMiddleware**; sub-router
 | POST | `/api/system/roles` | Create role; audit. | **roles**, **audit_logs** |
 | PUT | `/api/system/roles/:id` | Update role (name, permissions); guard last System Admin; audit. | **roles**, **audit_logs** |
 
-#### 2.9.4 System audit – `server/src/system/audit.js`  
+#### 2.11.4 System audit – `server/src/system/audit.js`  
 **Mount:** `/api/system/audit`
 
 | Method | Path | Function | PostgreSQL tables |
@@ -200,7 +260,7 @@ All system routes use **authMiddleware** and **requestIdMiddleware**; sub-router
 | GET | `/api/system/audit/export` | Export audit log as CSV (same filters + limit). | **audit_logs**, **users** |
 | GET | `/api/system/audit/:id` | Get one audit log entry. | **audit_logs**, **users** |
 
-#### 2.9.5 System security policies – `server/src/system/securityPolicies.js`  
+#### 2.11.5 System security policies – `server/src/system/securityPolicies.js`  
 **Mount:** `/api/system/security-policies`
 
 | Method | Path | Function | PostgreSQL tables |
@@ -208,7 +268,7 @@ All system routes use **authMiddleware** and **requestIdMiddleware**; sub-router
 | GET | `/api/system/security-policies` | Get (or create default) security policy. | **security_policies** |
 | PUT | `/api/system/security-policies` | Update policy; audit. | **security_policies**, **audit_logs** |
 
-#### 2.9.6 System reference – `server/src/system/reference.js`  
+#### 2.11.6 System reference – `server/src/system/reference.js`  
 **Mount:** `/api/system/reference`
 
 | Method | Path | Function | PostgreSQL tables |
@@ -223,7 +283,7 @@ All system routes use **authMiddleware** and **requestIdMiddleware**; sub-router
 | POST | `/api/system/reference/job-titles` | Create job title; audit. | **job_titles**, **audit_logs** |
 | PUT | `/api/system/reference/job-titles/:id` | Update job title; audit. | **job_titles**, **audit_logs** |
 
-#### 2.9.7 System retention – `server/src/system/retention.js`  
+#### 2.11.7 System retention – `server/src/system/retention.js`  
 **Mount:** `/api/system/retention`
 
 | Method | Path | Function | PostgreSQL tables |
@@ -232,7 +292,7 @@ All system routes use **authMiddleware** and **requestIdMiddleware**; sub-router
 | PUT | `/api/system/retention` | Update retention policy; audit. | **retention_policies**, **audit_logs** |
 | GET | `/api/system/retention/last-backup` | Stub: last backup time (returns null). | — |
 
-#### 2.9.8 System e-sign – `server/src/system/esign.js`  
+#### 2.11.8 System e-sign – `server/src/system/esign.js`  
 **Mount:** `/api/system/esign`
 
 | Method | Path | Function | PostgreSQL tables |
@@ -242,7 +302,7 @@ All system routes use **authMiddleware** and **requestIdMiddleware**; sub-router
 
 ---
 
-### 2.10 Health (no auth)
+### 2.12 Health (no auth)
 
 | Method | Path | Function | PostgreSQL tables |
 |--------|------|----------|--------------------|
@@ -254,7 +314,7 @@ All system routes use **authMiddleware** and **requestIdMiddleware**; sub-router
 
 | Location | Function | PostgreSQL tables |
 |----------|----------|--------------------|
-| `server/src/periodicReviewScheduler.js` | Run on startup + daily: find documents with nextReviewDate within 30 days or overdue → create **PeriodicReview** if none open, notify reviewer; mark overdue **UserTrainingRecord** as OVERDUE. | **documents**, **periodic_reviews**, **notifications**, **user_training_records**, **training_modules** |
+| `server/src/periodicReviewScheduler.js` | Run on startup + daily: (1) Documents: nextReviewDate within 30 days or overdue → create **PeriodicReview** if none open, notify reviewer; mark overdue **UserTrainingRecord** as OVERDUE. (2) **CAPA tasks:** where dueDate &lt; now and status in PENDING/IN_PROGRESS → set status OVERDUE, notify assignee and CAPA owner. (3) **CAPA retention:** closed CAPAs with closedAt older than retention_policies.capaRetentionYears → set isArchived=true (no hard delete). | **documents**, **periodic_reviews**, **notifications**, **user_training_records**, **training_modules**, **capa_tasks**, **capas**, **retention_policies** |
 
 ---
 
@@ -285,11 +345,17 @@ All system routes use **authMiddleware** and **requestIdMiddleware**; sub-router
 | training_modules | `/api/training/modules`, created on quality-release |
 | user_training_records | `/api/training/my-assignments`, `/api/training/complete/:id` |
 | periodic_reviews | `/api/periodic-reviews`, `/api/documents/:id/initiate-periodic-review`, scheduler |
-| notifications | Created by documents + system; `/api/notifications` |
-| audit_logs | Append-only from system routes; `/api/system/audit` (read, export) |
+| notifications | Created by documents, **CAPA**, system; `/api/notifications` |
+| audit_logs | Append-only from system + **CAPA** routes; `/api/system/audit` (read, export) |
 | departments, sites, job_titles | `/api/system/reference/*` |
 | security_policies, retention_policies, esign_config | `/api/system/security-policies`, `/api/system/retention`, `/api/system/esign` |
 | invite_tokens, password_reset_tokens | `/api/system/users/invite`, `/api/system/users/:id/reset-password` |
-| change_controls, capas | Schema only; no document-control API in this sweep (separate modules). |
+| **capas** | **`/api/capas` (list, create, get, update, transition, tasks, approve-plan, close, files, links)** |
+| **capa_tasks** | **`/api/capas/:id/tasks` (create, update, complete), `/api/tasks` (unified My Tasks)** |
+| **capa_history** | **Written by all CAPA write operations (capas.js)** |
+| **capa_signatures** | **`/api/capas/:id/approve-plan`, `/api/capas/:id/close`** |
+| **file_assets, file_links** | **`/api/capas/:id/files` (upload), `/api/files/:fileId` (get, delete)** |
+| **entity_links** | **`/api/capas/:id/link`, `/api/capas/:id/links`** |
+| change_controls | Schema only; no dedicated API in this sweep. |
 
-This completes the system sweep of **functions and their locations in the API and PostgreSQL database**.
+This completes the system sweep of **functions and their locations in the API and PostgreSQL database**, with **CAPA workflows** fully documented in §2.5.

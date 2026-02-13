@@ -14,7 +14,7 @@ function hasPermission(req, code) {
   return (req.user?.permissions || []).includes(code);
 }
 
-// GET /api/files/:fileId — stream file (fileId = FileAsset id)
+// GET /api/files/:fileId — stream file; authorize by entity type (CAPA, CHANGE_CONTROL, DOCUMENT)
 router.get('/:fileId', async (req, res) => {
   try {
     const fileAsset = await prisma.fileAsset.findUnique({
@@ -32,6 +32,14 @@ router.get('/:fileId', async (req, res) => {
       if (!hasPermission(req, 'capa:view')) return res.status(403).json({ error: 'Access denied' });
       const capa = await prisma.cAPA.findUnique({ where: { id: link.entityId } });
       if (!capa) return res.status(404).json({ error: 'File not found' });
+    } else if (link.entityType === 'CHANGE_CONTROL') {
+      if (!hasPermission(req, 'change:view')) return res.status(403).json({ error: 'Access denied' });
+      const cc = await prisma.changeControl.findUnique({ where: { id: link.entityId } });
+      if (!cc) return res.status(404).json({ error: 'File not found' });
+    } else if (link.entityType === 'DOCUMENT') {
+      if (!hasPermission(req, 'document:view')) return res.status(403).json({ error: 'Access denied' });
+      const doc = await prisma.document.findUnique({ where: { id: link.entityId } });
+      if (!doc) return res.status(404).json({ error: 'File not found' });
     } else {
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -63,6 +71,12 @@ router.delete('/:fileId', requirePermission('file:delete'), async (req, res) => 
     const link = fileAsset.fileLinks?.[0];
     if (link?.entityType === 'CAPA' && !hasPermission(req, 'capa:update')) {
       return res.status(403).json({ error: 'Cannot delete file from this CAPA' });
+    }
+    if (link?.entityType === 'CHANGE_CONTROL' && !hasPermission(req, 'change:update')) {
+      return res.status(403).json({ error: 'Cannot delete file from this change control' });
+    }
+    if (link?.entityType === 'DOCUMENT' && !hasPermission(req, 'document.create')) {
+      return res.status(403).json({ error: 'Cannot delete file from this document' });
     }
 
     const now = new Date();

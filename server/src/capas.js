@@ -1019,4 +1019,46 @@ router.get('/:id/links', requirePermission('capa:view'), async (req, res) => {
   }
 });
 
+// GET /api/capas/:id/readiness — unmet requirements for inspection readiness
+router.get('/:id/readiness', requirePermission('capa:view'), async (req, res) => {
+  try {
+    const capa = await prisma.cAPA.findUnique({
+      where: { id: req.params.id },
+      include: { tasks: true, signatures: true },
+    });
+    if (!capa) return res.status(404).json({ error: 'CAPA not found' });
+    const tasksIncomplete = capa.tasks.filter((t) => t.status !== 'COMPLETED' && t.status !== 'REJECTED');
+    const tasksOverdue = capa.tasks.filter((t) => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'COMPLETED' && t.status !== 'REJECTED');
+    const correctiveDone = capa.tasks.some((t) => t.taskType === 'CORRECTIVE_ACTION' && t.status === 'COMPLETED');
+    const effectivenessDone = capa.tasks.some((t) => t.taskType === 'EFFECTIVENESS_CHECK' && t.status === 'COMPLETED');
+    const planApprovalSigned = capa.signatures.some((s) => s.signatureMeaning === 'PLAN_APPROVAL');
+    const closureSigned = capa.signatures.some((s) => s.signatureMeaning === 'CLOSURE');
+    const unmet = [];
+    if (capa.status !== 'CLOSED' && capa.status !== 'CANCELLED' && tasksIncomplete.length) {
+      unmet.push({ type: 'TASKS_INCOMPLETE', count: tasksIncomplete.length, taskIds: tasksIncomplete.map((t) => t.id) });
+    }
+    if (tasksOverdue.length) {
+      unmet.push({ type: 'TASKS_OVERDUE', count: tasksOverdue.length, taskIds: tasksOverdue.map((t) => t.id) });
+    }
+    if (capa.status === 'PLAN_APPROVAL' && !planApprovalSigned) {
+      unmet.push({ type: 'APPROVAL_MISSING', message: 'Plan approval signature required' });
+    }
+    if (capa.status === 'PENDING_CLOSURE') {
+      if (!correctiveDone) unmet.push({ type: 'REQUIREMENT_MISSING', message: 'At least one corrective action must be completed' });
+      if (!effectivenessDone) unmet.push({ type: 'REQUIREMENT_MISSING', message: 'Effectiveness check must be completed or waived with justification' });
+      if (!closureSigned) unmet.push({ type: 'APPROVAL_MISSING', message: 'Closure signature required' });
+    }
+    res.json({
+      capaId: capa.id,
+      capaNumber: capa.capaId,
+      status: capa.status,
+      readyForClosure: capa.status === 'PENDING_CLOSURE' && correctiveDone && (effectivenessDone || true) && closureSigned && !tasksOverdue.length,
+      unmet,
+    });
+  } catch (err) {
+    console.error('CAPA readiness error:', err);
+    res.status(500).json({ error: 'Failed to get readiness' });
+  }
+});
+
 export default router;

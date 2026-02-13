@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from './db.js';
 import { requirePermission } from './auth.js';
+import { createAuditLog, getAuditContext } from './audit.js';
 
 const router = express.Router();
 
@@ -62,6 +63,19 @@ router.post('/complete/:assignmentId', requirePermission('document.review'), asy
       where: { id: assignmentId },
       data: { status: 'COMPLETED', completionDate: new Date() },
     });
+
+    const auditCtx = getAuditContext(req);
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'TRAINING_COMPLETED',
+      entityType: 'UserTrainingRecord',
+      entityId: record.id,
+      beforeValue: { status: record.status },
+      afterValue: { status: 'COMPLETED', completionDate: updated.completionDate },
+      reason: req.body.reason || null,
+      ...auditCtx,
+    });
+
     res.json({ assignment: updated });
   } catch (err) {
     console.error('Complete training error:', err);

@@ -79,8 +79,9 @@ model Department {
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  users     User[]
-  capas     CAPA[]
+  users         User[]
+  capas         CAPA[]
+  changeControls ChangeControl[]
 
   @@map("departments")
 }
@@ -92,8 +93,9 @@ model Site {
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  users     User[]
-  capas     CAPA[]
+  users          User[]
+  capas          CAPA[]
+  changeControls ChangeControl[]
 
   @@map("sites")
 }
@@ -137,7 +139,13 @@ model User {
   notifications        Notification[]
   documentRevisions    DocumentRevision[]
   documentSignatures   DocumentSignature[]
-  changeControls       ChangeControl[]
+  changeControls       ChangeControl[]   @relation("ChangeControlInitiator")
+  changeControlsOwned  ChangeControl[]   @relation("ChangeControlOwner")
+  changeControlTasksAssigned ChangeControlTask[] @relation("ChangeTaskAssignee")
+  changeControlTasksCompleted ChangeControlTask[] @relation("ChangeTaskCompletedBy")
+  changeControlTasksCreated ChangeControlTask[] @relation("ChangeTaskCreatedBy")
+  changeControlHistoryItems ChangeControlHistory[]
+  changeControlSignatures   ChangeControlSignature[]
   capasAssigned        CAPA[]            @relation("CAPAAssignee")
   capasInitiated       CAPA[]            @relation("CAPAInitiator")
   capasOwned           CAPA[]            @relation("CAPAOwner")
@@ -227,12 +235,13 @@ model SecurityPolicy {
 }
 
 model RetentionPolicy {
-  id                    String   @id @default(uuid())
-  auditLogRetentionYears Int     @default(7) @map("audit_log_retention_years")
-  documentRetentionYears Int?    @map("document_retention_years")
-  trainingRetentionYears Int?   @map("training_retention_years")
-  capaRetentionYears     Int?    @map("capa_retention_years")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  id                      String   @id @default(uuid())
+  auditLogRetentionYears  Int      @default(7) @map("audit_log_retention_years")
+  documentRetentionYears  Int?     @map("document_retention_years")
+  trainingRetentionYears Int?     @map("training_retention_years")
+  capaRetentionYears      Int?     @map("capa_retention_years")
+  changeRetentionYears    Int?     @map("change_retention_years")
+  updatedAt               DateTime @updatedAt @map("updated_at")
 
   @@map("retention_policies")
 }
@@ -454,20 +463,125 @@ model Notification {
   @@map("notifications")
 }
 
+enum ChangeControlStatus {
+  DRAFT
+  SUBMITTED
+  REVIEW
+  APPROVAL
+  IMPLEMENTATION
+  EFFECTIVENESS
+  PENDING_CLOSURE
+  CLOSED
+  CANCELLED
+  ARCHIVED
+}
+
+enum ChangeTaskType {
+  IMPACT_ASSESSMENT
+  REVIEW
+  APPROVAL
+  IMPLEMENTATION
+  TRAINING
+  EFFECTIVENESS_CHECK
+  CLOSURE_REVIEW
+}
+
+enum ChangeTaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  OVERDUE
+}
+
 model ChangeControl {
-  id             String   @id @default(uuid())
-  title          String
-  changeId       String   @map("change_id")
-  description    String   @db.Text
-  riskAssessment String?  @map("risk_assessment") @db.Text
-  status         String
-  initiatorId    String?  @map("initiator_id")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id              String               @id @default(uuid())
+  changeId        String               @unique @map("change_id")
+  title           String
+  description     String               @db.Text
+  riskAssessment  String?              @map("risk_assessment") @db.Text
+  status          ChangeControlStatus  @default(DRAFT)
+  initiatorId     String?              @map("initiator_id")
+  ownerId         String?              @map("owner_id")
+  siteId          String?              @map("site_id")
+  departmentId    String?              @map("department_id")
+  dueDate         DateTime?            @map("due_date")
+  closedAt        DateTime?            @map("closed_at")
+  isArchived      Boolean              @default(false) @map("is_archived")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
 
-  initiator User? @relation(fields: [initiatorId], references: [id], onDelete: SetNull)
+  initiator  User?   @relation("ChangeControlInitiator", fields: [initiatorId], references: [id], onDelete: SetNull)
+  owner      User?   @relation("ChangeControlOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  site       Site?   @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  tasks      ChangeControlTask[]
+  history    ChangeControlHistory[]
+  signatures ChangeControlSignature[]
 
+  @@index([status])
+  @@index([ownerId])
+  @@index([createdAt])
   @@map("change_controls")
+}
+
+model ChangeControlTask {
+  id              String           @id @default(uuid())
+  changeControlId String           @map("change_control_id")
+  taskType        ChangeTaskType   @map("task_type")
+  status          ChangeTaskStatus @default(PENDING)
+  stepNumber      Int              @default(0) @map("step_number")
+  title           String
+  description     String?          @db.Text
+  assignedToId    String?          @map("assigned_to_id")
+  dueDate         DateTime?        @map("due_date")
+  completedAt     DateTime?        @map("completed_at")
+  completionNotes String?          @map("completion_notes") @db.Text
+  completedById   String?          @map("completed_by_id")
+  createdById     String?          @map("created_by_id")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  changeControl ChangeControl @relation(fields: [changeControlId], references: [id], onDelete: Restrict)
+  assignedTo    User?         @relation("ChangeTaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  completedBy   User?         @relation("ChangeTaskCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+  createdBy     User?         @relation("ChangeTaskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([changeControlId])
+  @@index([assignedToId])
+  @@index([status])
+  @@map("change_control_tasks")
+}
+
+model ChangeControlHistory {
+  id               String   @id @default(uuid())
+  changeControlId  String   @map("change_control_id")
+  userId           String   @map("user_id")
+  action           String
+  timestamp        DateTime @default(now())
+  details          Json?
+
+  changeControl ChangeControl @relation(fields: [changeControlId], references: [id], onDelete: Restrict)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([changeControlId])
+  @@map("change_control_history")
+}
+
+model ChangeControlSignature {
+  id               String   @id @default(uuid())
+  changeControlId  String   @map("change_control_id")
+  signerId         String   @map("signer_id")
+  signatureMeaning String   @map("signature_meaning")
+  signedAt         DateTime @default(now()) @map("signed_at")
+  recordHash       String   @map("record_hash")
+  signatureHash    String   @map("signature_hash")
+  passwordHash     String?  @map("password_hash")
+
+  changeControl ChangeControl @relation(fields: [changeControlId], references: [id], onDelete: Restrict)
+  signer        User          @relation(fields: [signerId], references: [id], onDelete: Restrict)
+
+  @@map("change_control_signatures")
 }
 
 enum CapaStatus {

@@ -7,7 +7,8 @@ const ROLES = [
     name: 'System Admin',
     permissions: [
       'capa:view', 'capa:create', 'capa:update', 'capa:assign_tasks', 'capa:approve_plan', 'capa:close', 'capa:esign', 'capa:export',
-      'file:upload', 'file:download', 'file:delete',
+      'change:view', 'change:create', 'change:update', 'change:assign_tasks', 'change:close',
+      'file:upload', 'file:download', 'file:delete', 'document:view',
     ],
   },
   {
@@ -27,7 +28,8 @@ const ROLES = [
       'system:securitypolicy:update',
       'system:reference:update',
       'capa:view', 'capa:create', 'capa:update', 'capa:assign_tasks', 'capa:approve_plan', 'capa:close', 'capa:esign', 'capa:export',
-      'file:upload', 'file:download', 'file:delete',
+      'change:view', 'change:create', 'change:update', 'change:assign_tasks', 'change:close',
+      'file:upload', 'file:download', 'file:delete', 'document:view',
     ],
   },
   {
@@ -44,7 +46,8 @@ const ROLES = [
       'auditlog:view',
       'system:reference:update',
       'capa:view', 'capa:create', 'capa:update', 'capa:assign_tasks', 'capa:approve_plan', 'capa:close', 'capa:esign', 'capa:export',
-      'file:upload', 'file:download', 'file:delete',
+      'change:view', 'change:create', 'change:update', 'change:assign_tasks', 'change:close',
+      'file:upload', 'file:download', 'file:delete', 'document:view',
     ],
   },
   {
@@ -56,7 +59,8 @@ const ROLES = [
       'document.revise.major',
       'document.revise.minor',
       'capa:view', 'capa:update', 'capa:assign_tasks',
-      'file:upload', 'file:download',
+      'change:view', 'change:update', 'change:assign_tasks',
+      'file:upload', 'file:download', 'document:view',
     ],
   },
   {
@@ -67,7 +71,9 @@ const ROLES = [
       'document.revise.major',
       'document.revise.minor',
       'capa:view',
+      'change:view',
       'file:download',
+      'document:view',
     ],
   },
 ];
@@ -91,6 +97,12 @@ const PERMISSION_CODES = [
   { code: 'file:upload', description: 'Upload files' },
   { code: 'file:download', description: 'Download files' },
   { code: 'file:delete', description: 'Soft delete files' },
+  { code: 'document:view', description: 'View documents and document attachments' },
+  { code: 'change:view', description: 'View change control records' },
+  { code: 'change:create', description: 'Create change control' },
+  { code: 'change:update', description: 'Update change control' },
+  { code: 'change:assign_tasks', description: 'Assign and manage change control tasks' },
+  { code: 'change:close', description: 'Close change control' },
 ];
 
 const DEMO_PASSWORD = 'Password123!';

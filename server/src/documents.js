@@ -3,9 +3,11 @@ import bcrypt from 'bcrypt';
 import { createHash } from 'node:crypto';
 import { prisma } from './db.js';
 import { requirePermission, requireRoles } from './auth.js';
+import { createAuditLog, getAuditContext } from './audit.js';
 import { generateDocumentPdf } from './pdf.js';
 
 const router = express.Router();
+const DOCUMENT_ENTITY = 'Document';
 
 const DOC_TYPE_PREFIX = {
   SOP: 'SOP',
@@ -575,6 +577,18 @@ async function submitForReviewHandler(req, res) {
       });
     });
 
+    const auditCtx = getAuditContext(req);
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'DOCUMENT_SUBMITTED_FOR_REVIEW',
+      entityType: DOCUMENT_ENTITY,
+      entityId: document.id,
+      beforeValue: { status: 'DRAFT' },
+      afterValue: { status: 'IN_REVIEW', reviewerIds: uniqueReviewers, approverId },
+      reason: req.body.reason || req.body.comments || null,
+      ...auditCtx,
+    });
+
     await createNotifications(
       [...uniqueReviewers, approverId],
       `You have been assigned to process document ${document.documentId}.`,
@@ -638,6 +652,17 @@ router.post('/:id/review', requirePermission('document.review'), async (req, res
         });
       });
 
+      const auditCtx = getAuditContext(req);
+      await createAuditLog({
+        userId: req.user.id,
+        action: 'DOCUMENT_REVIEW_REJECTED',
+        entityType: DOCUMENT_ENTITY,
+        entityId: document.id,
+        beforeValue: { status: document.status },
+        afterValue: { status: 'DRAFT' },
+        reason: req.body.reason || comments || null,
+        ...auditCtx,
+      });
       await createNotifications(
         [document.authorId],
         `Document ${document.documentId} requires revision.`,
@@ -680,6 +705,18 @@ router.post('/:id/review', requirePermission('document.review'), async (req, res
         action: 'All Reviews Completed',
       });
     }
+
+    const auditCtx = getAuditContext(req);
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'DOCUMENT_REVIEW_COMPLETED',
+      entityType: DOCUMENT_ENTITY,
+      entityId: document.id,
+      beforeValue: { status: document.status },
+      afterValue: { status: document.status },
+      reason: req.body.reason || req.body.comments || null,
+      ...auditCtx,
+    });
 
     res.json({ ok: true, status: document.status });
   } catch (err) {
@@ -820,6 +857,18 @@ router.post(
         `/documents/${document.id}`
       );
 
+      const auditCtx = getAuditContext(req);
+      await createAuditLog({
+        userId: req.user.id,
+        action: 'DOCUMENT_APPROVED',
+        entityType: DOCUMENT_ENTITY,
+        entityId: document.id,
+        beforeValue: { status: 'IN_REVIEW' },
+        afterValue: { status: 'APPROVED' },
+        reason: req.body.reason || req.body.comments || null,
+        ...auditCtx,
+      });
+
       res.json({ ok: true, status: 'APPROVED' });
     } catch (err) {
       console.error('Approve document error:', err);
@@ -920,6 +969,18 @@ async function qualityReleaseHandler(req, res) {
           },
         },
       });
+    });
+
+    const auditCtx = getAuditContext(req);
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'DOCUMENT_QUALITY_RELEASED',
+      entityType: DOCUMENT_ENTITY,
+      entityId: document.id,
+      beforeValue: { status: 'APPROVED' },
+      afterValue: { status: 'EFFECTIVE' },
+      reason: req.body.reason || req.body.comments || null,
+      ...auditCtx,
     });
 
     const allUsers = await prisma.user.findMany({ select: { id: true } });
@@ -1032,6 +1093,18 @@ router.post('/:id/revise', requirePermission('document.create'), async (req, res
           },
         },
       },
+    });
+
+    const auditCtx = getAuditContext(req);
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'DOCUMENT_REVISION_CREATED',
+      entityType: DOCUMENT_ENTITY,
+      entityId: revisedDraft.id,
+      beforeValue: { sourceId: source.id, version: `${source.versionMajor}.${source.versionMinor}` },
+      afterValue: { revisedId: revisedDraft.id, version: `${nextMajor}.${nextMinor}`, revisionType: normalized },
+      reason: req.body.reason || summaryOfChange || null,
+      ...auditCtx,
     });
 
     await createHistory({

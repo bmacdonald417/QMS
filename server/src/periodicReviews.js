@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from './db.js';
 import { requirePermission, requireRoles } from './auth.js';
+import { createAuditLog, getAuditContext } from './audit.js';
 
 const router = express.Router();
 
@@ -68,6 +69,18 @@ router.post(
           data: { nextReviewDate: nextDate },
         }),
       ]);
+
+      const auditCtx = getAuditContext(req);
+      await createAuditLog({
+        userId: req.user.id,
+        action: 'PERIODIC_REVIEW_COMPLETED',
+        entityType: 'PeriodicReview',
+        entityId: reviewId,
+        beforeValue: { status: review.status, documentId: review.documentId },
+        afterValue: { status: 'COMPLETED', nextReviewDate: nextDate },
+        reason: req.body.reason || null,
+        ...auditCtx,
+      });
 
       const updated = await prisma.periodicReview.findUnique({
         where: { id: reviewId },

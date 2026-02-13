@@ -89,9 +89,45 @@ export async function runPeriodicReviewScheduler() {
     // CAPA retention: flag closed CAPAs eligible for archival (no hard delete)
     const retention = await prisma.retentionPolicy.findFirst();
     const capaRetentionYears = retention?.capaRetentionYears ?? 7;
-    const archiveThreshold = new Date(now);
+    let archiveThreshold = new Date(now);
     archiveThreshold.setFullYear(archiveThreshold.getFullYear() - capaRetentionYears);
     await prisma.cAPA.updateMany({
+      where: {
+        status: 'CLOSED',
+        closedAt: { lt: archiveThreshold },
+        isArchived: false,
+      },
+      data: { isArchived: true },
+    });
+
+    // Change control tasks: mark overdue and notify
+    const overdueChangeTasks = await prisma.changeControlTask.findMany({
+      where: {
+        status: { in: ['PENDING', 'IN_PROGRESS'] },
+        dueDate: { lt: now },
+      },
+      include: {
+        changeControl: { select: { id: true, changeId: true, title: true, ownerId: true } },
+      },
+    });
+    for (const task of overdueChangeTasks) {
+      await prisma.changeControlTask.update({
+        where: { id: task.id },
+        data: { status: 'OVERDUE' },
+      });
+      const notifyUserIds = [task.assignedToId, task.changeControl.ownerId].filter(Boolean);
+      await createNotifications(
+        [...new Set(notifyUserIds)],
+        `Change control task "${task.title}" on ${task.changeControl.changeId} is overdue.`,
+        `/change-control/${task.changeControl.id}`
+      );
+    }
+
+    // Change control retention: flag closed CCs eligible for archival
+    const changeRetentionYears = retention?.changeRetentionYears ?? 7;
+    archiveThreshold = new Date(now);
+    archiveThreshold.setFullYear(archiveThreshold.getFullYear() - changeRetentionYears);
+    await prisma.changeControl.updateMany({
       where: {
         status: 'CLOSED',
         closedAt: { lt: archiveThreshold },

@@ -4,11 +4,12 @@ import { prisma } from './db.js';
 const router = express.Router();
 
 const CAPA_TASK_ACTIVE = ['PENDING', 'IN_PROGRESS', 'OVERDUE'];
+const CHANGE_TASK_ACTIVE = ['PENDING', 'IN_PROGRESS', 'OVERDUE'];
 
-// GET /api/tasks — document assignments + CAPA tasks for current user (unified shape)
+// GET /api/tasks — document assignments + CAPA tasks + change control tasks (unified shape)
 router.get('/', async (req, res) => {
   try {
-    const [assignments, capaTasks] = await Promise.all([
+    const [assignments, capaTasks, changeTasks] = await Promise.all([
       prisma.documentAssignment.findMany({
         where: {
           assignedToId: req.user.id,
@@ -43,6 +44,23 @@ router.get('/', async (req, res) => {
         },
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
       }),
+      prisma.changeControlTask.findMany({
+        where: {
+          assignedToId: req.user.id,
+          status: { in: CHANGE_TASK_ACTIVE },
+        },
+        include: {
+          changeControl: {
+            select: {
+              id: true,
+              changeId: true,
+              title: true,
+              status: true,
+            },
+          },
+        },
+        orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
+      }),
     ]);
 
     const docTasks = assignments.map((a) => ({
@@ -70,7 +88,20 @@ router.get('/', async (req, res) => {
       link: `/capas/${t.capaId}`,
     }));
 
-    res.json({ tasks: [...docTasks, ...capaTaskItems] });
+    const changeTaskItems = changeTasks.map((t) => ({
+      type: 'CHANGE_TASK',
+      id: t.id,
+      taskType: t.taskType,
+      status: t.status,
+      changeControlId: t.changeControl.id,
+      changeId: t.changeControl.changeId,
+      title: t.title,
+      description: t.description,
+      dueDate: t.dueDate,
+      link: `/change-control/${t.changeControlId}`,
+    }));
+
+    res.json({ tasks: [...docTasks, ...capaTaskItems, ...changeTaskItems] });
   } catch (err) {
     console.error('List tasks error:', err);
     res.status(500).json({ error: 'Failed to fetch tasks' });

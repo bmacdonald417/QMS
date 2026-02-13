@@ -100,12 +100,67 @@ router.get('/metrics', async (_req, res) => {
       },
     });
 
+    // CAPA metrics: open by status, overdue tasks, cycle time (open to closed)
+    const [capaByStatus, capaOverdueTasks, capaClosedWithDates, changeByStatus, changeOverdueTasks] =
+      await Promise.all([
+        prisma.cAPA.groupBy({
+          by: ['status'],
+          where: { status: { notIn: ['CLOSED', 'CANCELLED', 'ARCHIVED'] } },
+          _count: { id: true },
+        }),
+        prisma.capaTask.count({
+          where: {
+            status: { in: ['PENDING', 'IN_PROGRESS', 'OVERDUE'] },
+            dueDate: { lt: now },
+          },
+        }),
+        prisma.cAPA.findMany({
+          where: { status: 'CLOSED', closedAt: { not: null } },
+          select: { id: true, createdAt: true, closedAt: true },
+        }),
+        prisma.changeControl.groupBy({
+          by: ['status'],
+          where: { status: { notIn: ['CLOSED', 'CANCELLED', 'ARCHIVED'] } },
+          _count: { id: true },
+        }),
+        prisma.changeControlTask.count({
+          where: {
+            status: { in: ['PENDING', 'IN_PROGRESS', 'OVERDUE'] },
+            dueDate: { lt: now },
+          },
+        }),
+      ]);
+
+    const capaOpenByStatus = {};
+    for (const g of capaByStatus) capaOpenByStatus[g.status] = g._count.id;
+    const capaCycleTimes = capaClosedWithDates
+      .filter((c) => c.createdAt && c.closedAt)
+      .map((c) => new Date(c.closedAt) - new Date(c.createdAt));
+    const averageCapaCycleTimeDays =
+      capaCycleTimes.length > 0
+        ? Math.round(
+            capaCycleTimes.reduce((a, b) => a + b, 0) / capaCycleTimes.length / (1000 * 60 * 60 * 24)
+          )
+        : null;
+
+    const changeOpenByStatus = {};
+    for (const g of changeByStatus) changeOpenByStatus[g.status] = g._count.id;
+
     res.json({
       documentsByStatus: statusCounts,
       overdueTraining: overdueTrainingCount,
       pendingReviews,
       averageApprovalTimeDays: averageApprovalTimeMs != null ? Math.round(averageApprovalTimeMs / (1000 * 60 * 60 * 24)) : null,
       documentsNearingReview,
+      capa: {
+        openByStatus: capaOpenByStatus,
+        overdueTasks: capaOverdueTasks,
+        averageCycleTimeDays: averageCapaCycleTimeDays,
+      },
+      changeControl: {
+        openByStatus: changeOpenByStatus,
+        overdueTasks: changeOverdueTasks,
+      },
     });
   } catch (err) {
     console.error('Dashboard metrics error:', err);
