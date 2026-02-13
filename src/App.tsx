@@ -7,7 +7,6 @@ import {
   DocumentDetail,
   TrainingCompetency,
   AuditManagement,
-  CAPA,
   ChangeControl,
   RiskManagement,
   EquipmentAssets,
@@ -16,6 +15,7 @@ import {
   SearchPage,
   PeriodicReviewsPage,
 } from '@/pages';
+import { CAPAList, CAPANew, CAPADetail } from '@/pages/capas';
 import {
   SystemManagementLayout,
   SystemDashboard,
@@ -58,7 +58,10 @@ function AppRoutes() {
           <Route path="training" element={<TrainingCompetency />} />
           <Route path="periodic-reviews" element={<PeriodicReviewsPage />} />
           <Route path="audits" element={<AuditManagement />} />
-          <Route path="capa" element={<CAPA />} />
+          <Route path="capas" element={<CAPAList />} />
+          <Route path="capas/new" element={<CAPANew />} />
+          <Route path="capas/:id" element={<CAPADetail />} />
+          <Route path="capa" element={<Navigate to="/capas" replace />} />
           <Route path="change-control" element={<ChangeControl />} />
           <Route path="risk" element={<RiskManagement />} />
           <Route path="equipment" element={<EquipmentAssets />} />

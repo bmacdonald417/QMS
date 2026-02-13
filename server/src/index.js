@@ -10,6 +10,8 @@ import trainingRoutes from './training.js';
 import periodicReviewsRoutes from './periodicReviews.js';
 import dashboardRoutes from './dashboard.js';
 import systemRoutes from './system/index.js';
+import capaRoutes from './capas.js';
+import fileRoutes from './files.js';
 import { requestIdMiddleware } from './audit.js';
 import { startPeriodicReviewScheduler } from './periodicReviewScheduler.js';
 
@@ -31,6 +33,8 @@ app.use('/api/users', authMiddleware, userRoutes);
 app.use('/api/training', authMiddleware, trainingRoutes);
 app.use('/api/periodic-reviews', authMiddleware, periodicReviewsRoutes);
 app.use('/api/dashboard', authMiddleware, dashboardRoutes);
+app.use('/api/capas', authMiddleware, capaRoutes);
+app.use('/api/files', authMiddleware, fileRoutes);
 app.use('/api/system', systemRoutes);
 
 app.get('/api/health', (req, res) => {

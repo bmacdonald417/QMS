@@ -61,6 +61,44 @@ export async function runPeriodicReviewScheduler() {
         data: { status: 'OVERDUE' },
       });
     }
+
+    // CAPA tasks: mark overdue and notify
+    const overdueCapaTasks = await prisma.capaTask.findMany({
+      where: {
+        status: { in: ['PENDING', 'IN_PROGRESS'] },
+        dueDate: { lt: now },
+      },
+      include: {
+        capa: { select: { id: true, capaId: true, title: true, ownerId: true } },
+        assignedTo: { select: { id: true } },
+      },
+    });
+    for (const task of overdueCapaTasks) {
+      await prisma.capaTask.update({
+        where: { id: task.id },
+        data: { status: 'OVERDUE' },
+      });
+      const notifyUserIds = [task.assignedToId, task.capa.ownerId].filter(Boolean);
+      await createNotifications(
+        [...new Set(notifyUserIds)],
+        `CAPA task "${task.title}" on ${task.capa.capaId} is overdue.`,
+        `/capas/${task.capa.id}`
+      );
+    }
+
+    // CAPA retention: flag closed CAPAs eligible for archival (no hard delete)
+    const retention = await prisma.retentionPolicy.findFirst();
+    const capaRetentionYears = retention?.capaRetentionYears ?? 7;
+    const archiveThreshold = new Date(now);
+    archiveThreshold.setFullYear(archiveThreshold.getFullYear() - capaRetentionYears);
+    await prisma.cAPA.updateMany({
+      where: {
+        status: 'CLOSED',
+        closedAt: { lt: archiveThreshold },
+        isArchived: false,
+      },
+      data: { isArchived: true },
+    });
   } catch (err) {
     console.error('Periodic review scheduler error:', err);
   }

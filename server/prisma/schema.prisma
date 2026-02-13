@@ -80,6 +80,7 @@ model Department {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   users     User[]
+  capas     CAPA[]
 
   @@map("departments")
 }
@@ -92,6 +93,7 @@ model Site {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   users     User[]
+  capas     CAPA[]
 
   @@map("sites")
 }
@@ -137,6 +139,14 @@ model User {
   documentSignatures   DocumentSignature[]
   changeControls       ChangeControl[]
   capasAssigned        CAPA[]            @relation("CAPAAssignee")
+  capasInitiated       CAPA[]            @relation("CAPAInitiator")
+  capasOwned           CAPA[]            @relation("CAPAOwner")
+  capaTasksAssigned    CapaTask[]        @relation("CapaTaskAssignee")
+  capaTasksCompleted   CapaTask[]        @relation("CapaTaskCompletedBy")
+  capaTasksCreated     CapaTask[]        @relation("CapaTaskCreatedBy")
+  capaHistoryItems     CapaHistory[]
+  capaSignatures       CapaSignature[]
+  fileAssetsUploaded   FileAsset[]
   trainingRecords      UserTrainingRecord[]
   documentComments     DocumentComment[]
   periodicReviews      PeriodicReview[]
@@ -228,11 +238,12 @@ model RetentionPolicy {
 }
 
 model ESignConfig {
-  id                    String   @id @default(uuid())
-  requireForDocumentApproval Boolean @default(true) @map("require_for_document_approval")
-  requireForCapaClosure Boolean @default(true) @map("require_for_capa_closure")
-  requireForTrainingSignOff Boolean @default(true) @map("require_for_training_sign_off")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  id                         String   @id @default(uuid())
+  requireForDocumentApproval Boolean  @default(true) @map("require_for_document_approval")
+  requireForCapaClosure      Boolean  @default(true) @map("require_for_capa_closure")
+  requireForCapaPlanApproval Boolean  @default(true) @map("require_for_capa_plan_approval")
+  requireForTrainingSignOff  Boolean  @default(true) @map("require_for_training_sign_off")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
 
   @@map("esign_config")
 }
@@ -449,7 +460,7 @@ model ChangeControl {
   changeId       String   @map("change_id")
   description    String   @db.Text
   riskAssessment String?  @map("risk_assessment") @db.Text
-  status         String // Pending, Approved, Rejected, Closed
+  status         String
   initiatorId    String?  @map("initiator_id")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
@@ -459,18 +470,189 @@ model ChangeControl {
   @@map("change_controls")
 }
 
+enum CapaStatus {
+  DRAFT
+  OPEN
+  CONTAINMENT
+  INVESTIGATION
+  RCA_COMPLETE
+  PLAN_APPROVAL
+  IMPLEMENTATION
+  EFFECTIVENESS_CHECK
+  PENDING_CLOSURE
+  CLOSED
+  CANCELLED
+  ARCHIVED
+}
+
+enum CapaTaskType {
+  CONTAINMENT_ACTION
+  INVESTIGATION_STEP
+  ROOT_CAUSE_ANALYSIS
+  CORRECTIVE_ACTION
+  PREVENTIVE_ACTION
+  EFFECTIVENESS_CHECK
+  APPROVAL
+  CLOSURE_REVIEW
+}
+
+enum CapaTaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  OVERDUE
+}
+
+enum LinkEntityType {
+  DOCUMENT
+  CAPA
+  CHANGE_CONTROL
+  TRAINING_MODULE
+}
+
 model CAPA {
-  id          String   @id @default(uuid())
-  title       String
-  capaId      String   @map("capa_id")
-  description String   @db.Text
-  rootCause   String?  @map("root_cause") @db.Text
-  status      String // Open, In Progress, Closed
-  assigneeId  String?  @map("assignee_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id                   String      @id @default(uuid())
+  capaId               String      @unique @map("capa_id")
+  title                String
+  description          String      @db.Text
+  status               CapaStatus  @default(DRAFT)
+  initiatorId          String?     @map("initiator_id")
+  ownerId              String?     @map("owner_id")
+  assigneeId           String?     @map("assignee_id")
+  severity             String?     // e.g. Minor, Major, Critical
+  siteId               String?     @map("site_id")
+  departmentId         String?     @map("department_id")
+  rootCause            String?     @map("root_cause") @db.Text
+  containmentSummary  String?     @map("containment_summary") @db.Text
+  correctiveSummary   String?     @map("corrective_summary") @db.Text
+  preventiveSummary   String?     @map("preventive_summary") @db.Text
+  effectivenessPlan   String?     @map("effectiveness_plan") @db.Text
+  effectivenessResult String?     @map("effectiveness_result") @db.Text
+  dueDate              DateTime?   @map("due_date")
+  closedAt             DateTime?   @map("closed_at")
+  isArchived           Boolean     @default(false) @map("is_archived")
+  createdAt            DateTime    @default(now()) @map("created_at")
+  updatedAt            DateTime    @updatedAt @map("updated_at")
 
-  assignee User? @relation("CAPAAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  initiator  User?   @relation("CAPAInitiator", fields: [initiatorId], references: [id], onDelete: SetNull)
+  owner      User?   @relation("CAPAOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  assignee   User?   @relation("CAPAAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  site       Site?   @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  tasks      CapaTask[]
+  history    CapaHistory[]
+  signatures CapaSignature[]
 
+  @@index([status])
+  @@index([ownerId])
+  @@index([createdAt])
   @@map("capas")
+}
+
+model CapaTask {
+  id             String         @id @default(uuid())
+  capaId         String         @map("capa_id")
+  taskType       CapaTaskType    @map("task_type")
+  status         CapaTaskStatus  @default(PENDING)
+  stepNumber     Int             @default(0) @map("step_number")
+  title          String
+  description    String?         @db.Text
+  assignedToId   String?         @map("assigned_to_id")
+  dueDate        DateTime?       @map("due_date")
+  completedAt    DateTime?       @map("completed_at")
+  completionNotes String?        @map("completion_notes") @db.Text
+  requiresEsign  Boolean         @default(false) @map("requires_esign")
+  completedById  String?         @map("completed_by_id")
+  createdById    String?         @map("created_by_id")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  capa        CAPA   @relation(fields: [capaId], references: [id], onDelete: Restrict)
+  assignedTo  User?  @relation("CapaTaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  completedBy User?  @relation("CapaTaskCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+  createdBy   User?  @relation("CapaTaskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([capaId])
+  @@index([assignedToId])
+  @@index([status])
+  @@map("capa_tasks")
+}
+
+model CapaHistory {
+  id                 String   @id @default(uuid())
+  capaId             String   @map("capa_id")
+  userId             String   @map("user_id")
+  action             String
+  timestamp          DateTime @default(now())
+  details            Json?
+  digitalSignatureId String?  @map("digital_signature_id")
+
+  capa CAPA @relation(fields: [capaId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([capaId])
+  @@map("capa_history")
+}
+
+model CapaSignature {
+  id               String   @id @default(uuid())
+  capaId           String   @map("capa_id")
+  signerId         String   @map("signer_id")
+  signatureMeaning String   @map("signature_meaning")
+  signedAt         DateTime @default(now()) @map("signed_at")
+  recordHash       String   @map("record_hash")
+  signatureHash    String   @map("signature_hash")
+  passwordHash     String?  @map("password_hash")
+
+  capa  CAPA  @relation(fields: [capaId], references: [id], onDelete: Restrict)
+  signer User @relation(fields: [signerId], references: [id], onDelete: Restrict)
+
+  @@map("capa_signatures")
+}
+
+model FileAsset {
+  id           String    @id @default(uuid())
+  storageKey   String    @map("storage_key")
+  filename     String
+  contentType  String    @map("content_type")
+  sizeBytes    Int       @map("size_bytes")
+  sha256       String?
+  uploadedById String   @map("uploaded_by_id")
+  isDeleted    Boolean   @default(false) @map("is_deleted")
+  deletedAt    DateTime? @map("deleted_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  uploadedBy User      @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  fileLinks  FileLink[]
+
+  @@map("file_assets")
+}
+
+model FileLink {
+  id          String   @id @default(uuid())
+  fileAssetId String   @map("file_asset_id")
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  purpose     String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  fileAsset FileAsset @relation(fields: [fileAssetId], references: [id], onDelete: Restrict)
+
+  @@index([entityType, entityId])
+  @@map("file_links")
+}
+
+model EntityLink {
+  id         String   @id @default(uuid())
+  sourceType LinkEntityType @map("source_type")
+  sourceId   String   @map("source_id")
+  targetType LinkEntityType @map("target_type")
+  targetId   String   @map("target_id")
+  linkType   String   @map("link_type")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([sourceType, sourceId])
+  @@index([targetType, targetId])
+  @@map("entity_links")
 }

@@ -60,7 +60,7 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
         { path: '/training', label: 'Training', icon: icons.training },
         { path: '/periodic-reviews', label: 'Periodic Reviews', icon: icons.periodicReviews },
         { path: '/change-control', label: 'Change Control', icon: icons.changeControl },
-        { path: '/capa', label: 'CAPA', icon: icons.capa },
+        { path: '/capas', label: 'CAPA', icon: icons.capa },
         { path: '/audits', label: 'Audits', icon: icons.audits },
         { path: '/suppliers', label: 'Suppliers', icon: icons.suppliers },
         { path: '/risk', label: 'Risk Management', icon: icons.risk },

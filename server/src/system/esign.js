@@ -9,6 +9,7 @@ const router = express.Router();
 const updateSchema = z.object({
   requireForDocumentApproval: z.boolean().optional(),
   requireForCapaClosure: z.boolean().optional(),
+  requireForCapaPlanApproval: z.boolean().optional(),
   requireForTrainingSignOff: z.boolean().optional(),
 });
 

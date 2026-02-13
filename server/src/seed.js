@@ -5,7 +5,10 @@ import { prisma } from './db.js';
 const ROLES = [
   {
     name: 'System Admin',
-    permissions: [],
+    permissions: [
+      'capa:view', 'capa:create', 'capa:update', 'capa:assign_tasks', 'capa:approve_plan', 'capa:close', 'capa:esign', 'capa:export',
+      'file:upload', 'file:download', 'file:delete',
+    ],
   },
   {
     name: 'Admin',
@@ -23,6 +26,8 @@ const ROLES = [
       'auditlog:view',
       'system:securitypolicy:update',
       'system:reference:update',
+      'capa:view', 'capa:create', 'capa:update', 'capa:assign_tasks', 'capa:approve_plan', 'capa:close', 'capa:esign', 'capa:export',
+      'file:upload', 'file:download', 'file:delete',
     ],
   },
   {
@@ -38,6 +43,8 @@ const ROLES = [
       'users:update',
       'auditlog:view',
       'system:reference:update',
+      'capa:view', 'capa:create', 'capa:update', 'capa:assign_tasks', 'capa:approve_plan', 'capa:close', 'capa:esign', 'capa:export',
+      'file:upload', 'file:download', 'file:delete',
     ],
   },
   {
@@ -48,6 +55,8 @@ const ROLES = [
       'document.approve',
       'document.revise.major',
       'document.revise.minor',
+      'capa:view', 'capa:update', 'capa:assign_tasks',
+      'file:upload', 'file:download',
     ],
   },
   {
@@ -57,6 +66,8 @@ const ROLES = [
       'document.review',
       'document.revise.major',
       'document.revise.minor',
+      'capa:view',
+      'file:download',
     ],
   },
 ];
@@ -69,6 +80,17 @@ const PERMISSION_CODES = [
   { code: 'auditlog:view', description: 'View and export audit log' },
   { code: 'system:securitypolicy:update', description: 'Change security and retention policies' },
   { code: 'system:reference:update', description: 'Manage departments, sites, job titles' },
+  { code: 'capa:view', description: 'View CAPA records' },
+  { code: 'capa:create', description: 'Create CAPA' },
+  { code: 'capa:update', description: 'Update CAPA fields' },
+  { code: 'capa:assign_tasks', description: 'Assign and manage CAPA tasks' },
+  { code: 'capa:approve_plan', description: 'Approve CAPA plan' },
+  { code: 'capa:close', description: 'Close CAPA' },
+  { code: 'capa:esign', description: 'Apply e-signature on CAPA' },
+  { code: 'capa:export', description: 'Export CAPA data' },
+  { code: 'file:upload', description: 'Upload files' },
+  { code: 'file:download', description: 'Download files' },
+  { code: 'file:delete', description: 'Soft delete files' },
 ];
 
 const DEMO_PASSWORD = 'Password123!';
