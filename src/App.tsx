@@ -17,7 +17,17 @@ import {
   PeriodicReviewsPage,
 } from '@/pages';
 import {
-  SystemManagement,
+  SystemManagementLayout,
+  SystemDashboard,
+  SystemUsers,
+  SystemRoles,
+  SystemAudit,
+  SystemSecurityPolicies,
+  SystemReference,
+  SystemRetention,
+  SystemESign,
+} from '@/pages/system';
+import {
   TeamDocuments,
   TeamTraining,
   Approvals,
@@ -53,7 +63,16 @@ function AppRoutes() {
           <Route path="risk" element={<RiskManagement />} />
           <Route path="equipment" element={<EquipmentAssets />} />
           <Route path="suppliers" element={<SupplierQuality />} />
-          <Route path="system" element={<SystemManagement />} />
+          <Route path="system" element={<SystemManagementLayout />}>
+            <Route index element={<SystemDashboard />} />
+            <Route path="users" element={<SystemUsers />} />
+            <Route path="roles" element={<SystemRoles />} />
+            <Route path="audit" element={<SystemAudit />} />
+            <Route path="security-policies" element={<SystemSecurityPolicies />} />
+            <Route path="reference" element={<SystemReference />} />
+            <Route path="retention" element={<SystemRetention />} />
+            <Route path="esign" element={<SystemESign />} />
+          </Route>
           <Route path="team-documents" element={<TeamDocuments />} />
           <Route path="team-training" element={<TeamTraining />} />
           <Route path="approvals" element={<Approvals />} />

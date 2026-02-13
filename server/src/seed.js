@@ -1,10 +1,12 @@
 import 'dotenv/config';
 import bcrypt from 'bcrypt';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from './db.js';
 
 const ROLES = [
+  {
+    name: 'System Admin',
+    permissions: [],
+  },
   {
     name: 'Admin',
     permissions: [
@@ -14,6 +16,13 @@ const ROLES = [
       'document.release',
       'document.revise.major',
       'document.revise.minor',
+      'users:read',
+      'users:create',
+      'users:update',
+      'users:disable',
+      'auditlog:view',
+      'system:securitypolicy:update',
+      'system:reference:update',
     ],
   },
   {
@@ -25,6 +34,10 @@ const ROLES = [
       'document.release',
       'document.revise.major',
       'document.revise.minor',
+      'users:read',
+      'users:update',
+      'auditlog:view',
+      'system:reference:update',
     ],
   },
   {
@@ -48,17 +61,27 @@ const ROLES = [
   },
 ];
 
+const PERMISSION_CODES = [
+  { code: 'users:read', description: 'View users list and details' },
+  { code: 'users:create', description: 'Create and invite users' },
+  { code: 'users:update', description: 'Edit users, reactivate, unlock' },
+  { code: 'users:disable', description: 'Deactivate and lock users' },
+  { code: 'auditlog:view', description: 'View and export audit log' },
+  { code: 'system:securitypolicy:update', description: 'Change security and retention policies' },
+  { code: 'system:reference:update', description: 'Manage departments, sites, job titles' },
+];
+
 const DEMO_PASSWORD = 'Password123!';
 const SALT_ROUNDS = 10;
 
 const DEMO_USERS = [
-  { firstName: 'Admin', lastName: 'User', email: 'admin@mactech.com', roleName: 'Admin' },
+  { firstName: 'Admin', lastName: 'User', email: 'admin@mactech.com', roleName: 'System Admin' },
   { firstName: 'Quality', lastName: 'Manager', email: 'quality@mactech.com', roleName: 'Quality Manager' },
   { firstName: 'Department', lastName: 'Manager', email: 'manager@mactech.com', roleName: 'Manager' },
   { firstName: 'General', lastName: 'User', email: 'user@mactech.com', roleName: 'User' },
 
   // Backward-compatible demo users used in previous setup/docs.
-  { firstName: 'Alex', lastName: 'Admin', email: 'alex.admin@qms.demo', roleName: 'Admin' },
+  { firstName: 'Alex', lastName: 'Admin', email: 'alex.admin@qms.demo', roleName: 'System Admin' },
   { firstName: 'Brenda', lastName: 'Quality', email: 'brenda.quality@qms.demo', roleName: 'Quality Manager' },
   { firstName: 'Charles', lastName: 'Manager', email: 'charles.manager@qms.demo', roleName: 'Manager' },
   { firstName: 'David', lastName: 'User', email: 'david.user@qms.demo', roleName: 'User' },
@@ -66,6 +89,14 @@ const DEMO_USERS = [
 
 async function main() {
   const hashedPassword = await bcrypt.hash(DEMO_PASSWORD, SALT_ROUNDS);
+
+  for (const p of PERMISSION_CODES) {
+    await prisma.permission.upsert({
+      where: { code: p.code },
+      create: p,
+      update: { description: p.description },
+    });
+  }
 
   for (const r of ROLES) {
     await prisma.role.upsert({
@@ -91,8 +122,18 @@ async function main() {
     });
   }
 
+  if (!(await prisma.securityPolicy.findFirst())) {
+    await prisma.securityPolicy.create({ data: {} });
+  }
+  if (!(await prisma.retentionPolicy.findFirst())) {
+    await prisma.retentionPolicy.create({ data: {} });
+  }
+  if (!(await prisma.eSignConfig.findFirst())) {
+    await prisma.eSignConfig.create({ data: {} });
+  }
+
   console.log(
-    `Seeded ${ROLES.length} roles and ${DEMO_USERS.length} demo users. Password for all: ${DEMO_PASSWORD}`
+    `Seeded ${ROLES.length} roles, ${PERMISSION_CODES.length} permissions, and ${DEMO_USERS.length} demo users. Password for all: ${DEMO_PASSWORD}`
   );
 }
 

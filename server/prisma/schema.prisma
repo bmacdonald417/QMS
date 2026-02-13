@@ -39,24 +39,96 @@ enum AssignmentStatus {
   REJECTED
 }
 
-model Role {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique // Admin, Quality Manager, Manager, User
-  permissions String[] @default([])
-  users       User[]
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LOCKED
 }
 
-model User {
+model Role {
+  id             Int             @id @default(autoincrement())
+  name           String          @unique
+  permissions    String[]        @default([])
+  users          User[]
+  rolePermissions RolePermission[]
+}
+
+model Permission {
+  id          String         @id @default(uuid())
+  code        String         @unique // e.g. users:create, auditlog:view
+  description String?        @db.Text
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       Int       @map("role_id")
+  permissionId String    @map("permission_id")
+  role         Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Department {
   id        String   @id @default(uuid())
-  firstName String   @map("first_name")
-  lastName  String   @map("last_name")
-  email     String   @unique
-  password  String // bcrypt hash
-  roleId    Int      @map("role_id")
-  role      Role     @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  name      String
+  code      String?  @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  users     User[]
+
+  @@map("departments")
+}
+
+model Site {
+  id        String   @id @default(uuid())
+  name      String
+  code      String?  @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  users     User[]
+
+  @@map("sites")
+}
+
+model JobTitle {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@map("job_titles")
+}
+
+model User {
+  id                String      @id @default(uuid())
+  firstName         String      @map("first_name")
+  lastName          String      @map("last_name")
+  email             String      @unique
+  password          String
+  roleId            Int         @map("role_id")
+  role              Role        @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  departmentId      String?     @map("department_id")
+  siteId            String?     @map("site_id")
+  jobTitle          String?     @map("job_title")
+  status            UserStatus  @default(ACTIVE)
+  mfaEnabled        Boolean     @default(false) @map("mfa_enabled")
+  lastLoginAt       DateTime?   @map("last_login_at")
+  lockedAt          DateTime?   @map("locked_at")
+  mustChangePassword Boolean    @default(false) @map("must_change_password")
+  invitedAt         DateTime?   @map("invited_at")
+  tokenVersion      Int         @default(0) @map("token_version")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  department        Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  site              Site?       @relation(fields: [siteId], references: [id], onDelete: SetNull)
   documentsAuthored    Document[]          @relation("DocumentAuthor")
   documentHistoryItems DocumentHistory[]
   documentAssignments  DocumentAssignment[] @relation("DocumentAssignee")
@@ -68,8 +140,101 @@ model User {
   trainingRecords      UserTrainingRecord[]
   documentComments     DocumentComment[]
   periodicReviews      PeriodicReview[]
+  auditLogs             AuditLog[]        @relation("AuditLogUser")
+  inviteTokensCreated   InviteToken[]     @relation("InviteTokenCreator")
+  passwordResetTokens   PasswordResetToken[]
 
   @@map("users")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  beforeValue Json?   @map("before_value")
+  afterValue  Json?   @map("after_value")
+  reason     String?  @db.Text
+  ip         String?
+  userAgent  String?  @map("user_agent")
+  requestId  String?  @map("request_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation("AuditLogUser", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model InviteToken {
+  id         String    @id @default(uuid())
+  email      String
+  tokenHash  String    @map("token_hash")
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  createdById String   @map("created_by_id")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  createdBy User @relation("InviteTokenCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@map("invite_tokens")
+}
+
+model PasswordResetToken {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  tokenHash  String    @map("token_hash")
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("password_reset_tokens")
+}
+
+model SecurityPolicy {
+  id        String   @id @default(uuid())
+  passwordMinLength     Int      @default(8) @map("password_min_length")
+  passwordRequireUppercase Boolean @default(true) @map("password_require_uppercase")
+  passwordRequireLowercase Boolean @default(true) @map("password_require_lowercase")
+  passwordRequireNumber   Boolean @default(true) @map("password_require_number")
+  passwordRequireSpecial  Boolean @default(true) @map("password_require_special")
+  passwordHistoryCount    Int     @default(5) @map("password_history_count")
+  passwordMaxAgeDays      Int?    @map("password_max_age_days")
+  lockoutThreshold        Int     @default(5) @map("lockout_threshold")
+  lockoutDurationMinutes  Int     @default(30) @map("lockout_duration_minutes")
+  sessionIdleTimeoutMinutes Int   @default(30) @map("session_idle_timeout_minutes")
+  sessionMaxDurationMinutes Int  @default(480) @map("session_max_duration_minutes")
+  mfaPolicy               String  @default("OPTIONAL") @map("mfa_policy") // OFF, OPTIONAL, REQUIRED
+  allowedDomains          String[] @default([]) @map("allowed_domains")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("security_policies")
+}
+
+model RetentionPolicy {
+  id                    String   @id @default(uuid())
+  auditLogRetentionYears Int     @default(7) @map("audit_log_retention_years")
+  documentRetentionYears Int?    @map("document_retention_years")
+  trainingRetentionYears Int?   @map("training_retention_years")
+  capaRetentionYears     Int?    @map("capa_retention_years")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("retention_policies")
+}
+
+model ESignConfig {
+  id                    String   @id @default(uuid())
+  requireForDocumentApproval Boolean @default(true) @map("require_for_document_approval")
+  requireForCapaClosure Boolean @default(true) @map("require_for_capa_closure")
+  requireForTrainingSignOff Boolean @default(true) @map("require_for_training_sign_off")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("esign_config")
 }
 
 model Document {

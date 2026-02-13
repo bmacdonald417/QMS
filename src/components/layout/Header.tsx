@@ -23,6 +23,13 @@ const pathToBreadcrumb: Record<string, string> = {
   equipment: 'Equipment & Assets',
   suppliers: 'Supplier Quality',
   system: 'System Management',
+  users: 'Users',
+  roles: 'Roles & Permissions',
+  audit: 'Audit Logs',
+  'security-policies': 'Security Policies',
+  reference: 'Reference Data',
+  retention: 'Retention',
+  esign: 'E-Signature',
   approvals: 'Approvals',
 };
 

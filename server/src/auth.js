@@ -27,12 +27,25 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    if (user.status && user.status !== 'ACTIVE') {
+      return res.status(401).json({ error: 'Account is not active' });
+    }
+    if (user.lockedAt) {
+      return res.status(401).json({ error: 'Account is locked. Contact an administrator.' });
+    }
+
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    const payload = { userId: user.id, roleName: user.role.name };
+    const now = new Date();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: now },
+    });
+
+    const payload = { userId: user.id, roleName: user.role.name, tokenVersion: user.tokenVersion ?? 0 };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 
     res.json({
@@ -72,11 +85,24 @@ export async function authMiddleware(req, res, next) {
         firstName: true,
         lastName: true,
         email: true,
+        status: true,
+        lockedAt: true,
+        tokenVersion: true,
         role: { select: { name: true, permissions: true } },
       },
     });
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
+    }
+    if (user.status && user.status !== 'ACTIVE') {
+      return res.status(401).json({ error: 'Account is not active' });
+    }
+    if (user.lockedAt) {
+      return res.status(401).json({ error: 'Account is locked' });
+    }
+    const expectedVersion = user.tokenVersion ?? 0;
+    if ((decoded.tokenVersion ?? 0) !== expectedVersion) {
+      return res.status(401).json({ error: 'Session revoked. Please sign in again.' });
     }
     req.jwtPayload = decoded;
     req.user = {

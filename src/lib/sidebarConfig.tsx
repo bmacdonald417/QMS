@@ -47,11 +47,13 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
   switch (roleName) {
     case 'Admin':
     case 'System Administrator':
+    case 'System Admin':
       return [{ path: '/system', label: 'System Management', icon: icons.system }];
     case 'Quality Manager':
     case 'Quality':
       return [
         { path: '/', label: 'Dashboard', icon: icons.dashboard },
+        { path: '/system', label: 'System Management', icon: icons.system },
         { path: '/dashboard', label: 'Quality Health', icon: icons.qualityHealth },
         { path: '/documents', label: 'Document Control', icon: icons.documents },
         { path: '/search', label: 'Search', icon: icons.search },
