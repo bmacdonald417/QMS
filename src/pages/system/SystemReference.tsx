@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, Button, Input, Table } from '@/components/ui';
+import { Card, Button, Input, Table, Modal } from '@/components/ui';
 import { PageShell } from '@/pages/PageShell';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/lib/api';
@@ -25,6 +25,8 @@ interface JobTitle {
   isActive: boolean;
 }
 
+type AddModalType = 'department' | 'site' | 'jobTitle' | null;
+
 export function SystemReference() {
   const { token } = useAuth();
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -32,6 +34,12 @@ export function SystemReference() {
   const [jobTitles, setJobTitles] = useState<JobTitle[]>([]);
   const [activeTab, setActiveTab] = useState<'departments' | 'sites' | 'jobTitles'>('departments');
   const [loading, setLoading] = useState(true);
+  const [addModal, setAddModal] = useState<AddModalType>(null);
+  const [addName, setAddName] = useState('');
+  const [addCode, setAddCode] = useState('');
+  const [addActive, setAddActive] = useState(true);
+  const [addSubmitting, setAddSubmitting] = useState(false);
+  const [addError, setAddError] = useState('');
 
   const fetchAll = () => {
     if (!token) return;
@@ -54,6 +62,47 @@ export function SystemReference() {
     fetchAll();
   }, [token]);
 
+  const openAddModal = (type: AddModalType) => {
+    setAddModal(type);
+    setAddName('');
+    setAddCode('');
+    setAddActive(true);
+    setAddError('');
+  };
+
+  const submitAdd = async () => {
+    if (!token || !addModal || !addName.trim()) return;
+    setAddError('');
+    setAddSubmitting(true);
+    try {
+      if (addModal === 'department') {
+        await apiRequest<{ department: Department }>('/api/system/reference/departments', {
+          token,
+          method: 'POST',
+          body: { name: addName.trim(), code: addCode.trim() || null, isActive: addActive },
+        });
+      } else if (addModal === 'site') {
+        await apiRequest<{ site: Site }>('/api/system/reference/sites', {
+          token,
+          method: 'POST',
+          body: { name: addName.trim(), code: addCode.trim() || null, isActive: addActive },
+        });
+      } else if (addModal === 'jobTitle') {
+        await apiRequest<{ jobTitle: JobTitle }>('/api/system/reference/job-titles', {
+          token,
+          method: 'POST',
+          body: { name: addName.trim(), isActive: addActive },
+        });
+      }
+      setAddModal(null);
+      fetchAll();
+    } catch (e) {
+      setAddError(e instanceof Error ? e.message : 'Failed to create');
+    } finally {
+      setAddSubmitting(false);
+    }
+  };
+
   const deptColumns: Column<Department>[] = [
     { key: 'name', header: 'Name' },
     { key: 'code', header: 'Code', render: (r) => r.code ?? '—' },
@@ -69,8 +118,18 @@ export function SystemReference() {
     { key: 'isActive', header: 'Active', render: (r) => (r.isActive ? 'Yes' : 'No') },
   ];
 
+  const addButtonLabel =
+    activeTab === 'departments' ? 'Add Department' : activeTab === 'sites' ? 'Add Site' : 'Add Job title';
+
   return (
-    <PageShell title="Reference Data" subtitle="Departments, sites, and job titles. Changes are audited.">
+    <PageShell
+      title="Reference Data"
+      subtitle="Departments, sites, and job titles. Changes are audited."
+      primaryAction={{
+        label: addButtonLabel,
+        onClick: () => openAddModal(activeTab === 'departments' ? 'department' : activeTab === 'sites' ? 'site' : 'jobTitle'),
+      }}
+    >
       <div className="space-y-4">
         <div className="flex gap-2 border-b border-surface-border">
           {(['departments', 'sites', 'jobTitles'] as const).map((tab) => (
@@ -103,6 +162,34 @@ export function SystemReference() {
           </Card>
         )}
       </div>
+
+      <Modal
+        isOpen={addModal !== null}
+        onClose={() => setAddModal(null)}
+        title={addModal === 'department' ? 'Add Department' : addModal === 'site' ? 'Add Site' : 'Add Job title'}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setAddModal(null)} disabled={addSubmitting}>
+              Cancel
+            </Button>
+            <Button onClick={submitAdd} loading={addSubmitting} disabled={!addName.trim()}>
+              Create
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {addError && <p className="text-compliance-red text-sm">{addError}</p>}
+          <Input label="Name" value={addName} onChange={(e) => setAddName(e.target.value)} placeholder="Required" />
+          {(addModal === 'department' || addModal === 'site') && (
+            <Input label="Code (optional)" value={addCode} onChange={(e) => setAddCode(e.target.value)} placeholder="e.g. HQ, ENG" />
+          )}
+          <label className="flex items-center gap-2 text-sm text-gray-300">
+            <input type="checkbox" checked={addActive} onChange={(e) => setAddActive(e.target.checked)} className="rounded border-surface-border" />
+            Active
+          </label>
+        </div>
+      </Modal>
     </PageShell>
   );
 }
