@@ -12,19 +12,29 @@ router.get('/', async (_req, res) => {
         firstName: true,
         lastName: true,
         email: true,
-        role: { select: { name: true, permissions: true } },
+        role: {
+          select: {
+            name: true,
+            permissions: true,
+            rolePermissions: { select: { permission: { select: { code: true } } } },
+          },
+        },
       },
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
     });
     res.json({
-      users: users.map((u) => ({
-        id: u.id,
-        firstName: u.firstName,
-        lastName: u.lastName,
-        email: u.email,
-        roleName: u.role.name,
-        permissions: u.role.permissions || [],
-      })),
+      users: users.map((u) => {
+        const fromJoin = u.role.rolePermissions?.map((rp) => rp.permission?.code).filter(Boolean) ?? [];
+        const permissions = fromJoin.length ? fromJoin : (u.role.permissions || []);
+        return {
+          id: u.id,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          email: u.email,
+          roleName: u.role.name,
+          permissions,
+        };
+      }),
     });
   } catch (err) {
     console.error('List users error:', err);

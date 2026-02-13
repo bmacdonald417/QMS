@@ -3,14 +3,13 @@ import { createAuditLog, getAuditContext } from './audit.js';
 import { prisma } from './db.js';
 
 const SYSTEM_ADMIN_ROLE = 'System Admin';
-const ADMIN_ROLE = 'Admin';
 
 /**
  * Require one of the given roles (by name). Used for system management.
- * Admin and System Admin are treated as full system access.
+ * System Admin is treated as full system access.
  */
 export function requireSystemRole(...allowedRoles) {
-  const set = new Set([...allowedRoles, SYSTEM_ADMIN_ROLE, ADMIN_ROLE]);
+  const set = new Set([...allowedRoles, SYSTEM_ADMIN_ROLE]);
   return (req, res, next) => {
     const role = req.user?.roleName;
     if (!role || !set.has(role)) {
@@ -21,30 +20,30 @@ export function requireSystemRole(...allowedRoles) {
 }
 
 /** Roles that can access system management (dashboard and sub-pages). */
-export const SYSTEM_ACCESS_ROLES = ['System Admin', 'Admin', 'Quality Admin', 'Quality Manager'];
+export const SYSTEM_ACCESS_ROLES = ['System Admin', 'Quality Manager', 'Manager'];
 
 /**
- * Require a specific permission (code). System Admin and Admin bypass.
- * Checks req.user.permissions array (from Role.permissions).
+ * Require a specific permission (code). System Admin bypass.
+ * Checks req.user.permissions (from role_permissions join or Role.permissions fallback).
  */
 export function requireSystemPermission(permissionCode) {
   return (req, res, next) => {
     const roleName = req.user?.roleName;
     const permissions = req.user?.permissions || [];
-    if (roleName === SYSTEM_ADMIN_ROLE || roleName === ADMIN_ROLE) return next();
+    if (roleName === SYSTEM_ADMIN_ROLE) return next();
     if (permissions.includes(permissionCode)) return next();
     return res.status(403).json({ error: `Missing permission: ${permissionCode}` });
   };
 }
 
 /**
- * Require at least one of the given permissions. System Admin and Admin bypass.
+ * Require at least one of the given permissions. System Admin bypass.
  */
 export function requireAnySystemPermission(...permissionCodes) {
   return (req, res, next) => {
     const roleName = req.user?.roleName;
     const permissions = req.user?.permissions || [];
-    if (roleName === SYSTEM_ADMIN_ROLE || roleName === ADMIN_ROLE) return next();
+    if (roleName === SYSTEM_ADMIN_ROLE) return next();
     const hasAny = permissionCodes.some((code) => permissions.includes(code));
     if (hasAny) return next();
     return res.status(403).json({ error: `Missing permission: one of [${permissionCodes.join(', ')}] required` });

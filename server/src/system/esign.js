@@ -18,7 +18,7 @@ const updateSchema = z.object({
 // GET /api/system/esign
 router.get(
   '/',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireSystemPermission('auditlog:view'),
   async (_req, res) => {
     try {
@@ -36,7 +36,7 @@ router.get(
 // PUT /api/system/esign
 router.put(
   '/',
-  requireSystemRole('System Admin', 'Admin'),
+  requireSystemRole('System Admin'),
   requireSystemPermission('system:securitypolicy:update'),
   async (req, res) => {
     try {

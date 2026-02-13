@@ -7,7 +7,7 @@ const router = express.Router();
 // GET /api/system/audit - list with filters, pagination
 router.get(
   '/',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireSystemPermission('auditlog:view'),
   async (req, res) => {
     try {
@@ -55,7 +55,7 @@ router.get(
 // GET /api/system/audit/export?format=csv&...
 router.get(
   '/export',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireSystemPermission('auditlog:view'),
   async (req, res) => {
     try {
@@ -109,7 +109,7 @@ router.get(
 // GET /api/system/audit/:id - single log detail
 router.get(
   '/:id',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireSystemPermission('auditlog:view'),
   async (req, res) => {
     try {

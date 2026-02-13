@@ -1,26 +1,26 @@
 /**
  * Role-based access control for user management.
- * - Sys Admin / Admin: full (create, update any, assign any role, delete).
+ * - System Admin: full (create, update any, assign any role, delete).
  * - Manager: create, update:basic, assign_roles:basic (User only), no delete.
- * - Quality Manager / Quality Admin: create, update:compliance, assign_roles:basic (User only), no delete.
- * - User: no user management.
+ * - Quality Manager: create, update:compliance, assign_roles:basic (User only), no delete.
+ * - User / Read-Only: no user management.
  */
 
-const SYS_ADMIN_NAMES = ['System Admin', 'Admin'];
-const PRIVILEGED_ROLE_NAMES = ['System Admin', 'Admin', 'Quality Manager', 'Quality Admin', 'Manager'];
-const BASIC_ROLE_NAMES = ['User'];
+const SYS_ADMIN_NAMES = ['System Admin'];
+const PRIVILEGED_ROLE_NAMES = ['System Admin', 'Quality Manager', 'Manager'];
+const BASIC_ROLE_NAMES = ['User', 'Read-Only'];
 
 /**
  * Role names the actor is allowed to assign.
- * - System Admin / Admin: any role.
- * - Manager: only basic (User; Technician/Engineer if they exist in DB).
- * - Quality Manager / Quality Admin: only User.
+ * - System Admin: any role.
+ * - Manager: only User (and Read-Only if in catalog).
+ * - Quality Manager: only User, Read-Only.
  */
 export function getAssignableRoleNames(actorRoleName) {
   if (!actorRoleName) return [];
   if (SYS_ADMIN_NAMES.includes(actorRoleName)) return null; // null = any
-  if (actorRoleName === 'Manager') return [...BASIC_ROLE_NAMES]; // User only for now
-  if (actorRoleName === 'Quality Manager' || actorRoleName === 'Quality Admin') return ['User'];
+  if (actorRoleName === 'Manager') return [...BASIC_ROLE_NAMES];
+  if (actorRoleName === 'Quality Manager') return ['User', 'Read-Only'];
   return [];
 }
 
@@ -61,7 +61,7 @@ export function assertCanEditTarget(actor, targetUser) {
   if (SYS_ADMIN_NAMES.includes(actor.roleName)) return;
   const targetRoleName = targetUser.role?.name ?? targetUser.roleName;
   if (isPrivilegedUser(targetRoleName)) {
-    const err = new Error('You cannot edit users with privileged roles (System Admin, Admin, Manager, Quality).');
+    const err = new Error('You cannot edit users with privileged roles (System Admin, Quality Manager, Manager).');
     err.statusCode = 403;
     throw err;
   }

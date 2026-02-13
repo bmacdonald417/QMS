@@ -23,7 +23,7 @@ router.use('/retention', retentionRouter);
 router.use('/esign', esignRouter);
 
 // Dashboard summary for System Management landing
-router.get('/dashboard', requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'), async (req, res) => {
+router.get('/dashboard', requireSystemRole('System Admin', 'Quality Manager', 'Manager'), async (req, res) => {
   try {
     const { prisma } = await import('../db.js');
     const [userCount, roleCount, auditCount] = await Promise.all([

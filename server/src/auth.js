@@ -20,7 +20,7 @@ router.post('/login', async (req, res) => {
 
     const user = await prisma.user.findUnique({
       where: { email: email.trim() },
-      include: { role: true },
+      include: { role: { include: { rolePermissions: { include: { permission: true } } } } },
     });
 
     if (!user) {
@@ -48,6 +48,7 @@ router.post('/login', async (req, res) => {
     const payload = { userId: user.id, roleName: user.role.name, tokenVersion: user.tokenVersion ?? 0 };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 
+    const permissions = (user.role.rolePermissions?.map((rp) => rp.permission?.code).filter(Boolean)) ?? user.role.permissions ?? [];
     res.json({
       token,
       user: {
@@ -56,7 +57,7 @@ router.post('/login', async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         roleName: user.role.name,
-        permissions: user.role.permissions || [],
+        permissions,
       },
     });
   } catch (err) {
@@ -88,7 +89,13 @@ export async function authMiddleware(req, res, next) {
         status: true,
         lockedAt: true,
         tokenVersion: true,
-        role: { select: { name: true, permissions: true } },
+        role: {
+          select: {
+            name: true,
+            permissions: true,
+            rolePermissions: { select: { permission: { select: { code: true } } } },
+          },
+        },
       },
     });
     if (!user) {
@@ -104,6 +111,8 @@ export async function authMiddleware(req, res, next) {
     if ((decoded.tokenVersion ?? 0) !== expectedVersion) {
       return res.status(401).json({ error: 'Session revoked. Please sign in again.' });
     }
+    const fromJoin = user.role.rolePermissions?.map((rp) => rp.permission?.code).filter(Boolean) ?? [];
+    const permissions = fromJoin.length ? fromJoin : (user.role.permissions || []);
     req.jwtPayload = decoded;
     req.user = {
       id: user.id,
@@ -111,7 +120,7 @@ export async function authMiddleware(req, res, next) {
       lastName: user.lastName,
       email: user.email,
       roleName: user.role.name,
-      permissions: user.role.permissions || [],
+      permissions,
     };
     return next();
   } catch (err) {
@@ -133,7 +142,7 @@ export function requirePermission(permission) {
   return (req, res, next) => {
     const roleName = req.user?.roleName;
     const permissions = req.user?.permissions || [];
-    if (roleName === 'Admin') return next();
+    if (roleName === 'System Admin') return next();
     if (!permissions.includes(permission)) {
       return res.status(403).json({ error: `Missing permission: ${permission}` });
     }

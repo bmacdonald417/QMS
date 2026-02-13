@@ -11,7 +11,7 @@ const siteSchema = z.object({ name: z.string().min(1), code: z.string().optional
 const jobTitleSchema = z.object({ name: z.string().min(1), isActive: z.boolean().optional() });
 
 // ---- Departments ----
-router.get('/departments', requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'), async (_req, res) => {
+router.get('/departments', requireSystemRole('System Admin', 'Quality Manager', 'Manager'), async (_req, res) => {
   try {
     const list = await prisma.department.findMany({ orderBy: { name: 'asc' } });
     res.json({ departments: list });
@@ -20,7 +20,7 @@ router.get('/departments', requireSystemRole('System Admin', 'Admin', 'Quality A
   }
 });
 
-router.post('/departments', requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'), requireSystemPermission('system:reference:update'), async (req, res) => {
+router.post('/departments', requireSystemRole('System Admin', 'Quality Manager', 'Manager'), requireSystemPermission('system:reference:update'), async (req, res) => {
   try {
     const body = departmentSchema.parse(req.body);
     const dept = await prisma.department.create({
@@ -34,7 +34,7 @@ router.post('/departments', requireSystemRole('System Admin', 'Admin', 'Quality 
   }
 });
 
-router.put('/departments/:id', requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'), requireSystemPermission('system:reference:update'), async (req, res) => {
+router.put('/departments/:id', requireSystemRole('System Admin', 'Quality Manager', 'Manager'), requireSystemPermission('system:reference:update'), async (req, res) => {
   try {
     const body = departmentSchema.parse(req.body);
     const existing = await prisma.department.findUnique({ where: { id: req.params.id } });
@@ -52,7 +52,7 @@ router.put('/departments/:id', requireSystemRole('System Admin', 'Admin', 'Quali
 });
 
 // ---- Sites ----
-router.get('/sites', requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'), async (_req, res) => {
+router.get('/sites', requireSystemRole('System Admin', 'Quality Manager', 'Manager'), async (_req, res) => {
   try {
     const list = await prisma.site.findMany({ orderBy: { name: 'asc' } });
     res.json({ sites: list });
@@ -61,7 +61,7 @@ router.get('/sites', requireSystemRole('System Admin', 'Admin', 'Quality Admin',
   }
 });
 
-router.post('/sites', requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'), requireSystemPermission('system:reference:update'), async (req, res) => {
+router.post('/sites', requireSystemRole('System Admin', 'Quality Manager', 'Manager'), requireSystemPermission('system:reference:update'), async (req, res) => {
   try {
     const body = siteSchema.parse(req.body);
     const site = await prisma.site.create({
@@ -75,7 +75,7 @@ router.post('/sites', requireSystemRole('System Admin', 'Admin', 'Quality Admin'
   }
 });
 
-router.put('/sites/:id', requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'), requireSystemPermission('system:reference:update'), async (req, res) => {
+router.put('/sites/:id', requireSystemRole('System Admin', 'Quality Manager', 'Manager'), requireSystemPermission('system:reference:update'), async (req, res) => {
   try {
     const body = siteSchema.parse(req.body);
     const existing = await prisma.site.findUnique({ where: { id: req.params.id } });
@@ -93,7 +93,7 @@ router.put('/sites/:id', requireSystemRole('System Admin', 'Admin', 'Quality Adm
 });
 
 // ---- Job titles ----
-router.get('/job-titles', requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'), async (_req, res) => {
+router.get('/job-titles', requireSystemRole('System Admin', 'Quality Manager', 'Manager'), async (_req, res) => {
   try {
     const list = await prisma.jobTitle.findMany({ orderBy: { name: 'asc' } });
     res.json({ jobTitles: list });
@@ -102,7 +102,7 @@ router.get('/job-titles', requireSystemRole('System Admin', 'Admin', 'Quality Ad
   }
 });
 
-router.post('/job-titles', requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'), requireSystemPermission('system:reference:update'), async (req, res) => {
+router.post('/job-titles', requireSystemRole('System Admin', 'Quality Manager', 'Manager'), requireSystemPermission('system:reference:update'), async (req, res) => {
   try {
     const body = jobTitleSchema.parse(req.body);
     const jobTitle = await prisma.jobTitle.create({
@@ -116,7 +116,7 @@ router.post('/job-titles', requireSystemRole('System Admin', 'Admin', 'Quality A
   }
 });
 
-router.put('/job-titles/:id', requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'), requireSystemPermission('system:reference:update'), async (req, res) => {
+router.put('/job-titles/:id', requireSystemRole('System Admin', 'Quality Manager', 'Manager'), requireSystemPermission('system:reference:update'), async (req, res) => {
   try {
     const body = jobTitleSchema.parse(req.body);
     const existing = await prisma.jobTitle.findUnique({ where: { id: req.params.id } });

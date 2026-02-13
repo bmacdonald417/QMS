@@ -17,7 +17,7 @@ const updateSchema = z.object({
 // GET /api/system/retention
 router.get(
   '/',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireSystemPermission('auditlog:view'),
   async (_req, res) => {
     try {
@@ -35,7 +35,7 @@ router.get(
 // PUT /api/system/retention
 router.put(
   '/',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireSystemPermission('system:securitypolicy:update'),
   async (req, res) => {
     try {
@@ -68,7 +68,7 @@ router.put(
 // GET /api/system/retention/last-backup - stub
 router.get(
   '/last-backup',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   async (_req, res) => {
     res.json({ lastBackupTime: null, message: 'Backup integration not configured. Configure your backup job and expose an endpoint to report last backup time.' });
   }

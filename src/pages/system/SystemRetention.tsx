@@ -45,7 +45,7 @@ export function SystemRetention() {
       const docYears = form.documentRetentionYears;
       if (docYears != null && typeof docYears === 'number' && Number.isInteger(docYears) && docYears >= 1) {
         body.documentRetentionYears = docYears;
-      } else if (docYears === null || docYears === undefined || docYears === '') {
+      } else if (docYears == null) {
         body.documentRetentionYears = null;
       }
       const updated = await apiRequest<{ policy: RetentionPolicy }>('/api/system/retention', {

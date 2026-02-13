@@ -9,6 +9,8 @@ interface RoleRow {
   id: number;
   name: string;
   permissions: string[];
+  isCanonical?: boolean;
+  permissionDetails?: string[];
 }
 
 export function SystemRoles() {
@@ -19,7 +21,11 @@ export function SystemRoles() {
 
   useEffect(() => {
     if (!token) return;
-    apiRequest<{ roles: RoleRow[]; permissions: { id: string; code: string }[] }>('/api/system/roles', { token })
+    apiRequest<{
+      roles: RoleRow[];
+      permissions: { id: string; code: string }[];
+      canonicalRoleNames?: string[];
+    }>('/api/system/roles', { token })
       .then((data) => {
         setRoles(data.roles || []);
         setPermissions(data.permissions || []);
@@ -28,19 +34,34 @@ export function SystemRoles() {
       .finally(() => setLoading(false));
   }, [token]);
 
+  const canonicalRoles = roles.filter((r) => r.isCanonical !== false);
+  const nonCanonicalRoles = roles.filter((r) => r.isCanonical === false);
+
   const columns: Column<RoleRow>[] = [
     { key: 'name', header: 'Role' },
-    { key: 'permissions', header: 'Permissions', render: (r) => (r.permissions?.length ? r.permissions.join(', ') : '—') },
+    {
+      key: 'permissions',
+      header: 'Permissions',
+      render: (r) => {
+        const codes = (r.permissionDetails && r.permissionDetails.length > 0 ? r.permissionDetails : r.permissions) || [];
+        return codes.length ? codes.join(', ') : '—';
+      },
+    },
   ];
 
   return (
-    <PageShell title="Roles & Permissions" subtitle="View roles and assigned permissions. System Admin and Admin have full access.">
+    <PageShell title="Roles & Permissions" subtitle="View canonical roles and assigned permissions. System Admin has full access.">
       <div className="space-y-6">
+        {nonCanonicalRoles.length > 0 && (
+          <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-amber-200" role="alert">
+            <strong>Unexpected roles in database.</strong> The following roles are not in the canonical set and should be removed by running the RBAC migration script: {nonCanonicalRoles.map((r) => r.name).join(', ')}.
+          </div>
+        )}
         <Card padding="none">
           {loading ? (
             <p className="p-6 text-gray-400">Loading...</p>
           ) : (
-            <Table columns={columns} data={roles} keyExtractor={(r) => String(r.id)} emptyMessage="No roles." />
+            <Table columns={columns} data={canonicalRoles} keyExtractor={(r) => String(r.id)} emptyMessage="No roles." />
           )}
         </Card>
         <Card padding="md">

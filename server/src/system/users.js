@@ -60,7 +60,7 @@ function sanitizeUser(u) {
 // GET /api/system/users - list with search, filters, pagination, sort
 router.get(
   '/',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireSystemPermission('users:read'),
   async (req, res) => {
     try {
@@ -134,7 +134,7 @@ router.get(
 // POST /api/system/users - create user (direct with temp password)
 router.post(
   '/',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireSystemPermission('users:create'),
   systemSensitiveLimiter,
   async (req, res) => {
@@ -200,7 +200,7 @@ router.post(
 // POST /api/system/users/invite
 router.post(
   '/invite',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireSystemPermission('users:create'),
   systemSensitiveLimiter,
   async (req, res) => {
@@ -252,7 +252,7 @@ router.post(
 // GET /api/system/users/assignable-roles - roles the current user can assign (for dropdown)
 router.get(
   '/assignable-roles',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireAnySystemPermission('users:create', 'users:assign_roles:basic', 'users:assign_roles:any'),
   async (req, res) => {
     try {
@@ -277,7 +277,7 @@ router.get(
 // GET /api/system/users/:id
 router.get(
   '/:id',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireSystemPermission('users:read'),
   async (req, res) => {
     try {
@@ -296,7 +296,7 @@ router.get(
 // PUT /api/system/users/:id
 router.put(
   '/:id',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireAnySystemPermission('users:update', 'users:update:basic', 'users:update:compliance'),
   async (req, res) => {
     try {
@@ -376,7 +376,7 @@ router.put(
 // DELETE /api/system/users/:id - soft-delete (set INACTIVE); sys_admin only
 router.delete(
   '/:id',
-  requireSystemRole('System Admin', 'Admin'),
+  requireSystemRole('System Admin'),
   requireSystemPermission('users:delete'),
   systemSensitiveLimiter,
   async (req, res) => {
@@ -429,7 +429,7 @@ router.delete(
 // POST /api/system/users/:id/deactivate
 router.post(
   '/:id/deactivate',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireSystemPermission('users:disable'),
   systemSensitiveLimiter,
   async (req, res) => {
@@ -476,7 +476,7 @@ router.post(
 // POST /api/system/users/:id/reactivate
 router.post(
   '/:id/reactivate',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireAnySystemPermission('users:update', 'users:update:basic', 'users:update:compliance'),
   async (req, res) => {
     try {
@@ -512,7 +512,7 @@ router.post(
 // POST /api/system/users/:id/lock
 router.post(
   '/:id/lock',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireSystemPermission('users:disable'),
   systemSensitiveLimiter,
   async (req, res) => {
@@ -551,7 +551,7 @@ router.post(
 // POST /api/system/users/:id/unlock
 router.post(
   '/:id/unlock',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireAnySystemPermission('users:update', 'users:update:basic', 'users:update:compliance'),
   async (req, res) => {
     try {
@@ -584,7 +584,7 @@ router.post(
 // POST /api/system/users/:id/revoke-sessions
 router.post(
   '/:id/revoke-sessions',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireSystemPermission('users:update'),
   systemSensitiveLimiter,
   async (req, res) => {
@@ -615,7 +615,7 @@ router.post(
 // POST /api/system/users/:id/reset-password - generate reset token (stub: returns link)
 router.post(
   '/:id/reset-password',
-  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
+  requireSystemRole('System Admin', 'Quality Manager', 'Manager'),
   requireSystemPermission('users:update'),
   systemSensitiveLimiter,
   async (req, res) => {
