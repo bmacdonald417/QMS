@@ -252,6 +252,8 @@ model ESignConfig {
   requireForCapaClosure      Boolean  @default(true) @map("require_for_capa_closure")
   requireForCapaPlanApproval Boolean  @default(true) @map("require_for_capa_plan_approval")
   requireForTrainingSignOff  Boolean  @default(true) @map("require_for_training_sign_off")
+  requireForChangeApproval   Boolean  @default(true) @map("require_for_change_approval")
+  requireForChangeClosure    Boolean  @default(true) @map("require_for_change_closure")
   updatedAt                  DateTime @updatedAt @map("updated_at")
 
   @@map("esign_config")
@@ -463,6 +465,24 @@ model Notification {
   @@map("notifications")
 }
 
+enum ChangeType {
+  PROCESS
+  DOCUMENT
+  SOFTWARE
+  INFRASTRUCTURE
+  EQUIPMENT
+  SUPPLIER
+  TRAINING
+  OTHER
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 enum ChangeControlStatus {
   DRAFT
   SUBMITTED
@@ -495,21 +515,26 @@ enum ChangeTaskStatus {
 }
 
 model ChangeControl {
-  id              String               @id @default(uuid())
-  changeId        String               @unique @map("change_id")
-  title           String
-  description     String               @db.Text
-  riskAssessment  String?              @map("risk_assessment") @db.Text
-  status          ChangeControlStatus  @default(DRAFT)
-  initiatorId     String?              @map("initiator_id")
-  ownerId         String?              @map("owner_id")
-  siteId          String?              @map("site_id")
-  departmentId    String?              @map("department_id")
-  dueDate         DateTime?            @map("due_date")
-  closedAt        DateTime?            @map("closed_at")
-  isArchived      Boolean              @default(false) @map("is_archived")
-  createdAt       DateTime            @default(now()) @map("created_at")
-  updatedAt       DateTime            @updatedAt @map("updated_at")
+  id                  String               @id @default(uuid())
+  changeId            String               @unique @map("change_id")
+  title               String
+  description         String               @db.Text
+  riskAssessment      String?              @map("risk_assessment") @db.Text
+  changeType          ChangeType?          @map("change_type")
+  riskLevel           RiskLevel?           @map("risk_level")
+  implementationPlan  String?              @map("implementation_plan") @db.Text
+  verificationSummary String?              @map("verification_summary") @db.Text
+  effectiveDate       DateTime?            @map("effective_date")
+  status              ChangeControlStatus  @default(DRAFT)
+  initiatorId         String?              @map("initiator_id")
+  ownerId             String?              @map("owner_id")
+  siteId              String?              @map("site_id")
+  departmentId        String?              @map("department_id")
+  dueDate             DateTime?            @map("due_date")
+  closedAt            DateTime?            @map("closed_at")
+  isArchived          Boolean              @default(false) @map("is_archived")
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
 
   initiator  User?   @relation("ChangeControlInitiator", fields: [initiatorId], references: [id], onDelete: SetNull)
   owner      User?   @relation("ChangeControlOwner", fields: [ownerId], references: [id], onDelete: SetNull)
@@ -522,6 +547,7 @@ model ChangeControl {
   @@index([status])
   @@index([ownerId])
   @@index([createdAt])
+  @@index([changeType])
   @@map("change_controls")
 }
 
@@ -538,6 +564,7 @@ model ChangeControlTask {
   completedAt     DateTime?        @map("completed_at")
   completionNotes String?          @map("completion_notes") @db.Text
   completedById   String?          @map("completed_by_id")
+  requiresEsign   Boolean          @default(false) @map("requires_esign")
   createdById     String?          @map("created_by_id")
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")

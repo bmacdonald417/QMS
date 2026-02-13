@@ -2,11 +2,20 @@ import express from 'express';
 import multer from 'multer';
 import path from 'node:path';
 import fs from 'node:fs';
-import { randomUUID } from 'node:crypto';
+import bcrypt from 'bcrypt';
+import { randomUUID, createHash } from 'node:crypto';
 import { prisma } from './db.js';
 import { requirePermission } from './auth.js';
 import { createAuditLog, getAuditContext } from './audit.js';
 import { z } from 'zod';
+
+function sha256(input) {
+  return createHash('sha256').update(typeof input === 'string' ? input : JSON.stringify(input)).digest('hex');
+}
+function hasPermission(req, code) {
+  if (req.user?.roleName === 'Admin' || req.user?.roleName === 'System Admin') return true;
+  return (req.user?.permissions || []).includes(code);
+}
 
 const router = express.Router();
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
@@ -127,6 +136,11 @@ const createBodySchema = z.object({
   title: z.string().min(1).max(500),
   description: z.string().min(1),
   riskAssessment: z.string().optional().nullable(),
+  changeType: z.enum(['PROCESS', 'DOCUMENT', 'SOFTWARE', 'INFRASTRUCTURE', 'EQUIPMENT', 'SUPPLIER', 'TRAINING', 'OTHER']).optional().nullable(),
+  riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional().nullable(),
+  implementationPlan: z.string().optional().nullable(),
+  verificationSummary: z.string().optional().nullable(),
+  effectiveDate: z.string().datetime().optional().nullable().or(z.date()).optional().nullable(),
   ownerId: z.string().uuid().optional().nullable(),
   siteId: z.string().uuid().optional().nullable(),
   departmentId: z.string().uuid().optional().nullable(),
@@ -146,6 +160,11 @@ router.post('/', requirePermission('change:create'), async (req, res) => {
           title: data.title,
           description: data.description,
           riskAssessment: data.riskAssessment ?? undefined,
+          changeType: data.changeType ?? undefined,
+          riskLevel: data.riskLevel ?? undefined,
+          implementationPlan: data.implementationPlan ?? undefined,
+          verificationSummary: data.verificationSummary ?? undefined,
+          effectiveDate: data.effectiveDate ? new Date(data.effectiveDate) : undefined,
           status: 'DRAFT',
           initiatorId: req.user.id,
           ownerId: data.ownerId ?? undefined,
@@ -234,6 +253,11 @@ const updateBodySchema = z.object({
   title: z.string().min(1).max(500).optional(),
   description: z.string().min(1).optional(),
   riskAssessment: z.string().optional().nullable(),
+  changeType: z.enum(['PROCESS', 'DOCUMENT', 'SOFTWARE', 'INFRASTRUCTURE', 'EQUIPMENT', 'SUPPLIER', 'TRAINING', 'OTHER']).optional().nullable(),
+  riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional().nullable(),
+  implementationPlan: z.string().optional().nullable(),
+  verificationSummary: z.string().optional().nullable(),
+  effectiveDate: z.string().datetime().optional().nullable().or(z.date()).optional().nullable(),
   ownerId: z.string().uuid().optional().nullable(),
   siteId: z.string().uuid().optional().nullable(),
   departmentId: z.string().uuid().optional().nullable(),
@@ -253,6 +277,11 @@ router.put('/:id', requirePermission('change:update'), async (req, res) => {
     if (updates.title !== undefined) data.title = updates.title;
     if (updates.description !== undefined) data.description = updates.description;
     if (updates.riskAssessment !== undefined) data.riskAssessment = updates.riskAssessment ?? null;
+    if (updates.changeType !== undefined) data.changeType = updates.changeType ?? null;
+    if (updates.riskLevel !== undefined) data.riskLevel = updates.riskLevel ?? null;
+    if (updates.implementationPlan !== undefined) data.implementationPlan = updates.implementationPlan ?? null;
+    if (updates.verificationSummary !== undefined) data.verificationSummary = updates.verificationSummary ?? null;
+    if (updates.effectiveDate !== undefined) data.effectiveDate = updates.effectiveDate ? new Date(updates.effectiveDate) : null;
     if (updates.ownerId !== undefined) data.ownerId = updates.ownerId ?? null;
     if (updates.siteId !== undefined) data.siteId = updates.siteId ?? null;
     if (updates.departmentId !== undefined) data.departmentId = updates.departmentId ?? null;
@@ -336,6 +365,7 @@ const taskCreateSchema = z.object({
   description: z.string().optional().nullable(),
   assignedToId: z.string().uuid().optional().nullable(),
   dueDate: z.string().datetime().optional().nullable().or(z.date()),
+  requiresEsign: z.boolean().optional().default(false),
   stepNumber: z.number().int().min(0).default(0),
 });
 const createTasksBodySchema = z.object({
@@ -364,6 +394,7 @@ router.post('/:id/tasks', requirePermission('change:assign_tasks'), async (req, 
             description: t.description ?? undefined,
             assignedToId: t.assignedToId ?? undefined,
             dueDate: t.dueDate ? new Date(t.dueDate) : undefined,
+            requiresEsign: t.requiresEsign ?? false,
             stepNumber: t.stepNumber ?? 0,
             createdById: req.user.id,
           },
@@ -387,7 +418,7 @@ router.post('/:id/tasks', requirePermission('change:assign_tasks'), async (req, 
       reason,
       ...auditCtx,
     });
-    const notifyIds = [...new Set(created.map((t) => t.assignedToId).filter(Boolean))];
+    const notifyIds = [...new Set([...(created.map((t) => t.assignedToId).filter(Boolean)), cc.ownerId].filter(Boolean))];
     if (notifyIds.length) await createNotifications(notifyIds, `You have been assigned task(s) on Change Control ${cc.changeId}.`, `/change-control/${cc.id}`);
     res.status(201).json({ tasks: created });
   } catch (err) {
@@ -396,28 +427,124 @@ router.post('/:id/tasks', requirePermission('change:assign_tasks'), async (req, 
   }
 });
 
-const completeTaskBodySchema = z.object({ completionNotes: z.string().optional().nullable(), reason: z.string().min(1) });
+const updateTaskBodySchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().optional().nullable(),
+  assignedToId: z.string().uuid().optional().nullable(),
+  dueDate: z.string().datetime().optional().nullable().or(z.date()).optional().nullable(),
+  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'REJECTED', 'OVERDUE']).optional(),
+  reason: z.string().min(1),
+});
+
+router.put('/:id/tasks/:taskId', requirePermission('change:assign_tasks'), async (req, res) => {
+  try {
+    const parsed = updateTaskBodySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
+    const { reason, ...updates } = parsed.data;
+    const task = await prisma.changeControlTask.findFirst({
+      where: { id: req.params.taskId, changeControlId: req.params.id },
+      include: { changeControl: true, assignedTo: { select: { id: true } } },
+    });
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+    if (task.status === 'COMPLETED') return res.status(400).json({ error: 'Cannot update completed task' });
+    const data = {};
+    if (updates.title !== undefined) data.title = updates.title;
+    if (updates.description !== undefined) data.description = updates.description ?? null;
+    if (updates.assignedToId !== undefined) data.assignedToId = updates.assignedToId ?? null;
+    if (updates.dueDate !== undefined) data.dueDate = updates.dueDate ? new Date(updates.dueDate) : null;
+    if (updates.status !== undefined) data.status = updates.status;
+    const previousAssignedToId = task.assignedToId;
+    const updated = await prisma.$transaction(async (tx) => {
+      const u = await tx.changeControlTask.update({
+        where: { id: task.id },
+        data,
+        include: { assignedTo: { select: { id: true, firstName: true, lastName: true, email: true } } },
+      });
+      await tx.changeControlHistory.create({
+        data: { changeControlId: task.changeControlId, userId: req.user.id, action: 'TASK_UPDATED', details: { taskId: task.id, reason, changes: Object.keys(data) } },
+      });
+      return u;
+    });
+    const auditCtx = getAuditContext(req);
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'CHANGE_CONTROL_TASK_UPDATED',
+      entityType: CC_ENTITY,
+      entityId: task.changeControlId,
+      beforeValue: { taskId: task.id, title: task.title, assignedToId: task.assignedToId, dueDate: task.dueDate, status: task.status },
+      afterValue: { taskId: updated.id, title: updated.title, assignedToId: updated.assignedToId, dueDate: updated.dueDate, status: updated.status },
+      reason,
+      ...auditCtx,
+    });
+    if (data.assignedToId && data.assignedToId !== previousAssignedToId) {
+      await createNotifications([data.assignedToId], `You have been assigned task "${updated.title}" on Change Control ${task.changeControl.changeId}.`, `/change-control/${task.changeControlId}`);
+    }
+    res.json({ task: updated });
+  } catch (err) {
+    console.error('Update change control task error:', err);
+    res.status(500).json({ error: 'Failed to update task' });
+  }
+});
+
+const completeTaskBodySchema = z.object({
+  completionNotes: z.string().optional().nullable(),
+  reason: z.string().min(1),
+  password: z.string().optional(),
+});
 
 router.post('/:id/tasks/:taskId/complete', requirePermission('change:assign_tasks'), async (req, res) => {
   try {
     const parsed = completeTaskBodySchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
-    const { completionNotes, reason } = parsed.data;
+    const { completionNotes, reason, password } = parsed.data;
     const task = await prisma.changeControlTask.findFirst({
       where: { id: req.params.taskId, changeControlId: req.params.id },
       include: { changeControl: true },
     });
     if (!task) return res.status(404).json({ error: 'Task not found' });
     if (task.status === 'COMPLETED') return res.status(400).json({ error: 'Task already completed' });
+
+    const esignConfig = await prisma.eSignConfig.findFirst();
+    const requireSignForApproval = esignConfig?.requireForChangeApproval ?? true;
+    const requireSignForClosure = esignConfig?.requireForChangeClosure ?? true;
+    const isApprovalTask = task.taskType === 'APPROVAL';
+    const isClosureTask = task.taskType === 'CLOSURE_REVIEW';
+    const needsSignature = task.requiresEsign || (isApprovalTask && requireSignForApproval) || (isClosureTask && requireSignForClosure);
+    if (needsSignature) {
+      if (!hasPermission(req, 'change:esign')) return res.status(403).json({ error: 'E-signature required for this task completion' });
+      if (!password) return res.status(400).json({ error: 'Password required for signature' });
+      const signer = await prisma.user.findUnique({ where: { id: req.user.id }, select: { password: true } });
+      const passwordOk = signer && (await bcrypt.compare(password, signer.password));
+      if (!passwordOk) return res.status(401).json({ error: 'Password verification failed' });
+    }
+
+    const now = new Date();
     const updated = await prisma.$transaction(async (tx) => {
       const u = await tx.changeControlTask.update({
         where: { id: task.id },
-        data: { status: 'COMPLETED', completedAt: new Date(), completionNotes: completionNotes ?? undefined, completedById: req.user.id },
+        data: { status: 'COMPLETED', completedAt: now, completionNotes: completionNotes ?? undefined, completedById: req.user.id },
         include: { assignedTo: { select: { id: true, firstName: true, lastName: true, email: true } } },
       });
       await tx.changeControlHistory.create({
-        data: { changeControlId: task.changeControlId, userId: req.user.id, action: 'TASK_COMPLETED', details: { taskId: task.id, completionNotes: completionNotes ?? undefined, reason } },
+        data: { changeControlId: task.changeControlId, userId: req.user.id, action: 'TASK_COMPLETED', details: { taskId: task.id, completionNotes: completionNotes ?? undefined, reason, signatureRequired: needsSignature } },
       });
+      if (needsSignature) {
+        const recordHash = sha256(JSON.stringify({ changeControlId: task.changeControlId, taskId: task.id, action: 'TASK_COMPLETED', at: now.toISOString() }));
+        const passwordHash = password ? await bcrypt.hash(password, 10) : null;
+        const signaturePayload = { changeControlId: task.changeControlId, taskId: task.id, signerId: req.user.id, signatureMeaning: `TASK_${task.taskType}`, signedAt: now.toISOString(), recordHash };
+        const signatureHash = sha256(JSON.stringify(signaturePayload));
+        await tx.changeControlSignature.create({
+          data: {
+            changeControlId: task.changeControlId,
+            signerId: req.user.id,
+            signatureMeaning: `TASK_${task.taskType}`,
+            signedAt: now,
+            recordHash,
+            signatureHash,
+            passwordHash: passwordHash ?? undefined,
+          },
+        });
+      }
       return u;
     });
     const auditCtx = getAuditContext(req);
@@ -427,7 +554,7 @@ router.post('/:id/tasks/:taskId/complete', requirePermission('change:assign_task
       entityType: CC_ENTITY,
       entityId: task.changeControlId,
       beforeValue: { taskId: task.id, status: task.status },
-      afterValue: { taskId: task.id, status: 'COMPLETED' },
+      afterValue: { taskId: updated.id, status: 'COMPLETED' },
       reason,
       ...auditCtx,
     });
@@ -436,6 +563,174 @@ router.post('/:id/tasks/:taskId/complete', requirePermission('change:assign_task
   } catch (err) {
     console.error('Complete change control task error:', err);
     res.status(500).json({ error: 'Failed to complete task' });
+  }
+});
+
+const approveBodySchema = z.object({
+  meaning: z.enum(['APPROVAL', 'QUALITY_APPROVAL', 'SECURITY_APPROVAL']),
+  reason: z.string().min(1),
+  password: z.string().optional(),
+});
+
+router.post('/:id/approve', requirePermission('change:approve'), async (req, res) => {
+  try {
+    const parsed = approveBodySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
+    const { meaning, reason, password } = parsed.data;
+    const cc = await prisma.changeControl.findUnique({ where: { id: req.params.id }, include: { owner: true, initiator: true } });
+    if (!cc) return res.status(404).json({ error: 'Change control not found' });
+    if (['CLOSED', 'CANCELLED', 'ARCHIVED'].includes(cc.status)) return res.status(400).json({ error: 'Cannot approve in current status' });
+
+    const esignConfig = await prisma.eSignConfig.findFirst();
+    const requireSign = esignConfig?.requireForChangeApproval ?? true;
+    if (requireSign) {
+      if (!hasPermission(req, 'change:esign')) return res.status(403).json({ error: 'E-signature required for change approval' });
+      if (!password) return res.status(400).json({ error: 'Password required for approval signature' });
+      const signer = await prisma.user.findUnique({ where: { id: req.user.id }, select: { password: true } });
+      const passwordOk = signer && (await bcrypt.compare(password, signer.password));
+      if (!passwordOk) return res.status(401).json({ error: 'Password verification failed' });
+    }
+
+    const now = new Date();
+    const updated = await prisma.$transaction(async (tx) => {
+      if (requireSign) {
+        const recordHash = sha256(JSON.stringify({ changeControlId: cc.id, status: cc.status, action: 'APPROVAL', meaning, at: now.toISOString() }));
+        const passwordHash = password ? await bcrypt.hash(password, 10) : null;
+        const signaturePayload = { changeControlId: cc.id, signerId: req.user.id, signatureMeaning: meaning, signedAt: now.toISOString(), recordHash };
+        const signatureHash = sha256(JSON.stringify(signaturePayload));
+        await tx.changeControlSignature.create({
+          data: {
+            changeControlId: cc.id,
+            signerId: req.user.id,
+            signatureMeaning: meaning,
+            signedAt: now,
+            recordHash,
+            signatureHash,
+            passwordHash: passwordHash ?? undefined,
+          },
+        });
+      }
+      await tx.changeControlHistory.create({
+        data: { changeControlId: cc.id, userId: req.user.id, action: 'APPROVED', details: { meaning, reason, signatureRequired: requireSign } },
+      });
+      const updateData = {};
+      if (cc.status === 'APPROVAL') updateData.status = 'IMPLEMENTATION';
+      const u = await tx.changeControl.update({
+        where: { id: cc.id },
+        data: updateData,
+        include: { initiator: { select: { id: true, firstName: true, lastName: true, email: true } }, owner: { select: { id: true, firstName: true, lastName: true, email: true } } },
+      });
+      return u;
+    });
+    const auditCtx = getAuditContext(req);
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'CHANGE_CONTROL_APPROVED',
+      entityType: CC_ENTITY,
+      entityId: cc.id,
+      beforeValue: { status: cc.status },
+      afterValue: { status: updated.status, meaning },
+      reason,
+      ...auditCtx,
+    });
+    if (cc.ownerId) await createNotifications([cc.ownerId], `Change Control ${cc.changeId} was approved (${meaning}).`, `/change-control/${cc.id}`);
+    res.json({ ok: true, changeControl: updated });
+  } catch (err) {
+    console.error('Approve change control error:', err);
+    res.status(500).json({ error: 'Failed to approve change control' });
+  }
+});
+
+const closeBodySchema = z.object({
+  reason: z.string().min(1),
+  password: z.string().optional(),
+  waiverJustification: z.string().optional().nullable(),
+});
+
+const IMPLEMENTATION_TASK_TYPE = 'IMPLEMENTATION';
+const EFFECTIVENESS_TASK_TYPE = 'EFFECTIVENESS_CHECK';
+
+router.post('/:id/close', requirePermission('change:close'), async (req, res) => {
+  try {
+    const parsed = closeBodySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
+    const { reason, password, waiverJustification } = parsed.data;
+    const cc = await prisma.changeControl.findUnique({
+      where: { id: req.params.id },
+      include: { tasks: true, signatures: true, owner: true, initiator: true },
+    });
+    if (!cc) return res.status(404).json({ error: 'Change control not found' });
+    if (cc.status !== 'PENDING_CLOSURE') return res.status(400).json({ error: 'Change control must be in PENDING_CLOSURE to close' });
+
+    const implTasks = cc.tasks.filter((t) => t.taskType === IMPLEMENTATION_TASK_TYPE);
+    const implAllCompleted = implTasks.length === 0 || implTasks.every((t) => t.status === 'COMPLETED');
+    if (!implAllCompleted) return res.status(400).json({ error: 'All implementation tasks must be completed before closure' });
+
+    const effectivenessTasks = cc.tasks.filter((t) => t.taskType === EFFECTIVENESS_TASK_TYPE);
+    const effectivenessDone = effectivenessTasks.some((t) => t.status === 'COMPLETED');
+    if (!effectivenessDone && !(waiverJustification?.trim())) {
+      return res.status(400).json({ error: 'At least one effectiveness check must be completed or waiver justification provided' });
+    }
+
+    const esignConfig = await prisma.eSignConfig.findFirst();
+    const requireSign = esignConfig?.requireForChangeClosure ?? true;
+    if (requireSign) {
+      if (!hasPermission(req, 'change:esign')) return res.status(403).json({ error: 'E-signature required for change closure' });
+      if (!password) return res.status(400).json({ error: 'Password required for closure signature' });
+      const signer = await prisma.user.findUnique({ where: { id: req.user.id }, select: { password: true } });
+      const passwordOk = signer && (await bcrypt.compare(password, signer.password));
+      if (!passwordOk) return res.status(401).json({ error: 'Password verification failed' });
+    }
+    const hasApprovalSignature = cc.signatures && cc.signatures.length > 0;
+    if (requireSign && !hasApprovalSignature) {
+      return res.status(400).json({ error: 'At least one approval signature is required before closure when e-sign is required' });
+    }
+
+    const now = new Date();
+    const updated = await prisma.$transaction(async (tx) => {
+      if (requireSign) {
+        const recordHash = sha256(JSON.stringify({ changeControlId: cc.id, status: cc.status, action: 'CLOSURE', at: now.toISOString() }));
+        const passwordHash = password ? await bcrypt.hash(password, 10) : null;
+        const signaturePayload = { changeControlId: cc.id, signerId: req.user.id, signatureMeaning: 'CLOSURE', signedAt: now.toISOString(), recordHash };
+        const signatureHash = sha256(JSON.stringify(signaturePayload));
+        await tx.changeControlSignature.create({
+          data: {
+            changeControlId: cc.id,
+            signerId: req.user.id,
+            signatureMeaning: 'CLOSURE',
+            signedAt: now,
+            recordHash,
+            signatureHash,
+            passwordHash: passwordHash ?? undefined,
+          },
+        });
+      }
+      await tx.changeControlHistory.create({
+        data: { changeControlId: cc.id, userId: req.user.id, action: 'CLOSED', details: { reason, waiverJustification: waiverJustification ?? null } },
+      });
+      return tx.changeControl.update({
+        where: { id: cc.id },
+        data: { status: 'CLOSED', closedAt: now },
+        include: { initiator: { select: { id: true, firstName: true, lastName: true, email: true } }, owner: { select: { id: true, firstName: true, lastName: true, email: true } } },
+      });
+    });
+    const auditCtx = getAuditContext(req);
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'CHANGE_CONTROL_CLOSED',
+      entityType: CC_ENTITY,
+      entityId: cc.id,
+      beforeValue: { status: cc.status },
+      afterValue: { status: 'CLOSED', closedAt: now },
+      reason,
+      ...auditCtx,
+    });
+    const notifyIds = [cc.initiatorId, cc.ownerId].filter(Boolean);
+    if (notifyIds.length) await createNotifications([...new Set(notifyIds)], `Change Control ${cc.changeId} has been closed.`, `/change-control/${cc.id}`);
+    res.json({ ok: true, changeControl: updated });
+  } catch (err) {
+    console.error('Close change control error:', err);
+    res.status(500).json({ error: 'Failed to close change control' });
   }
 });
 
@@ -462,7 +757,7 @@ router.post('/:id/files', requirePermission('file:upload'), upload.single('file'
     await prisma.fileLink.create({
       data: { fileAssetId: fileAsset.id, entityType: 'CHANGE_CONTROL', entityId: cc.id, purpose },
     });
-    await createCCHistory(cc.id, req.user.id, 'FILE_ATTACHED', { fileAssetId: fileAsset.id, filename: fileAsset.filename, purpose });
+    await createCCHistory(cc.id, req.user.id, 'FILE_ADDED', { fileAssetId: fileAsset.id, filename: fileAsset.filename, purpose });
     const auditCtx = getAuditContext(req);
     await createAuditLog({
       userId: req.user.id,
@@ -497,6 +792,7 @@ router.post('/:id/link', requirePermission('change:update'), async (req, res) =>
     const link = await prisma.entityLink.create({
       data: { sourceType: 'CHANGE_CONTROL', sourceId: cc.id, targetType, targetId, linkType: linkType.trim() },
     });
+    await createCCHistory(cc.id, req.user.id, 'LINK_CREATED', { linkId: link.id, targetType, targetId, linkType: linkType.trim() });
     const auditCtx = getAuditContext(req);
     await createAuditLog({
       userId: req.user.id,

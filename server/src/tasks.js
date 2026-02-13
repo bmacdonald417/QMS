@@ -68,10 +68,12 @@ router.get('/', async (req, res) => {
       id: a.id,
       taskType: a.assignmentType,
       status: a.status,
+      entityLabel: a.document.documentId,
       documentId: a.document.id,
       docId: a.document.documentId,
       title: a.document.title,
       documentStatus: a.document.status,
+      dueDate: a.dueDate ?? null,
       link: `/documents/${a.document.id}`,
     }));
 
@@ -80,6 +82,7 @@ router.get('/', async (req, res) => {
       id: t.id,
       taskType: t.taskType,
       status: t.status,
+      entityLabel: t.capa.capaId,
       capaId: t.capa.id,
       capaNumber: t.capa.capaId,
       title: t.title,
@@ -93,6 +96,7 @@ router.get('/', async (req, res) => {
       id: t.id,
       taskType: t.taskType,
       status: t.status,
+      entityLabel: t.changeControl.changeId,
       changeControlId: t.changeControl.id,
       changeId: t.changeControl.changeId,
       title: t.title,

@@ -8,7 +8,7 @@ const ROLES = [
     permissions: [
       'users:read', 'users:create', 'users:update', 'users:assign_roles:any', 'users:delete', 'users:disable',
       'capa:view', 'capa:create', 'capa:update', 'capa:assign_tasks', 'capa:approve_plan', 'capa:close', 'capa:esign', 'capa:export',
-      'change:view', 'change:create', 'change:update', 'change:assign_tasks', 'change:close',
+      'change:view', 'change:create', 'change:update', 'change:assign_tasks', 'change:approve', 'change:close', 'change:esign',
       'file:upload', 'file:download', 'file:delete', 'document:view',
       'auditlog:view', 'system:securitypolicy:update', 'system:reference:update',
     ],
@@ -32,7 +32,7 @@ const ROLES = [
       'system:securitypolicy:update',
       'system:reference:update',
       'capa:view', 'capa:create', 'capa:update', 'capa:assign_tasks', 'capa:approve_plan', 'capa:close', 'capa:esign', 'capa:export',
-      'change:view', 'change:create', 'change:update', 'change:assign_tasks', 'change:close',
+      'change:view', 'change:create', 'change:update', 'change:assign_tasks', 'change:approve', 'change:close', 'change:esign',
       'file:upload', 'file:download', 'file:delete', 'document:view',
     ],
   },
@@ -53,7 +53,7 @@ const ROLES = [
       'auditlog:view',
       'system:reference:update',
       'capa:view', 'capa:create', 'capa:update', 'capa:assign_tasks', 'capa:approve_plan', 'capa:close', 'capa:esign', 'capa:export',
-      'change:view', 'change:create', 'change:update', 'change:assign_tasks', 'change:close',
+      'change:view', 'change:create', 'change:update', 'change:assign_tasks', 'change:approve', 'change:close', 'change:esign',
       'file:upload', 'file:download', 'file:delete', 'document:view',
     ],
   },
@@ -119,7 +119,9 @@ const PERMISSION_CODES = [
   { code: 'change:create', description: 'Create change control' },
   { code: 'change:update', description: 'Update change control' },
   { code: 'change:assign_tasks', description: 'Assign and manage change control tasks' },
+  { code: 'change:approve', description: 'Approve change control (formal approval/signature)' },
   { code: 'change:close', description: 'Close change control' },
+  { code: 'change:esign', description: 'Apply e-signature on change control' },
 ];
 
 const DEMO_PASSWORD = 'Password123!';

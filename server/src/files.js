@@ -97,6 +97,17 @@ router.delete('/:fileId', requirePermission('file:delete'), async (req, res) => 
       ...auditCtx,
     });
 
+    if (link?.entityType === 'CHANGE_CONTROL' && link.entityId) {
+      await prisma.changeControlHistory.create({
+        data: {
+          changeControlId: link.entityId,
+          userId: req.user.id,
+          action: 'FILE_DELETED',
+          details: { fileAssetId: fileAsset.id, filename: fileAsset.filename },
+        },
+      });
+    }
+
     res.json({ ok: true, message: 'File deleted' });
   } catch (err) {
     console.error('Delete file error:', err);

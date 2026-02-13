@@ -11,6 +11,8 @@ const updateSchema = z.object({
   requireForCapaClosure: z.boolean().optional(),
   requireForCapaPlanApproval: z.boolean().optional(),
   requireForTrainingSignOff: z.boolean().optional(),
+  requireForChangeApproval: z.boolean().optional(),
+  requireForChangeClosure: z.boolean().optional(),
 });
 
 // GET /api/system/esign
