@@ -48,7 +48,7 @@ const ROLES = [
   },
 ];
 
-const DEMO_PASSWORD = 'password123';
+const DEMO_PASSWORD = 'Password123!';
 const SALT_ROUNDS = 10;
 
 const DEMO_USERS = [
