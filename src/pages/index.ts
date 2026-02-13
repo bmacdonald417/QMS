@@ -5,6 +5,8 @@ export { TrainingCompetency } from './TrainingCompetency';
 export { AuditManagement } from './AuditManagement';
 export { CAPA } from './CAPA';
 export { ChangeControl } from './ChangeControl';
+export { ChangeControlNew } from './ChangeControlNew';
+export { ChangeControlDetail } from './ChangeControlDetail';
 export { RiskManagement } from './RiskManagement';
 export { EquipmentAssets } from './EquipmentAssets';
 export { SupplierQuality } from './SupplierQuality';

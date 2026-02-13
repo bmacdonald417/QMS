@@ -8,6 +8,8 @@ import {
   TrainingCompetency,
   AuditManagement,
   ChangeControl,
+  ChangeControlNew,
+  ChangeControlDetail,
   RiskManagement,
   EquipmentAssets,
   SupplierQuality,
@@ -63,6 +65,8 @@ function AppRoutes() {
           <Route path="capas/:id" element={<CAPADetail />} />
           <Route path="capa" element={<Navigate to="/capas" replace />} />
           <Route path="change-control" element={<ChangeControl />} />
+          <Route path="change-control/new" element={<ChangeControlNew />} />
+          <Route path="change-control/:id" element={<ChangeControlDetail />} />
           <Route path="risk" element={<RiskManagement />} />
           <Route path="equipment" element={<EquipmentAssets />} />
           <Route path="suppliers" element={<SupplierQuality />} />
