@@ -55,6 +55,7 @@ const ROLES = [
       'capa:view', 'capa:create', 'capa:update', 'capa:assign_tasks', 'capa:approve_plan', 'capa:close', 'capa:esign', 'capa:export',
       'change:view', 'change:create', 'change:update', 'change:assign_tasks', 'change:approve', 'change:close', 'change:esign',
       'file:upload', 'file:download', 'file:delete', 'document:view',
+      'system:securitypolicy:update',
     ],
   },
   {

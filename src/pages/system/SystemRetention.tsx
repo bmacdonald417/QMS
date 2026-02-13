@@ -17,6 +17,7 @@ export function SystemRetention() {
   const [policy, setPolicy] = useState<RetentionPolicy | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [reason, setReason] = useState('');
   const [form, setForm] = useState<Partial<RetentionPolicy>>({});
 
@@ -33,16 +34,30 @@ export function SystemRetention() {
 
   const save = async () => {
     if (!token || !reason.trim()) return;
+    setError('');
     setSaving(true);
     try {
+      const body: Record<string, unknown> = { reason: reason.trim() };
+      const auditYears = form.auditLogRetentionYears;
+      if (typeof auditYears === 'number' && Number.isInteger(auditYears) && auditYears >= 1) {
+        body.auditLogRetentionYears = auditYears;
+      }
+      const docYears = form.documentRetentionYears;
+      if (docYears != null && typeof docYears === 'number' && Number.isInteger(docYears) && docYears >= 1) {
+        body.documentRetentionYears = docYears;
+      } else if (docYears === null || docYears === undefined || docYears === '') {
+        body.documentRetentionYears = null;
+      }
       const updated = await apiRequest<{ policy: RetentionPolicy }>('/api/system/retention', {
         token,
         method: 'PUT',
-        body: { ...form, reason: reason.trim() },
+        body,
       });
       setPolicy(updated.policy);
       setForm(updated.policy);
       setReason('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save retention policy');
     } finally {
       setSaving(false);
     }
@@ -54,22 +69,37 @@ export function SystemRetention() {
     <PageShell title="Retention & Backups" subtitle="Retention policies. Changes are audited.">
       <Card padding="md">
         <div className="space-y-4">
+          {error && <p className="text-compliance-red text-sm">{error}</p>}
           <Input
             label="Audit log retention (years)"
             type="number"
+            min={1}
+            max={30}
             value={form.auditLogRetentionYears ?? ''}
-            onChange={(e) => setForm((f) => ({ ...f, auditLogRetentionYears: parseInt(e.target.value, 10) }))}
+            onChange={(e) => {
+              const v = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+              setForm((f) => ({ ...f, auditLogRetentionYears: v !== undefined && !Number.isNaN(v) ? v : f.auditLogRetentionYears }));
+            }}
           />
           <Input
             label="Document retention (years, optional)"
             type="number"
+            min={1}
+            max={50}
             value={form.documentRetentionYears ?? ''}
-            onChange={(e) => setForm((f) => ({ ...f, documentRetentionYears: e.target.value ? parseInt(e.target.value, 10) : null }))}
+            onChange={(e) => {
+              if (e.target.value === '') setForm((f) => ({ ...f, documentRetentionYears: null }));
+              else {
+                const v = parseInt(e.target.value, 10);
+                if (!Number.isNaN(v)) setForm((f) => ({ ...f, documentRetentionYears: v }));
+              }
+            }}
           />
           <Input
             label="Reason for change"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
+            placeholder="Required to save"
           />
           <Button onClick={save} disabled={saving || !reason.trim()}>{saving ? 'Saving...' : 'Save'}</Button>
         </div>

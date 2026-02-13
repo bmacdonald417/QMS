@@ -35,7 +35,7 @@ router.get(
 // PUT /api/system/retention
 router.put(
   '/',
-  requireSystemRole('System Admin', 'Admin'),
+  requireSystemRole('System Admin', 'Admin', 'Quality Admin', 'Quality Manager'),
   requireSystemPermission('system:securitypolicy:update'),
   async (req, res) => {
     try {
