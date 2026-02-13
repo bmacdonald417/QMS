@@ -5,6 +5,7 @@ import { prisma } from './db.js';
 import { requirePermission, requireRoles } from './auth.js';
 import { createAuditLog, getAuditContext } from './audit.js';
 import { generateDocumentPdf } from './pdf.js';
+import { getNextChangeId } from './changeControls.js';
 
 const router = express.Router();
 const DOCUMENT_ENTITY = 'Document';
@@ -1046,7 +1047,7 @@ router.post(
 );
 
 // POST /api/documents/:id/revise
-router.post('/:id/revise', requirePermission('document.create'), async (req, res) => {
+router.post('/:id/revise', requirePermission('document:create'), async (req, res) => {
   try {
     const { revisionType, summaryOfChange } = req.body;
     const normalized = typeof revisionType === 'string' ? revisionType.trim().toLowerCase() : '';
@@ -1055,7 +1056,7 @@ router.post('/:id/revise', requirePermission('document.create'), async (req, res
     }
 
     const permission =
-      normalized === 'major' ? 'document.revise.major' : 'document.revise.minor';
+      normalized === 'major' ? 'document:revise:major' : 'document:revise:minor';
     if (!hasPermission(req.user, permission)) {
       return res.status(403).json({ error: `Missing permission: ${permission}` });
     }
@@ -1118,6 +1119,45 @@ router.post('/:id/revise', requirePermission('document.create'), async (req, res
         newVersion: `${revisedDraft.versionMajor}.${revisedDraft.versionMinor}`,
       },
     });
+
+    // Auto-create a Change Control record linked to this document revision
+    try {
+      const changeId = await getNextChangeId();
+      const prevVersion = `${source.versionMajor}.${source.versionMinor}`;
+      const newVersion = `${revisedDraft.versionMajor}.${revisedDraft.versionMinor}`;
+      const ccTitle = `Document Revision: ${source.documentId} - ${source.title}`;
+      const ccDescription =
+        `Initiated for revision of document ${source.documentId} from version ${prevVersion} to ${newVersion} (Type: ${normalized === 'major' ? 'Major' : 'Minor'}). ` +
+        `Related document (revised draft): ${revisedDraft.id}.`;
+      const cc = await prisma.changeControl.create({
+        data: {
+          changeId,
+          title: ccTitle,
+          description: ccDescription,
+          status: 'DRAFT',
+          initiatorId: req.user.id,
+          ownerId: req.user.id,
+        },
+      });
+      await prisma.changeControlHistory.create({
+        data: {
+          changeControlId: cc.id,
+          userId: req.user.id,
+          action: 'CREATED',
+          details: {
+            changeId: cc.changeId,
+            title: cc.title,
+            source: 'document_revision',
+            documentId: source.documentId,
+            revisedDocumentId: revisedDraft.id,
+            revisionType: normalized,
+          },
+        },
+      });
+    } catch (ccErr) {
+      console.error('Auto-create change control on document revise:', ccErr);
+      // Document revision already succeeded; do not fail the request
+    }
 
     res.status(201).json({ document: revisedDraft });
   } catch (err) {

@@ -3,14 +3,30 @@ import { prisma } from './db.js';
 
 const router = express.Router();
 
-// GET /api/dashboard/metrics
+// GET /api/dashboard/metrics — returns shape expected by Quality Health / dashboard frontend
 router.get('/metrics', async (_req, res) => {
-  try {
-    const now = new Date();
-    const thirtyDaysFromNow = new Date(now);
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+  const now = new Date();
+  const thirtyDaysFromNow = new Date(now);
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-    const [documentsByStatus, pendingReviews, documentsNearingReview, historyForApproval] =
+  const statusCounts = {
+    DRAFT: 0,
+    IN_REVIEW: 0,
+    APPROVED: 0,
+    EFFECTIVE: 0,
+    OBSOLETE: 0,
+    PENDING_APPROVAL: 0,
+    PENDING_QUALITY_RELEASE: 0,
+    ARCHIVED: 0,
+  };
+
+  let pendingReviews = 0;
+  let documentsNearingReview = [];
+  let averageApprovalTimeDays = null;
+  let overdueTrainingCount = 0;
+
+  try {
+    const [documentsByStatus, pendingReviewsRes, documentsNearingReviewRes, historyForApproval] =
       await Promise.all([
         prisma.document.groupBy({
           by: ['status'],
@@ -50,19 +66,11 @@ router.get('/metrics', async (_req, res) => {
         }),
       ]);
 
-    const statusCounts = {
-      DRAFT: 0,
-      IN_REVIEW: 0,
-      APPROVED: 0,
-      EFFECTIVE: 0,
-      OBSOLETE: 0,
-      PENDING_APPROVAL: 0,
-      PENDING_QUALITY_RELEASE: 0,
-      ARCHIVED: 0,
-    };
     for (const g of documentsByStatus) {
       statusCounts[g.status] = g._count.id;
     }
+    pendingReviews = pendingReviewsRes;
+    documentsNearingReview = documentsNearingReviewRes;
 
     const approvalTimes = [];
     const docEffective = new Map();
@@ -87,8 +95,14 @@ router.get('/metrics', async (_req, res) => {
       approvalTimes.length > 0
         ? approvalTimes.reduce((a, b) => a + b, 0) / approvalTimes.length
         : null;
+    averageApprovalTimeDays =
+      averageApprovalTimeMs != null ? Math.round(averageApprovalTimeMs / (1000 * 60 * 60 * 24)) : null;
+  } catch (err) {
+    console.error('Dashboard metrics (documents) error:', err);
+  }
 
-    const overdueTrainingCount = await prisma.userTrainingRecord.count({
+  try {
+    overdueTrainingCount = await prisma.userTrainingRecord.count({
       where: {
         OR: [
           { status: 'OVERDUE' },
@@ -99,8 +113,13 @@ router.get('/metrics', async (_req, res) => {
         ],
       },
     });
+  } catch (err) {
+    console.error('Dashboard metrics (training) error:', err);
+  }
 
-    // CAPA metrics: open by status, overdue tasks, cycle time (open to closed)
+  let capa = { openByStatus: {}, overdueTasks: 0, averageCycleTimeDays: null };
+  let changeControl = { openByStatus: {}, overdueTasks: 0 };
+  try {
     const [capaByStatus, capaOverdueTasks, capaClosedWithDates, changeByStatus, changeOverdueTasks] =
       await Promise.all([
         prisma.cAPA.groupBy({
@@ -130,42 +149,32 @@ router.get('/metrics', async (_req, res) => {
           },
         }),
       ]);
-
-    const capaOpenByStatus = {};
-    for (const g of capaByStatus) capaOpenByStatus[g.status] = g._count.id;
+    for (const g of capaByStatus) capa.openByStatus[g.status] = g._count.id;
+    capa.overdueTasks = capaOverdueTasks;
     const capaCycleTimes = capaClosedWithDates
       .filter((c) => c.createdAt && c.closedAt)
       .map((c) => new Date(c.closedAt) - new Date(c.createdAt));
-    const averageCapaCycleTimeDays =
+    capa.averageCycleTimeDays =
       capaCycleTimes.length > 0
         ? Math.round(
             capaCycleTimes.reduce((a, b) => a + b, 0) / capaCycleTimes.length / (1000 * 60 * 60 * 24)
           )
         : null;
-
-    const changeOpenByStatus = {};
-    for (const g of changeByStatus) changeOpenByStatus[g.status] = g._count.id;
-
-    res.json({
-      documentsByStatus: statusCounts,
-      overdueTraining: overdueTrainingCount,
-      pendingReviews,
-      averageApprovalTimeDays: averageApprovalTimeMs != null ? Math.round(averageApprovalTimeMs / (1000 * 60 * 60 * 24)) : null,
-      documentsNearingReview,
-      capa: {
-        openByStatus: capaOpenByStatus,
-        overdueTasks: capaOverdueTasks,
-        averageCycleTimeDays: averageCapaCycleTimeDays,
-      },
-      changeControl: {
-        openByStatus: changeOpenByStatus,
-        overdueTasks: changeOverdueTasks,
-      },
-    });
+    for (const g of changeByStatus) changeControl.openByStatus[g.status] = g._count.id;
+    changeControl.overdueTasks = changeOverdueTasks;
   } catch (err) {
-    console.error('Dashboard metrics error:', err);
-    res.status(500).json({ error: 'Failed to load dashboard metrics' });
+    console.error('Dashboard metrics (capa/change) error:', err);
   }
+
+  res.json({
+    documentsByStatus: statusCounts,
+    overdueTraining: overdueTrainingCount,
+    pendingReviews,
+    averageApprovalTimeDays,
+    documentsNearingReview,
+    capa,
+    changeControl,
+  });
 });
 
 export default router;

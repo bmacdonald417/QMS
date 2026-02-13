@@ -120,7 +120,7 @@ export function ChangeControl() {
       subtitle="Impact assessment and multi-stage approval"
       primaryAction={
         canCreate
-          ? { label: 'New Change Request', onClick: () => navigate('/change-control/new') }
+          ? { label: 'New Change Control', onClick: () => navigate('/change-control/new') }
           : undefined
       }
     >

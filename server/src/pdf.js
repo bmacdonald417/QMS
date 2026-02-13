@@ -226,10 +226,10 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       position: absolute;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%) rotate(-35deg);
-      font-size: 30pt;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      font-size: 56pt;
       font-weight: bold;
-      color: rgba(255, 0, 0, 0.15);
+      color: rgba(255, 0, 0, 0.2);
       text-transform: uppercase;
       width: 165mm;
       text-align: center;

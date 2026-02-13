@@ -67,7 +67,7 @@ async function createNotifications(userIds, message, link) {
   });
 }
 
-async function getNextChangeId() {
+export async function getNextChangeId() {
   const year = new Date().getFullYear();
   const prefix = `CC-${year}-`;
   const existing = await prisma.changeControl.findMany({
