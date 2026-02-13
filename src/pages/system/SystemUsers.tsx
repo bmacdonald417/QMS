@@ -37,7 +37,6 @@ function isForbiddenError(e: unknown): boolean {
 
 export function SystemUsers() {
   const { token, user } = useAuth();
-  const canCreateUsers = Boolean(user?.permissions?.includes('users:create'));
   const canDeleteUsers = Boolean(user?.permissions?.includes('users:delete'));
   const [users, setUsers] = useState<UserRow[]>([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
@@ -88,7 +87,7 @@ export function SystemUsers() {
   }, [token]);
 
   useEffect(() => {
-    if (!token || !showAddModal || !canCreateUsers) return;
+    if (!token || !showAddModal) return;
     apiRequest<RolesResponse>('/api/system/users/assignable-roles', { token })
       .then((data) => {
         const list = data.roles || [];
@@ -99,7 +98,7 @@ export function SystemUsers() {
         }));
       })
       .catch(() => setAssignableRoles([]));
-  }, [token, showAddModal, canCreateUsers]);
+  }, [token, showAddModal]);
 
   const runAction = async () => {
     if (!token || !actionModal) return;
@@ -222,7 +221,7 @@ export function SystemUsers() {
     <PageShell
       title="Users & Access"
       subtitle="Manage user accounts and access control"
-      primaryAction={canCreateUsers ? { label: 'Add User', onClick: () => { setShowAddModal(true); setAddError(''); } } : undefined}
+      primaryAction={{ label: 'Add User', onClick: () => { setShowAddModal(true); setAddError(''); } }}
     >
       <div className="space-y-4">
         <div className="flex flex-wrap gap-4">
@@ -357,7 +356,7 @@ export function SystemUsers() {
               className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
             >
               <option value="">Select role</option>
-              {assignableRoles.map((r) => (
+              {(assignableRoles.length ? assignableRoles : roles).map((r) => (
                 <option key={r.id} value={r.id}>{r.name}</option>
               ))}
             </select>
