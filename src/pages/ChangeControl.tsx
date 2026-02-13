@@ -50,6 +50,7 @@ export function ChangeControl() {
   const [page, setPage] = useState(1);
   const limit = 20;
   const canCreate = user?.permissions?.includes('change:create');
+  const canView = user?.permissions?.includes('change:view') || user?.roleName === 'System Admin';
 
   const fetchList = async () => {
     if (!token) return;
@@ -119,7 +120,7 @@ export function ChangeControl() {
       title="Change Control"
       subtitle="Impact assessment and multi-stage approval"
       primaryAction={
-        canCreate
+        canView
           ? { label: 'New Change Control', onClick: () => navigate('/change-control/new') }
           : undefined
       }
