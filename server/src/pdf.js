@@ -127,9 +127,12 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       font-family: "Helvetica", "Arial", sans-serif;
       margin: 0;
       padding: 0;
+      padding-top: 100px;
+      padding-bottom: 70px;
       background-color: #ffffff;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+      box-sizing: border-box;
     }
     .page {
       width: 210mm;
@@ -321,15 +324,15 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
 `;
 }
 
-/** Build Puppeteer header template (inline styles only; used on every PDF page) */
+/** Build Puppeteer header template – match original size (11pt, 7mm logo); used on every PDF page */
 function buildPdfHeaderTemplate({ document, version }) {
   const title = esc(document.title);
   const meta = `${esc(document.documentId)}/${esc(version)}`;
   const logoHtml = LOGO_DATA_URI
-    ? `<img src="${LOGO_DATA_URI}" style="height: 18px; width: auto; display: block;" alt="" />`
+    ? `<img src="${LOGO_DATA_URI}" style="height: 7mm; width: auto; display: block; object-fit: contain;" alt="" />`
     : '<span style="font-weight: 700; font-size: 9pt;">MacTech SOLUTIONS</span>';
   return `
-    <div style="width: 100%; font-size: 10pt; color: #707070; font-weight: bold; padding-bottom: 4px; border-bottom: 1.5pt solid #707070; display: table;">
+    <div style="width: 100%; font-size: 11pt; color: #707070; font-weight: bold; line-height: 1.2; padding-bottom: 5mm; border-bottom: 1.5pt solid #707070; display: table;">
       <div style="display: table-cell; width: 20%; text-align: left; vertical-align: middle;">${logoHtml}</div>
       <div style="display: table-cell; width: 60%; text-align: center; vertical-align: middle;">${title}</div>
       <div style="display: table-cell; width: 20%; text-align: right; vertical-align: middle;">${meta}</div>
@@ -363,7 +366,7 @@ export async function generateDocumentPdf({ document, signatures, revisions, unc
       displayHeaderFooter: true,
       headerTemplate: buildPdfHeaderTemplate({ document, version }),
       footerTemplate: buildPdfFooterTemplate(),
-      margin: { top: '80px', right: '20mm', bottom: '60px', left: '20mm' },
+      margin: { top: '100px', right: '20mm', bottom: '70px', left: '20mm' },
     });
     return pdf;
   } finally {
