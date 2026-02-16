@@ -14,6 +14,7 @@ import {
   Search,
   CalendarCheck,
   HeartPulse,
+  FileCheck,
 } from 'lucide-react';
 
 export interface SidebarItem {
@@ -38,6 +39,7 @@ const icons = {
   search: <Search className="h-5 w-5" />,
   periodicReviews: <CalendarCheck className="h-5 w-5" />,
   qualityHealth: <HeartPulse className="h-5 w-5" />,
+  completedForms: <FileCheck className="h-5 w-5" />,
 };
 
 /**
@@ -48,7 +50,10 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
     case 'Admin':
     case 'System Administrator':
     case 'System Admin':
-      return [{ path: '/system', label: 'System Management', icon: icons.system }];
+      return [
+        { path: '/system', label: 'System Management', icon: icons.system },
+        { path: '/completed-forms', label: 'Completed Forms', icon: icons.completedForms },
+      ];
     case 'Quality Manager':
     case 'Quality':
       return [
@@ -65,6 +70,7 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
         { path: '/suppliers', label: 'Suppliers', icon: icons.suppliers },
         { path: '/risk', label: 'Risk Management', icon: icons.risk },
         { path: '/equipment', label: 'Equipment & Assets', icon: icons.equipment },
+        { path: '/completed-forms', label: 'Completed Forms', icon: icons.completedForms },
       ];
     case 'Manager':
       return [
@@ -74,6 +80,7 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
         { path: '/team-documents', label: 'Team Documents', icon: icons.documents },
         { path: '/team-training', label: 'Team Training', icon: icons.training },
         { path: '/approvals', label: 'Approvals', icon: icons.approvals },
+        { path: '/completed-forms', label: 'Completed Forms', icon: icons.completedForms },
       ];
     case 'User':
       return [

@@ -39,7 +39,7 @@ function getPermissionsForRole(roleName) {
       'capa:view', 'capa:create', 'capa:update', 'capa:assign_tasks', 'capa:approve_plan', 'capa:close', 'capa:esign', 'capa:export',
       'change:view', 'change:create', 'change:update', 'change:assign_tasks', 'change:approve', 'change:close', 'change:esign',
       'file:upload', 'file:download', 'file:delete',
-      'form_records:view', 'form_records:create', 'form_records:update', 'form_records:finalize',
+      'form_records:view', 'form_records:create', 'form_records:update', 'form_records:finalize', 'form_records:export',
     ],
     Manager: [
       'document:view', 'document:create', 'document:review', 'document:approve', 'document:revise:major', 'document:revise:minor',

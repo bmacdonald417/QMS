@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import { prisma } from './db.js';
 import { authMiddleware, requirePermission } from './auth.js';
 import { createAuditLog, getAuditContext } from './audit.js';
+import { generateFormRecordPdf } from './pdf.js';
 
 const router = express.Router();
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
@@ -124,7 +125,7 @@ function auditUserId(req) {
 // GET /api/form-records — list with filters, paginated
 router.get('/', formRecordAuth, requireFormRecordPermission('form_records:view'), async (req, res) => {
   try {
-    const { templateCode, relatedEntityType, relatedEntityId, status, q, page = '1', limit = '20' } = req.query;
+    const { templateCode, relatedEntityType, relatedEntityId, status, q, page = '1', limit = '20', startDate, endDate } = req.query;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
@@ -134,6 +135,21 @@ router.get('/', formRecordAuth, requireFormRecordPermission('form_records:view')
     if (relatedEntityType) where.relatedEntityType = String(relatedEntityType).trim().toUpperCase();
     if (relatedEntityId) where.relatedEntityId = String(relatedEntityId).trim();
     if (status) where.status = String(status).trim().toUpperCase();
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        const d = new Date(String(startDate));
+        if (!isNaN(d.getTime())) where.createdAt.gte = d;
+      }
+      if (endDate) {
+        const d = new Date(String(endDate));
+        if (!isNaN(d.getTime())) {
+          d.setHours(23, 59, 59, 999);
+          where.createdAt.lte = d;
+        }
+      }
+      if (Object.keys(where.createdAt).length === 0) delete where.createdAt;
+    }
     if (q && String(q).trim()) {
       const qq = String(q).trim();
       where.OR = [
@@ -180,24 +196,45 @@ router.get('/', formRecordAuth, requireFormRecordPermission('form_records:view')
   }
 });
 
-// GET /api/form-records/:id/pdf — stream PDF if pdfFileAssetId set (must be before GET /:id)
-router.get('/:id/pdf', formRecordAuth, requireFormRecordPermission('form_records:view'), async (req, res) => {
+// GET /api/form-records/:id/pdf — stream stored PDF or generate snapshot (export)
+router.get('/:id/pdf', formRecordAuth, requireFormRecordPermission('form_records:export'), async (req, res) => {
   try {
     const record = await prisma.formRecord.findUnique({
       where: { id: req.params.id },
       include: { pdfFileAsset: true },
     });
     if (!record) return res.status(404).json({ error: 'Form record not found' });
-    if (!record.pdfFileAssetId || !record.pdfFileAsset) return res.status(404).json({ error: 'No PDF attached' });
-    if (record.pdfFileAsset.isDeleted) return res.status(404).json({ error: 'PDF no longer available' });
 
-    const filePath = path.join(UPLOAD_DIR, record.pdfFileAsset.storageKey);
-    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found on storage' });
+    const auditUid = auditUserId(req);
+    if (auditUid) {
+      const auditCtx = getAuditContext(req);
+      await createAuditLog({
+        userId: auditUid,
+        action: 'FORM_RECORD_EXPORTED',
+        entityType: ENTITY,
+        entityId: record.id,
+        reason: req.formRecordActor === 'integration' ? 'Governance integration' : null,
+        ...auditCtx,
+      });
+    }
 
-    res.setHeader('Content-Type', record.pdfFileAsset.contentType || 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${record.pdfFileAsset.filename}"`);
-    const stream = fs.createReadStream(filePath);
-    stream.pipe(res);
+    if (record.pdfFileAssetId && record.pdfFileAsset && !record.pdfFileAsset.isDeleted) {
+      const filePath = path.join(UPLOAD_DIR, record.pdfFileAsset.storageKey);
+      if (fs.existsSync(filePath)) {
+        res.setHeader('Content-Type', record.pdfFileAsset.contentType || 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${record.pdfFileAsset.filename}"`);
+        const stream = fs.createReadStream(filePath);
+        return stream.pipe(res);
+      }
+    }
+
+    const pdfBuffer = await generateFormRecordPdf(record);
+    const buf = Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer);
+    const filename = `form-record-${record.recordNumber}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', String(buf.length));
+    res.send(buf);
   } catch (err) {
     console.error('Form record PDF error:', err);
     res.status(500).json({ error: 'Failed to stream PDF' });
@@ -242,11 +279,10 @@ router.get('/:id', formRecordAuth, requireFormRecordPermission('form_records:vie
 router.post('/', formRecordAuth, requireFormRecordPermission('form_records:create'), async (req, res) => {
   try {
     const { templateDocumentId, templateCode, title, relatedEntityType, relatedEntityId, payload, governanceSource } = req.body || {};
-    const relType = relatedEntityType ? String(relatedEntityType).trim().toUpperCase() : null;
-    const relId = relatedEntityId ? String(relatedEntityId).trim() : null;
-    if (!relType || !relId) return res.status(400).json({ error: 'relatedEntityType and relatedEntityId are required' });
     const validTypes = ['SOLICITATION', 'CONTRACT', 'CHANGE', 'CAPA', 'OTHER'];
-    if (!validTypes.includes(relType)) return res.status(400).json({ error: 'Invalid relatedEntityType' });
+    const relTypeRaw = relatedEntityType ? String(relatedEntityType).trim().toUpperCase() : 'OTHER';
+    const relType = validTypes.includes(relTypeRaw) ? relTypeRaw : 'OTHER';
+    const relId = relatedEntityId != null ? String(relatedEntityId).trim() : '';
 
     let templateDocumentIdResolved;
     let templateCodeResolved;

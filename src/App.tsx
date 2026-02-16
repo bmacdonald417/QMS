@@ -16,6 +16,8 @@ import {
   QualityHealthDashboard,
   SearchPage,
   PeriodicReviewsPage,
+  CompletedForms,
+  CompletedFormDetail,
 } from '@/pages';
 import { CAPAList, CAPANew, CAPADetail } from '@/pages/capas';
 import {
@@ -85,6 +87,8 @@ function AppRoutes() {
           <Route path="approvals" element={<Approvals />} />
           <Route path="my-tasks" element={<MyTasks />} />
           <Route path="my-training" element={<MyTraining />} />
+          <Route path="completed-forms" element={<CompletedForms />} />
+          <Route path="completed-forms/:id" element={<CompletedFormDetail />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Route>

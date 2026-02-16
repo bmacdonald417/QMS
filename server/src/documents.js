@@ -106,6 +106,21 @@ router.get('/suggest-id', requirePermission('document:view'), async (req, res) =
   }
 });
 
+// GET /api/documents/templates/forms — effective FORM documents for Completed Forms template picker
+router.get('/templates/forms', requirePermission('document:view'), async (req, res) => {
+  try {
+    const documents = await prisma.document.findMany({
+      where: { documentType: 'FORM', status: 'EFFECTIVE' },
+      orderBy: [{ documentId: 'asc' }, { versionMajor: 'desc' }, { versionMinor: 'desc' }],
+      select: { id: true, documentId: true, title: true, versionMajor: true, versionMinor: true },
+    });
+    res.json({ documents });
+  } catch (err) {
+    console.error('Form templates list error:', err);
+    res.status(500).json({ error: 'Failed to list form templates' });
+  }
+});
+
 // GET /api/documents
 router.get('/', async (_req, res) => {
   try {

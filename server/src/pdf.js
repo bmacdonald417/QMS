@@ -376,3 +376,34 @@ export async function generateDocumentPdf({ document, signatures, revisions, unc
     await browser.close();
   }
 }
+
+/** Simple PDF for a FormRecord: metadata + key/value pairs from payload. Used when no stored PDF. */
+export async function generateFormRecordPdf(record) {
+  const payload = record.payload && typeof record.payload === 'object' ? record.payload : {};
+  const rows = Object.entries(payload).map(
+    ([k, v]) => `<tr><td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;">${esc(k)}</td><td style="padding:4px 8px;border:1px solid #ddd;">${esc(String(v ?? ''))}</td></tr>`
+  ).join('');
+  const html = `
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"/><style>
+  body{font-family:Helvetica,Arial,sans-serif;margin:20px;color:#000;}
+  h1{font-size:16pt;margin-bottom:8px;}
+  .meta{font-size:10pt;color:#555;margin-bottom:16px;}
+  table{width:100%;border-collapse:collapse;margin-top:12px;}
+</style></head><body>
+  <h1>Completed Form Record</h1>
+  <div class="meta">
+    ${esc(record.templateCode)} &ndash; ${esc(record.recordNumber)} | Status: ${esc(record.status)} | Created: ${record.createdAt ? new Date(record.createdAt).toLocaleString() : ''}
+  </div>
+  <p><strong>${esc(record.title)}</strong></p>
+  <table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody>${rows || '<tr><td colspan="2">No data</td></tr>'}</tbody></table>
+</body></html>`;
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    return await page.pdf({ format: 'A4', printBackground: true });
+  } finally {
+    await browser.close();
+  }
+}

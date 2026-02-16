@@ -13,4 +13,6 @@ export { SupplierQuality } from './SupplierQuality';
 export { QualityHealthDashboard } from './QualityHealthDashboard';
 export { SearchPage } from './SearchPage';
 export { PeriodicReviewsPage } from './PeriodicReviewsPage';
+export { CompletedForms } from './CompletedForms';
+export { CompletedFormDetail } from './CompletedFormDetail';
 export { PageShell } from './PageShell';
