@@ -259,7 +259,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     ${watermark(uncontrolled)}
     <div class="header">
       <div class="header-cell header-left">${logoLockup()}</div>
-      <div class="header-cell header-center"><div class="header-title">Document Control & Management</div></div>
+      <div class="header-cell header-center"><div class="header-title">${esc(document.title)}</div></div>
       <div class="header-cell header-right"><div class="header-meta">${esc(document.documentId)}/${esc(version)}</div></div>
     </div>
     <div class="cover-main">
