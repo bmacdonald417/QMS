@@ -115,6 +115,7 @@ export function DocumentDetail() {
   const [passwordModal, setPasswordModal] = useState<null | 'approve' | 'release'>(null);
   const [signaturePassword, setSignaturePassword] = useState('');
   const [signatureComment, setSignatureComment] = useState('');
+  const [signatureError, setSignatureError] = useState('');
   const [showReviseModal, setShowReviseModal] = useState(false);
 
   const [links, setLinks] = useState<DocumentLinkRef[]>([]);
@@ -208,12 +209,12 @@ export function DocumentDetail() {
   const canEdit = isAuthor && (doc.status === 'DRAFT' || doc.status === 'IN_REVIEW');
   const canSubmitReview = isAuthor && doc.status === 'DRAFT';
   const canApprove = !!pendingMyApproval && doc.status === 'IN_REVIEW';
-  const canRelease = (!!pendingMyRelease || user?.roleName === 'Admin') && doc.status === 'APPROVED';
+  const canRelease = (!!pendingMyRelease || user?.roleName === 'System Admin') && doc.status === 'APPROVED';
   const canRevise = doc.status === 'EFFECTIVE';
 
   const reviewers = users.filter((u) => u.id !== user?.id);
   const approvers = users.filter(
-    (u) => ['Manager', 'Quality Manager', 'Admin'].includes(u.roleName || '') && u.id !== user?.id
+    (u) => ['Manager', 'Quality Manager', 'System Admin'].includes(u.roleName || '') && u.id !== user?.id
   );
 
   const openPdf = async (uncontrolled: boolean) => {
@@ -872,6 +873,7 @@ export function DocumentDetail() {
           setPasswordModal(null);
           setSignaturePassword('');
           setSignatureComment('');
+          setSignatureError('');
         }}
         title={
           passwordModal === 'approve'
@@ -893,20 +895,25 @@ export function DocumentDetail() {
             <Button
               onClick={async () => {
                 if (!token || !passwordModal) return;
-                await apiRequest(
-                  passwordModal === 'approve'
-                    ? `/api/documents/${doc.id}/approve`
-                    : `/api/documents/${doc.id}/quality-release`,
-                  {
-                    token,
-                    method: 'POST',
-                    body: { password: signaturePassword, comments: signatureComment },
-                  }
-                );
-                setPasswordModal(null);
-                setSignaturePassword('');
-                setSignatureComment('');
-                await fetchDocument();
+                setSignatureError('');
+                try {
+                  await apiRequest(
+                    passwordModal === 'approve'
+                      ? `/api/documents/${doc.id}/approve`
+                      : `/api/documents/${doc.id}/quality-release`,
+                    {
+                      token,
+                      method: 'POST',
+                      body: { password: signaturePassword, comments: signatureComment },
+                    }
+                  );
+                  setPasswordModal(null);
+                  setSignaturePassword('');
+                  setSignatureComment('');
+                  await fetchDocument();
+                } catch (err) {
+                  setSignatureError(err instanceof Error ? err.message : 'Request failed');
+                }
               }}
             >
               Sign & Submit
@@ -915,6 +922,9 @@ export function DocumentDetail() {
         }
       >
         <div className="space-y-4">
+          {signatureError && (
+            <p className="text-sm text-compliance-red">{signatureError}</p>
+          )}
           <Input
             label="Password"
             type="password"

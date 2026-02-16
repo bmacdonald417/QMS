@@ -756,7 +756,7 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
 // POST /api/documents/:id/approve
 router.post(
   '/:id/approve',
-  requireRoles('Manager', 'Quality Manager', 'Admin'),
+  requireRoles('Manager', 'Quality Manager', 'System Admin'),
   requirePermission('document:approve'),
   async (req, res) => {
     try {
@@ -1060,7 +1060,7 @@ async function qualityReleaseHandler(req, res) {
 // POST /api/documents/:id/quality-release
 router.post(
   '/:id/quality-release',
-  requireRoles('Quality Manager', 'Admin'),
+  requireRoles('Quality Manager', 'System Admin'),
   requirePermission('document:release'),
   qualityReleaseHandler
 );
@@ -1068,7 +1068,7 @@ router.post(
 // Backward-compatible alias
 router.post(
   '/:id/release',
-  requireRoles('Quality Manager', 'Admin'),
+  requireRoles('Quality Manager', 'System Admin'),
   requirePermission('document:release'),
   qualityReleaseHandler
 );
