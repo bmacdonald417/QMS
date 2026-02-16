@@ -133,14 +133,26 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     }
     .page {
       width: 210mm;
-      height: 297mm;
+      min-height: 0;
+      height: auto;
       padding: 20mm;
       box-sizing: border-box;
       position: relative;
       display: flex;
       flex-direction: column;
       page-break-after: always;
+      overflow: visible;
+    }
+    .page.cover-page {
+      height: 297mm;
+      min-height: 297mm;
       overflow: hidden;
+    }
+    .page.content-flow {
+      page-break-after: auto;
+    }
+    .page.content-flow .content {
+      flex-grow: 0;
     }
     .header {
       display: table;
@@ -211,11 +223,14 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     .main-id { font-size: 18pt; margin-bottom: 2mm; color: #000; }
     .main-version { font-size: 14pt; margin-bottom: 10mm; color: #000; }
     .main-date { font-size: 12pt; font-weight: bold; color: #000; }
-    .content { flex-grow: 1; font-size: 11pt; line-height: 1.5; color: #000; }
+    .content { flex-grow: 1; font-size: 11pt; line-height: 1.5; color: #000; min-height: 0; }
+    .final-section { page-break-before: always; }
     .content h1, .content h2, .content h3 {
       font-size: 12pt; font-weight: bold; margin-top: 8mm; margin-bottom: 3mm; text-transform: uppercase;
     }
     .content p { margin: 0 0 4mm 0; text-align: justify; }
+    .content h1, .content h2, .content h3 { page-break-after: avoid; }
+    .content table { page-break-inside: avoid; }
     table { width: 100%; border-collapse: collapse; margin-top: 5mm; }
     th, td { border: 0.5pt solid #000; padding: 3mm; font-size: 9pt; text-align: left; }
     th { background-color: #f0f0f0; font-weight: bold; }
@@ -255,7 +270,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
   </style>
 </head>
 <body>
-  <div class="page">
+  <div class="page cover-page">
     ${watermark(uncontrolled)}
     <div class="header">
       <div class="header-cell header-left">${logoLockup()}</div>
@@ -272,10 +287,10 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     <div class="supersedes-container">
       This publication supersedes any and all directives that were authored prior to the approval and implementation of this document.
     </div>
-    <div class="footer">Page 1 of 3</div>
+    <div class="footer">Page 1</div>
   </div>
 
-  <div class="page">
+  <div class="page content-flow">
     ${watermark(uncontrolled)}
     <div class="header">
       <div class="header-cell header-left">${logoLockup()}</div>
@@ -285,10 +300,10 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     <div class="content">
       ${markdownHtml}
     </div>
-    <div class="footer">Page 2 of 3</div>
+    <div class="footer"></div>
   </div>
 
-  <div class="page">
+  <div class="page final-section">
     ${watermark(uncontrolled)}
     <div class="header">
       <div class="header-cell header-left">${logoLockup()}</div>
@@ -317,7 +332,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
         ${renderRevisionRows(revisions)}
       </table>
     </div>
-    <div class="footer">Page 3 of 3</div>
+    <div class="footer">Approval & Revision History</div>
   </div>
 </body>
 </html>
