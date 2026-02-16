@@ -122,13 +122,11 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
 <head>
   <meta charset="UTF-8" />
   <style>
-    @page { size: A4; margin: 0; }
+    @page { size: A4; margin: 130px 20mm 90px 20mm; }
     body {
       font-family: "Helvetica", "Arial", sans-serif;
       margin: 0;
       padding: 0;
-      padding-top: 100px;
-      padding-bottom: 70px;
       background-color: #ffffff;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -324,18 +322,19 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
 `;
 }
 
-/** Build Puppeteer header template – match original size (11pt, 7mm logo); used on every PDF page */
+/** Build Puppeteer header template – original size, gray text (#707070); used on every PDF page */
 function buildPdfHeaderTemplate({ document, version }) {
   const title = esc(document.title);
   const meta = `${esc(document.documentId)}/${esc(version)}`;
   const logoHtml = LOGO_DATA_URI
     ? `<img src="${LOGO_DATA_URI}" style="height: 7mm; width: auto; display: block; object-fit: contain;" alt="" />`
-    : '<span style="font-weight: 700; font-size: 9pt;">MacTech SOLUTIONS</span>';
+    : '<span style="font-weight: 700; font-size: 9pt; color: #707070;">MacTech SOLUTIONS</span>';
+  const gray = 'color: #707070;';
   return `
-    <div style="width: 100%; font-size: 11pt; color: #707070; font-weight: bold; line-height: 1.2; padding-bottom: 5mm; border-bottom: 1.5pt solid #707070; display: table;">
+    <div style="width: 100%; font-size: 11pt; font-weight: bold; line-height: 1.2; padding-bottom: 5mm; border-bottom: 1.5pt solid #707070; display: table;">
       <div style="display: table-cell; width: 20%; text-align: left; vertical-align: middle;">${logoHtml}</div>
-      <div style="display: table-cell; width: 60%; text-align: center; vertical-align: middle;">${title}</div>
-      <div style="display: table-cell; width: 20%; text-align: right; vertical-align: middle;">${meta}</div>
+      <div style="display: table-cell; width: 60%; text-align: center; vertical-align: middle;"><span style="${gray}">${title}</span></div>
+      <div style="display: table-cell; width: 20%; text-align: right; vertical-align: middle;"><span style="${gray}">${meta}</span></div>
     </div>
   `.trim();
 }
@@ -343,7 +342,7 @@ function buildPdfHeaderTemplate({ document, version }) {
 /** Build Puppeteer footer template for "Page X of Y" on every page */
 function buildPdfFooterTemplate() {
   return `
-    <div style="width: 100%; font-size: 9pt; color: #555; text-align: center;">
+    <div style="width: 100%; font-size: 9pt; color: #555555; text-align: center;">
       Page <span class="pageNumber"></span> of <span class="totalPages"></span>
     </div>
   `.trim();
@@ -366,7 +365,7 @@ export async function generateDocumentPdf({ document, signatures, revisions, unc
       displayHeaderFooter: true,
       headerTemplate: buildPdfHeaderTemplate({ document, version }),
       footerTemplate: buildPdfFooterTemplate(),
-      margin: { top: '100px', right: '20mm', bottom: '70px', left: '20mm' },
+      margin: { top: '130px', right: '20mm', bottom: '90px', left: '20mm' },
     });
     return pdf;
   } finally {
