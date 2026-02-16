@@ -47,6 +47,8 @@ interface DocumentSignatureItem {
   signatureMeaning: string;
   signedAt: string;
   signer: UserRef;
+  documentHash?: string;
+  signatureHash?: string;
 }
 
 interface DocumentLinkRef {
@@ -744,28 +746,61 @@ export function DocumentDetail() {
         {doc.signatures.length === 0 ? (
           <p className="text-sm text-gray-500">No signatures captured yet.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-surface-border text-left text-gray-400">
-                  <th className="py-2">Meaning</th>
-                  <th className="py-2">Signer</th>
-                  <th className="py-2">Signed At</th>
-                </tr>
-              </thead>
-              <tbody>
-                {doc.signatures.map((signature) => (
-                  <tr key={signature.id} className="border-b border-surface-border text-gray-200">
-                    <td className="py-2">{signature.signatureMeaning}</td>
-                    <td className="py-2">
-                      {signature.signer.firstName} {signature.signer.lastName}
-                    </td>
-                    <td className="py-2">{new Date(signature.signedAt).toLocaleString()}</td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-surface-border text-left text-gray-400">
+                    <th className="py-2">Meaning</th>
+                    <th className="py-2">Signer</th>
+                    <th className="py-2">Signed At</th>
                   </tr>
+                </thead>
+                <tbody>
+                  {doc.signatures.map((signature) => (
+                    <tr key={signature.id} className="border-b border-surface-border text-gray-200">
+                      <td className="py-2">{signature.signatureMeaning}</td>
+                      <td className="py-2">
+                        {signature.signer.firstName} {signature.signer.lastName}
+                      </td>
+                      <td className="py-2">{new Date(signature.signedAt).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-6">
+              <h3 className="mb-3 text-sm font-medium text-white">Signature hash architecture</h3>
+              <p className="mb-3 text-xs text-gray-400">
+                Hashes are computed at signing time. Document hash = SHA-256 of document content; signature hash = SHA-256 of signature payload (document id, signer, meaning, timestamp). Not displayed on the document itself.
+              </p>
+              <div className="space-y-4">
+                {doc.signatures.map((sig) => (
+                  <div
+                    key={sig.id}
+                    className="rounded-lg border border-surface-border bg-surface-overlay p-3"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-200">
+                        {sig.signatureMeaning} — {sig.signer.firstName} {sig.signer.lastName}
+                      </span>
+                      <span className="text-xs text-gray-500">{new Date(sig.signedAt).toLocaleString()}</span>
+                    </div>
+                    <dl className="space-y-2 text-xs">
+                      <div>
+                        <dt className="text-gray-500">Document hash (SHA-256)</dt>
+                        <dd className="mt-0.5 font-mono break-all text-gray-300">{sig.documentHash ?? '—'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-gray-500">Signature hash (SHA-256)</dt>
+                        <dd className="mt-0.5 font-mono break-all text-gray-300">{sig.signatureHash ?? '—'}</dd>
+                      </div>
+                    </dl>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </div>
+          </>
         )}
       </Card>
 
