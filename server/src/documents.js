@@ -149,7 +149,7 @@ router.get('/search', async (req, res) => {
 });
 
 // PUT /api/documents/comments/:commentId (must be before /:id)
-router.put('/comments/:commentId', requirePermission('document.review'), async (req, res) => {
+router.put('/comments/:commentId', requirePermission('document:review'), async (req, res) => {
   try {
     const { status } = req.body;
     const normalized = typeof status === 'string' ? status.trim().toUpperCase().replace(/-/g, '_') : '';
@@ -292,7 +292,7 @@ router.get('/:id/links', async (req, res) => {
 });
 
 // POST /api/documents/:id/link
-router.post('/:id/link', requirePermission('document.create'), async (req, res) => {
+router.post('/:id/link', requirePermission('document:create'), async (req, res) => {
   try {
     const { sourceDocumentId, targetDocumentId, linkType } = req.body;
     const sourceId = sourceDocumentId || req.params.id;
@@ -345,7 +345,7 @@ router.get('/:id/comments', async (req, res) => {
 });
 
 // POST /api/documents/:id/comment
-router.post('/:id/comment', requirePermission('document.review'), async (req, res) => {
+router.post('/:id/comment', requirePermission('document:review'), async (req, res) => {
   try {
     const { commentText, sectionIdentifier } = req.body;
     if (!commentText || typeof commentText !== 'string' || !commentText.trim()) {
@@ -374,7 +374,7 @@ router.post('/:id/comment', requirePermission('document.review'), async (req, re
 // POST /api/documents/:id/initiate-periodic-review
 router.post(
   '/:id/initiate-periodic-review',
-  requirePermission('document.review'),
+  requirePermission('document:review'),
   async (req, res) => {
     try {
       const docId = req.params.id;
@@ -415,7 +415,7 @@ router.post(
 );
 
 // POST /api/documents
-router.post('/', requirePermission('document.create'), async (req, res) => {
+router.post('/', requirePermission('document:create'), async (req, res) => {
   try {
     const { title, documentType, content, summaryOfChange } = req.body;
     if (!title || typeof title !== 'string') {
@@ -470,7 +470,7 @@ router.post('/', requirePermission('document.create'), async (req, res) => {
 });
 
 // PUT /api/documents/:id
-router.put('/:id', requirePermission('document.create'), async (req, res) => {
+router.put('/:id', requirePermission('document:create'), async (req, res) => {
   try {
     const { title, content, documentType, tags, nextReviewDate, isUnderReview } = req.body;
     const existing = await prisma.document.findUnique({ where: { id: req.params.id } });
@@ -604,13 +604,13 @@ async function submitForReviewHandler(req, res) {
 }
 
 // POST /api/documents/:id/submit-review
-router.post('/:id/submit-review', requirePermission('document.create'), submitForReviewHandler);
+router.post('/:id/submit-review', requirePermission('document:create'), submitForReviewHandler);
 
 // Backward-compatible alias
-router.post('/:id/submit', requirePermission('document.create'), submitForReviewHandler);
+router.post('/:id/submit', requirePermission('document:create'), submitForReviewHandler);
 
 // POST /api/documents/:id/review
-router.post('/:id/review', requirePermission('document.review'), async (req, res) => {
+router.post('/:id/review', requirePermission('document:review'), async (req, res) => {
   try {
     const { decision, comments } = req.body;
     const normalizedDecision = normalizeReviewDecision(decision);
@@ -730,7 +730,7 @@ router.post('/:id/review', requirePermission('document.review'), async (req, res
 router.post(
   '/:id/approve',
   requireRoles('Manager', 'Quality Manager', 'Admin'),
-  requirePermission('document.approve'),
+  requirePermission('document:approve'),
   async (req, res) => {
     try {
       const { password, comments } = req.body;
@@ -1034,7 +1034,7 @@ async function qualityReleaseHandler(req, res) {
 router.post(
   '/:id/quality-release',
   requireRoles('Quality Manager', 'Admin'),
-  requirePermission('document.release'),
+  requirePermission('document:release'),
   qualityReleaseHandler
 );
 
@@ -1042,7 +1042,7 @@ router.post(
 router.post(
   '/:id/release',
   requireRoles('Quality Manager', 'Admin'),
-  requirePermission('document.release'),
+  requirePermission('document:release'),
   qualityReleaseHandler
 );
 

@@ -75,7 +75,7 @@ router.delete('/:fileId', requirePermission('file:delete'), async (req, res) => 
     if (link?.entityType === 'CHANGE_CONTROL' && !hasPermission(req, 'change:update')) {
       return res.status(403).json({ error: 'Cannot delete file from this change control' });
     }
-    if (link?.entityType === 'DOCUMENT' && !hasPermission(req, 'document.create')) {
+    if (link?.entityType === 'DOCUMENT' && !hasPermission(req, 'document:create')) {
       return res.status(403).json({ error: 'Cannot delete file from this document' });
     }
 

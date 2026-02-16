@@ -47,7 +47,7 @@ router.get('/my-assignments', async (req, res) => {
 });
 
 // POST /api/training/complete/:assignmentId
-router.post('/complete/:assignmentId', requirePermission('document.review'), async (req, res) => {
+router.post('/complete/:assignmentId', requirePermission('document:review'), async (req, res) => {
   try {
     const assignmentId = req.params.assignmentId;
     const record = await prisma.userTrainingRecord.findUnique({

@@ -35,7 +35,7 @@ router.get('/my-reviews', async (req, res) => {
 router.post(
   '/complete/:reviewId',
   requireRoles('Quality Manager', 'Admin', 'Manager'),
-  requirePermission('document.review'),
+  requirePermission('document:review'),
   async (req, res) => {
     try {
       const reviewId = req.params.reviewId;
