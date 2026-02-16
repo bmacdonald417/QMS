@@ -41,6 +41,10 @@ const PERMISSION_LIST = [
   { code: 'file:upload', description: 'Upload files' },
   { code: 'file:download', description: 'Download files' },
   { code: 'file:delete', description: 'Soft delete files' },
+  { code: 'form_records:view', description: 'View form records (Records Vault)' },
+  { code: 'form_records:create', description: 'Create form records (DRAFT)' },
+  { code: 'form_records:update', description: 'Update DRAFT form records' },
+  { code: 'form_records:finalize', description: 'Finalize (lock) form records' },
 ];
 
 const VALID_CODES = new Set(PERMISSION_LIST.map((p) => p.code));

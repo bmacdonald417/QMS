@@ -161,6 +161,9 @@ model User {
   auditLogs             AuditLog[]        @relation("AuditLogUser")
   inviteTokensCreated   InviteToken[]     @relation("InviteTokenCreator")
   passwordResetTokens   PasswordResetToken[]
+  formRecordsCreated    FormRecord[]      @relation("FormRecordCreatedBy")
+  formRecordsUpdated    FormRecord[]      @relation("FormRecordUpdatedBy")
+  formRecordsFinalized  FormRecord[]      @relation("FormRecordFinalizedBy")
 
   @@map("users")
 }
@@ -289,6 +292,7 @@ model Document {
   comments            DocumentComment[]
   trainingModules     TrainingModule[]
   periodicReviews     PeriodicReview[]
+  formRecordsAsTemplate FormRecord[]
 
   @@map("documents")
   @@index([documentId])
@@ -766,6 +770,7 @@ model FileAsset {
 
   uploadedBy User      @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
   fileLinks  FileLink[]
+  formRecordPdf        FormRecord?
 
   @@map("file_assets")
 }
@@ -796,4 +801,63 @@ model EntityLink {
   @@index([sourceType, sourceId])
   @@index([targetType, targetId])
   @@map("entity_links")
+}
+
+enum FormRecordStatus {
+  DRAFT
+  FINAL
+  VOID
+}
+
+enum RelatedEntityType {
+  SOLICITATION
+  CONTRACT
+  CHANGE
+  CAPA
+  OTHER
+}
+
+model FormRecordCounter {
+  prefix  String
+  year    Int
+  nextSeq Int    @default(1) @map("next_seq")
+
+  @@id([prefix, year])
+  @@map("form_record_counters")
+}
+
+model FormRecord {
+  id                   String            @id @default(uuid())
+  recordNumber         String            @unique @map("record_number")
+  templateDocumentId   String            @map("template_document_id")
+  templateCode         String            @map("template_code")
+  templateVersionMajor Int               @map("template_version_major")
+  templateVersionMinor Int               @map("template_version_minor")
+  title                String
+  status               FormRecordStatus  @default(DRAFT)
+  payload              Json
+  approvalTrail        Json?             @map("approval_trail")
+  governanceSource     Json?             @map("governance_source")
+  relatedEntityType    RelatedEntityType @map("related_entity_type")
+  relatedEntityId      String            @map("related_entity_id")
+  createdById          String?           @map("created_by_id")
+  updatedById          String?           @map("updated_by_id")
+  finalizedById        String?           @map("finalized_by_id")
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+  finalizedAt          DateTime?         @map("finalized_at")
+  lockedAt             DateTime?         @map("locked_at")
+  pdfFileAssetId       String?           @unique @map("pdf_file_asset_id")
+
+  templateDocument Document  @relation(fields: [templateDocumentId], references: [id], onDelete: Restrict)
+  pdfFileAsset     FileAsset? @relation(fields: [pdfFileAssetId], references: [id], onDelete: SetNull)
+  createdBy        User?      @relation("FormRecordCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy        User?      @relation("FormRecordUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  finalizedBy      User?      @relation("FormRecordFinalizedBy", fields: [finalizedById], references: [id], onDelete: SetNull)
+
+  @@index([templateCode])
+  @@index([relatedEntityType, relatedEntityId])
+  @@index([status])
+  @@index([templateDocumentId])
+  @@map("form_records")
 }

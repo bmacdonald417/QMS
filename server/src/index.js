@@ -13,6 +13,7 @@ import systemRoutes from './system/index.js';
 import capaRoutes from './capas.js';
 import changeControlRoutes from './changeControls.js';
 import fileRoutes from './files.js';
+import formRecordRoutes from './formRecords.js';
 import { requestIdMiddleware } from './audit.js';
 import { startPeriodicReviewScheduler } from './periodicReviewScheduler.js';
 
@@ -37,6 +38,7 @@ app.use('/api/dashboard', authMiddleware, dashboardRoutes);
 app.use('/api/capas', authMiddleware, capaRoutes);
 app.use('/api/change-controls', authMiddleware, changeControlRoutes);
 app.use('/api/files', authMiddleware, fileRoutes);
+app.use('/api/form-records', formRecordRoutes);
 app.use('/api/system', systemRoutes);
 
 app.get('/api/health', (req, res) => {
