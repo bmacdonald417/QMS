@@ -77,6 +77,19 @@ function watermark(uncontrolled) {
     : '';
 }
 
+/** Display label for PDF cover by document type (shown in place of "STANDARD OPERATING PROCEDURE") */
+const DOCUMENT_TYPE_LABELS = {
+  SOP: 'STANDARD OPERATING PROCEDURE',
+  POLICY: 'POLICY',
+  WORK_INSTRUCTION: 'WORK INSTRUCTION',
+  FORM: 'FORM',
+  OTHER: 'DOCUMENT',
+};
+
+function documentTypeLabel(documentType) {
+  return DOCUMENT_TYPE_LABELS[documentType] ?? 'DOCUMENT';
+}
+
 function logoLockup() {
   if (LOGO_DATA_URI) {
     return `<img src="${LOGO_DATA_URI}" class="logo-image" alt="MacTech Solutions logo" />`;
@@ -250,7 +263,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       <div class="header-cell header-right"><div class="header-meta">${esc(document.documentId)}/${esc(version)}</div></div>
     </div>
     <div class="cover-main">
-      <div class="sop-label">STANDARD OPERATING PROCEDURE</div>
+      <div class="sop-label">${esc(documentTypeLabel(document.documentType))}</div>
       <div class="main-title">${esc(document.title)}</div>
       <div class="main-id">${esc(document.documentId)}</div>
       <div class="main-version">Version ${esc(version)}</div>
