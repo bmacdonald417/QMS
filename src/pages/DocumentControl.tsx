@@ -40,8 +40,10 @@ export function DocumentControl() {
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState('');
   const [documentType, setDocumentType] = useState('SOP');
+  const [documentId, setDocumentId] = useState('');
   const [content, setContent] = useState('');
   const [error, setError] = useState('');
+  const [suggestIdLoading, setSuggestIdLoading] = useState(false);
 
   const fetchDocuments = async () => {
     if (!token) return;
@@ -59,6 +61,26 @@ export function DocumentControl() {
   useEffect(() => {
     fetchDocuments();
   }, [token]);
+
+  const fetchSuggestedDocumentId = async (type: string) => {
+    if (!token) return;
+    setSuggestIdLoading(true);
+    try {
+      const data = await apiRequest<{ documentId: string }>(
+        `/api/documents/suggest-id?documentType=${encodeURIComponent(type)}`,
+        { token }
+      );
+      setDocumentId(data.documentId ?? '');
+    } catch {
+      setDocumentId('');
+    } finally {
+      setSuggestIdLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showCreate) fetchSuggestedDocumentId(documentType);
+  }, [showCreate, documentType]);
 
   const columns: Column<DocumentListItem>[] = [
     { key: 'documentId', header: 'Doc ID', width: '140px' },
@@ -115,11 +137,12 @@ export function DocumentControl() {
                   const data = await apiRequest<{ document: DocumentListItem }>('/api/documents', {
                     token,
                     method: 'POST',
-                    body: { title, documentType, content },
+                    body: { title, documentType, content, ...(documentId.trim() ? { documentId: documentId.trim() } : {}) },
                   });
                   setShowCreate(false);
                   setTitle('');
                   setContent('');
+                  setDocumentId('');
                   setDocumentType('SOP');
                   navigate(`/documents/${data.document.id}`);
                 } catch (err) {
@@ -147,6 +170,18 @@ export function DocumentControl() {
               <option value="FORM">Form</option>
               <option value="OTHER">Other</option>
             </select>
+          </div>
+          <div>
+            <Input
+              label="Document ID"
+              value={documentId}
+              onChange={(e) => setDocumentId(e.target.value)}
+              placeholder={suggestIdLoading ? 'Loading suggestion…' : 'e.g. MAC-SOP-001'}
+              disabled={suggestIdLoading}
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              Suggested when type is selected; you can edit to use a different ID.
+            </p>
           </div>
           <div>
             <label className="label-caps block mb-1.5">Content</label>

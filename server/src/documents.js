@@ -93,6 +93,19 @@ export async function generateDocumentId(documentType) {
   return `MAC-${prefix}-${next}`;
 }
 
+// GET /api/documents/suggest-id?documentType=SOP — next available document ID for type
+router.get('/suggest-id', requirePermission('document:view'), async (req, res) => {
+  try {
+    const raw = req.query.documentType;
+    const normalizedType = normalizeDocumentType(typeof raw === 'string' ? raw : 'OTHER');
+    const documentId = await generateDocumentId(normalizedType || 'OTHER');
+    res.json({ documentId });
+  } catch (err) {
+    console.error('Suggest document ID error:', err);
+    res.status(500).json({ error: 'Failed to suggest document ID' });
+  }
+});
+
 // GET /api/documents
 router.get('/', async (_req, res) => {
   try {
@@ -417,7 +430,7 @@ router.post(
 // POST /api/documents
 router.post('/', requirePermission('document:create'), async (req, res) => {
   try {
-    const { title, documentType, content, summaryOfChange } = req.body;
+    const { title, documentType, content, summaryOfChange, documentId: requestedDocumentId } = req.body;
     if (!title || typeof title !== 'string') {
       return res.status(400).json({ error: 'title is required' });
     }
@@ -426,10 +439,24 @@ router.post('/', requirePermission('document:create'), async (req, res) => {
       return res.status(400).json({ error: 'Invalid documentType' });
     }
 
-    const generatedDocumentId = await generateDocumentId(normalizedType);
+    let finalDocumentId;
+    if (requestedDocumentId != null && String(requestedDocumentId).trim() !== '') {
+      const candidate = String(requestedDocumentId).trim();
+      if (candidate.length > 120) {
+        return res.status(400).json({ error: 'Document ID is too long' });
+      }
+      const existing = await prisma.document.findFirst({ where: { documentId: candidate }, select: { id: true } });
+      if (existing) {
+        return res.status(400).json({ error: `Document ID "${candidate}" is already in use` });
+      }
+      finalDocumentId = candidate;
+    } else {
+      finalDocumentId = await generateDocumentId(normalizedType);
+    }
+
     const created = await prisma.document.create({
       data: {
-        documentId: generatedDocumentId,
+        documentId: finalDocumentId,
         title: title.trim(),
         documentType: normalizedType,
         versionMajor: 1,
