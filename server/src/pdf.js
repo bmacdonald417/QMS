@@ -341,10 +341,10 @@ function buildPdfHeaderTemplate({ document, version }) {
   `.trim();
 }
 
-/** Build Puppeteer footer template – 0.5in margin so footer has room to breathe */
+/** Build Puppeteer footer template – 0.5in margin, page number at bottom of footer */
 function buildPdfFooterTemplate() {
   return `
-    <div id="footer" style="background: #ffffff !important; width: 100%; margin: 0; padding: 0 0.5in 0.5in 0.5in; box-sizing: border-box; -webkit-print-color-adjust: exact;">
+    <div id="footer" style="background: #ffffff !important; width: 100%; margin: 0; padding: 0 0.5in 0.5in 0.5in; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; min-height: 100%; -webkit-print-color-adjust: exact;">
       <div style="width: 100%; font-size: 9pt; color: #555555; text-align: center;">
         Page <span class="pageNumber"></span> of <span class="totalPages"></span>
       </div>
