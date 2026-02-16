@@ -122,13 +122,11 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
 <head>
   <meta charset="UTF-8" />
   <style>
-    @page { size: A4; margin: 0; }
+    @page { size: A4; margin: 42mm 20mm 28mm 20mm; }
     body {
       font-family: "Helvetica", "Arial", sans-serif;
       margin: 0;
       padding: 0;
-      padding-top: 35mm;
-      padding-bottom: 24mm;
       background-color: #ffffff;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -147,8 +145,8 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       overflow: visible;
     }
     .page.cover-page {
-      height: 297mm;
-      min-height: 297mm;
+      height: 227mm;
+      min-height: 227mm;
       overflow: hidden;
     }
     .page.content-flow {
@@ -371,7 +369,7 @@ export async function generateDocumentPdf({ document, signatures, revisions, unc
       displayHeaderFooter: true,
       headerTemplate: buildPdfHeaderTemplate({ document, version }),
       footerTemplate: buildPdfFooterTemplate(),
-      margin: { top: '35mm', right: '20mm', bottom: '24mm', left: '20mm' },
+      margin: { top: '42mm', right: '20mm', bottom: '28mm', left: '20mm' },
     });
     return pdf;
   } finally {
