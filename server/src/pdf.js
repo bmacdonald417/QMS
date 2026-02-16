@@ -272,11 +272,6 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
 <body>
   <div class="page cover-page">
     ${watermark(uncontrolled)}
-    <div class="header">
-      <div class="header-cell header-left">${logoLockup()}</div>
-      <div class="header-cell header-center"><div class="header-title">${esc(document.title)}</div></div>
-      <div class="header-cell header-right"><div class="header-meta">${esc(document.documentId)}/${esc(version)}</div></div>
-    </div>
     <div class="cover-main">
       <div class="sop-label">${esc(documentTypeLabel(document.documentType))}</div>
       <div class="main-title">${esc(document.title)}</div>
@@ -287,29 +282,17 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     <div class="supersedes-container">
       This publication supersedes any and all directives that were authored prior to the approval and implementation of this document.
     </div>
-    <div class="footer">Page 1</div>
   </div>
 
   <div class="page content-flow">
     ${watermark(uncontrolled)}
-    <div class="header">
-      <div class="header-cell header-left">${logoLockup()}</div>
-      <div class="header-cell header-center"><div class="header-title">${esc(document.title)}</div></div>
-      <div class="header-cell header-right"><div class="header-meta">${esc(document.documentId)}/${esc(version)}</div></div>
-    </div>
     <div class="content">
       ${markdownHtml}
     </div>
-    <div class="footer"></div>
   </div>
 
   <div class="page final-section">
     ${watermark(uncontrolled)}
-    <div class="header">
-      <div class="header-cell header-left">${logoLockup()}</div>
-      <div class="header-cell header-center"><div class="header-title">${esc(document.title)}</div></div>
-      <div class="header-cell header-right"><div class="header-meta">${esc(document.documentId)}/${esc(version)}</div></div>
-    </div>
     <div class="content">
       <h1>7.0 APPROVAL & SIGNATURE HISTORY</h1>
       <table>
@@ -332,14 +315,39 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
         ${renderRevisionRows(revisions)}
       </table>
     </div>
-    <div class="footer">Approval & Revision History</div>
   </div>
 </body>
 </html>
 `;
 }
 
+/** Build Puppeteer header template (inline styles only; used on every PDF page) */
+function buildPdfHeaderTemplate({ document, version }) {
+  const title = esc(document.title);
+  const meta = `${esc(document.documentId)}/${esc(version)}`;
+  const logoHtml = LOGO_DATA_URI
+    ? `<img src="${LOGO_DATA_URI}" style="height: 18px; width: auto; display: block;" alt="" />`
+    : '<span style="font-weight: 700; font-size: 9pt;">MacTech SOLUTIONS</span>';
+  return `
+    <div style="width: 100%; font-size: 10pt; color: #707070; font-weight: bold; padding-bottom: 4px; border-bottom: 1.5pt solid #707070; display: table;">
+      <div style="display: table-cell; width: 20%; text-align: left; vertical-align: middle;">${logoHtml}</div>
+      <div style="display: table-cell; width: 60%; text-align: center; vertical-align: middle;">${title}</div>
+      <div style="display: table-cell; width: 20%; text-align: right; vertical-align: middle;">${meta}</div>
+    </div>
+  `.trim();
+}
+
+/** Build Puppeteer footer template for "Page X of Y" on every page */
+function buildPdfFooterTemplate() {
+  return `
+    <div style="width: 100%; font-size: 9pt; color: #555; text-align: center;">
+      Page <span class="pageNumber"></span> of <span class="totalPages"></span>
+    </div>
+  `.trim();
+}
+
 export async function generateDocumentPdf({ document, signatures, revisions, uncontrolled }) {
+  const version = `${document.versionMajor}.${document.versionMinor}`;
   const html = buildHtml({ document, signatures, revisions, uncontrolled });
   const browser = await puppeteer.launch({
     headless: true,
@@ -352,6 +360,10 @@ export async function generateDocumentPdf({ document, signatures, revisions, unc
       format: 'A4',
       printBackground: true,
       preferCSSPageSize: true,
+      displayHeaderFooter: true,
+      headerTemplate: buildPdfHeaderTemplate({ document, version }),
+      footerTemplate: buildPdfFooterTemplate(),
+      margin: { top: '80px', right: '20mm', bottom: '60px', left: '20mm' },
     });
     return pdf;
   } finally {
