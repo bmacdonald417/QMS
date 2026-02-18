@@ -164,6 +164,7 @@ model User {
   formRecordsCreated    FormRecord[]      @relation("FormRecordCreatedBy")
   formRecordsUpdated    FormRecord[]      @relation("FormRecordUpdatedBy")
   formRecordsFinalized  FormRecord[]      @relation("FormRecordFinalizedBy")
+  signatureRequestsCreated SignatureRequest[]
 
   @@map("users")
 }
@@ -840,6 +841,8 @@ model FormRecord {
   governanceSource     Json?             @map("governance_source")
   relatedEntityType    RelatedEntityType @map("related_entity_type")
   relatedEntityId      String            @map("related_entity_id")
+  qmsHash              String?           @map("qms_hash")
+  recordVersion        Int               @default(1) @map("record_version")
   createdById          String?           @map("created_by_id")
   updatedById          String?           @map("updated_by_id")
   finalizedById        String?           @map("finalized_by_id")
@@ -860,4 +863,57 @@ model FormRecord {
   @@index([status])
   @@index([templateDocumentId])
   @@map("form_records")
+}
+
+// --- Governance signature request/artifact (separate from QMS internal signing) ---
+enum SignatureRequestStatus {
+  PENDING
+  SIGNED
+  EXPIRED
+  CANCELLED
+}
+
+enum GovernanceVerificationStatus {
+  VERIFIED
+  INVALID
+  STALE
+}
+
+model SignatureRequest {
+  id                  String                 @id @default(uuid())
+  entityType          String                 @map("entity_type")
+  entityId            String                 @map("entity_id")
+  recordVersion       String                 @map("record_version")
+  qmsHash             String                  @map("qms_hash")
+  status              SignatureRequestStatus  @default(PENDING)
+  governanceRequestId String?                @map("governance_request_id")
+  requestedAt         DateTime               @default(now()) @map("requested_at")
+  signedAt            DateTime?               @map("signed_at")
+  createdById         String?                @map("created_by_id")
+  notes               String?                @db.Text
+
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  artifacts SignatureArtifact[]
+
+  @@index([entityType, entityId])
+  @@index([status])
+  @@map("signature_requests")
+}
+
+model SignatureArtifact {
+  id                  String                      @id @default(uuid())
+  entityType          String                      @map("entity_type")
+  entityId            String                      @map("entity_id")
+  recordVersion       String                      @map("record_version")
+  qmsHash             String                      @map("qms_hash")
+  signature           String                      @db.Text
+  signedAt            DateTime                    @map("signed_at")
+  signatureRequestId String?                     @map("signature_request_id")
+  verifiedAt         DateTime?                   @map("verified_at")
+  verificationStatus GovernanceVerificationStatus? @map("verification_status")
+
+  signatureRequest SignatureRequest? @relation(fields: [signatureRequestId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@map("signature_artifacts")
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { Badge, Button, Card, Input, Modal } from '@/components/ui';
+import { GovernanceApprovalPanel } from '@/components/modules/compliance/GovernanceApprovalPanel';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest, apiUrl } from '@/lib/api';
 
@@ -803,6 +804,12 @@ export function DocumentDetail() {
           </>
         )}
       </Card>
+
+      <GovernanceApprovalPanel
+        approvalUrl={`/api/documents/${doc.id}/governance-approval`}
+        token={token}
+        title="Governance Approval"
+      />
 
       <Card padding="md">
         <h2 className="mb-4 text-lg text-white">Revision History</h2>

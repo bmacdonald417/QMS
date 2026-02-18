@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Badge, Card } from '@/components/ui';
+import { GovernanceApprovalPanel } from '@/components/modules/compliance/GovernanceApprovalPanel';
 import { PageShell } from './PageShell';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/lib/api';
@@ -116,6 +117,14 @@ export function ChangeControlDetail() {
           )}
         </div>
       </Card>
+
+      {id && (
+        <GovernanceApprovalPanel
+          approvalUrl={`/api/change-controls/${id}/governance-approval`}
+          token={token}
+          title="Governance Approval"
+        />
+      )}
     </PageShell>
   );
 }

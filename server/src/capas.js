@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { prisma } from './db.js';
 import { requirePermission } from './auth.js';
 import { createAuditLog, getAuditContext } from './audit.js';
+import { computeQmsHash, getRecordVersion, getGovernanceApprovalStatus } from './governance.js';
 import { z } from 'zod';
 
 const router = express.Router();
@@ -263,6 +264,9 @@ router.get('/:id', requirePermission('capa:view'), async (req, res) => {
     });
     if (!capa) return res.status(404).json({ error: 'CAPA not found' });
 
+    capa.qmsHash = computeQmsHash('CAPA', capa);
+    capa.recordVersion = getRecordVersion('CAPA', capa);
+
     const fileLinks = await prisma.fileLink.findMany({
       where: { entityType: 'CAPA', entityId: capa.id },
       include: {
@@ -282,6 +286,31 @@ router.get('/:id', requirePermission('capa:view'), async (req, res) => {
   } catch (err) {
     console.error('Get CAPA error:', err);
     res.status(500).json({ error: 'Failed to fetch CAPA' });
+  }
+});
+
+// GET /api/capas/:id/governance-approval
+router.get('/:id/governance-approval', requirePermission('capa:view'), async (req, res) => {
+  try {
+    const result = await getGovernanceApprovalStatus('CAPA', req.params.id);
+    if (!result) return res.json({ hasArtifact: false, artifact: null, verification: null });
+    res.json({
+      hasArtifact: true,
+      artifact: {
+        id: result.artifact.id,
+        entityType: result.artifact.entityType,
+        entityId: result.artifact.entityId,
+        recordVersion: result.artifact.recordVersion,
+        qmsHash: result.artifact.qmsHash,
+        signedAt: result.artifact.signedAt,
+        verifiedAt: result.artifact.verifiedAt,
+        verificationStatus: result.artifact.verificationStatus,
+      },
+      verification: result.verification,
+    });
+  } catch (err) {
+    console.error('CAPA governance-approval error:', err);
+    res.status(500).json({ error: 'Failed to load governance approval' });
   }
 });
 

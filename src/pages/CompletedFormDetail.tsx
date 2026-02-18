@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Button, Input } from '@/components/ui';
+import { GovernanceApprovalPanel } from '@/components/modules/compliance/GovernanceApprovalPanel';
 import { PageShell } from './PageShell';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest, apiUrl } from '@/lib/api';
@@ -170,6 +171,12 @@ export function CompletedFormDetail() {
           )}
         </div>
       </Card>
+
+      <GovernanceApprovalPanel
+        approvalUrl={`/api/form-records/${id}/governance-approval`}
+        token={token}
+        title="Governance Approval"
+      />
 
       <Card padding="md" className="mb-4">
         <div className="mb-3 flex items-center justify-between">

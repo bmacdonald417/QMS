@@ -7,6 +7,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { prisma } from './db.js';
 import { requirePermission } from './auth.js';
 import { createAuditLog, getAuditContext } from './audit.js';
+import { computeQmsHash, getRecordVersion, getGovernanceApprovalStatus } from './governance.js';
 import { z } from 'zod';
 
 function sha256(input) {
@@ -232,6 +233,8 @@ router.get('/:id', requirePermission('change:view'), async (req, res) => {
       },
     });
     if (!cc) return res.status(404).json({ error: 'Change control not found' });
+    cc.qmsHash = computeQmsHash('ChangeControl', cc);
+    cc.recordVersion = getRecordVersion('ChangeControl', cc);
     const fileLinks = await prisma.fileLink.findMany({
       where: { entityType: 'CHANGE_CONTROL', entityId: cc.id },
       include: { fileAsset: true },
@@ -248,6 +251,31 @@ router.get('/:id', requirePermission('change:view'), async (req, res) => {
   } catch (err) {
     console.error('Get change control error:', err);
     res.status(500).json({ error: 'Failed to fetch change control' });
+  }
+});
+
+// GET /api/change-controls/:id/governance-approval
+router.get('/:id/governance-approval', requirePermission('change:view'), async (req, res) => {
+  try {
+    const result = await getGovernanceApprovalStatus('ChangeControl', req.params.id);
+    if (!result) return res.json({ hasArtifact: false, artifact: null, verification: null });
+    res.json({
+      hasArtifact: true,
+      artifact: {
+        id: result.artifact.id,
+        entityType: result.artifact.entityType,
+        entityId: result.artifact.entityId,
+        recordVersion: result.artifact.recordVersion,
+        qmsHash: result.artifact.qmsHash,
+        signedAt: result.artifact.signedAt,
+        verifiedAt: result.artifact.verifiedAt,
+        verificationStatus: result.artifact.verificationStatus,
+      },
+      verification: result.verification,
+    });
+  } catch (err) {
+    console.error('Change control governance-approval error:', err);
+    res.status(500).json({ error: 'Failed to load governance approval' });
   }
 });
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Badge, Button, Card, Input, Modal } from '@/components/ui';
+import { GovernanceApprovalPanel } from '@/components/modules/compliance/GovernanceApprovalPanel';
 import { PageShell } from '../PageShell';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest, apiUrl } from '@/lib/api';
@@ -276,6 +277,14 @@ export function CAPADetail() {
             )}
           </div>
         </Card>
+      )}
+
+      {activeTab === 'overview' && id && (
+        <GovernanceApprovalPanel
+          approvalUrl={`/api/capas/${id}/governance-approval`}
+          token={token}
+          title="Governance Approval"
+        />
       )}
 
       {activeTab === 'tasks' && (

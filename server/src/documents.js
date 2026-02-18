@@ -6,6 +6,7 @@ import { requirePermission, requireRoles } from './auth.js';
 import { createAuditLog, getAuditContext } from './audit.js';
 import { generateDocumentPdf } from './pdf.js';
 import { getNextChangeId } from './changeControls.js';
+import { computeQmsHash, getRecordVersion } from './governance.js';
 
 const router = express.Router();
 const DOCUMENT_ENTITY = 'Document';
@@ -288,10 +289,38 @@ router.get('/:id', async (req, res) => {
       },
     });
     if (!document) return res.status(404).json({ error: 'Document not found' });
+    document.qmsHash = computeQmsHash('Document', document);
+    document.recordVersion = getRecordVersion('Document', document);
     res.json({ document });
   } catch (err) {
     console.error('Get document error:', err);
     res.status(500).json({ error: 'Failed to fetch document' });
+  }
+});
+
+// GET /api/documents/:id/governance-approval
+router.get('/:id/governance-approval', requirePermission('document:view'), async (req, res) => {
+  try {
+    const { getGovernanceApprovalStatus } = await import('./governance.js');
+    const result = await getGovernanceApprovalStatus('Document', req.params.id);
+    if (!result) return res.json({ hasArtifact: false, artifact: null, verification: null });
+    res.json({
+      hasArtifact: true,
+      artifact: {
+        id: result.artifact.id,
+        entityType: result.artifact.entityType,
+        entityId: result.artifact.entityId,
+        recordVersion: result.artifact.recordVersion,
+        qmsHash: result.artifact.qmsHash,
+        signedAt: result.artifact.signedAt,
+        verifiedAt: result.artifact.verifiedAt,
+        verificationStatus: result.artifact.verificationStatus,
+      },
+      verification: result.verification,
+    });
+  } catch (err) {
+    console.error('Document governance-approval error:', err);
+    res.status(500).json({ error: 'Failed to load governance approval' });
   }
 });
 

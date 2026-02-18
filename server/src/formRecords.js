@@ -10,6 +10,7 @@ import { prisma } from './db.js';
 import { authMiddleware, requirePermission } from './auth.js';
 import { createAuditLog, getAuditContext } from './audit.js';
 import { generateFormRecordPdf } from './pdf.js';
+import { computeQmsHash, getGovernanceApprovalStatus } from './governance.js';
 
 const router = express.Router();
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
@@ -268,10 +269,39 @@ router.get('/:id', formRecordAuth, requireFormRecordPermission('form_records:vie
       });
     }
 
+    if (!record.qmsHash && record.status === 'FINAL') {
+      record.qmsHash = computeQmsHash('FormRecord', record);
+    }
+    record.recordVersion = record.recordVersion ?? 1;
     res.json({ record });
   } catch (err) {
     console.error('Form record get error:', err);
     res.status(500).json({ error: 'Failed to load form record' });
+  }
+});
+
+// GET /api/form-records/:id/governance-approval
+router.get('/:id/governance-approval', formRecordAuth, requireFormRecordPermission('form_records:view'), async (req, res) => {
+  try {
+    const result = await getGovernanceApprovalStatus('FormRecord', req.params.id);
+    if (!result) return res.json({ hasArtifact: false, artifact: null, verification: null });
+    res.json({
+      hasArtifact: true,
+      artifact: {
+        id: result.artifact.id,
+        entityType: result.artifact.entityType,
+        entityId: result.artifact.entityId,
+        recordVersion: result.artifact.recordVersion,
+        qmsHash: result.artifact.qmsHash,
+        signedAt: result.artifact.signedAt,
+        verifiedAt: result.artifact.verifiedAt,
+        verificationStatus: result.artifact.verificationStatus,
+      },
+      verification: result.verification,
+    });
+  } catch (err) {
+    console.error('Form record governance-approval error:', err);
+    res.status(500).json({ error: 'Failed to load governance approval' });
   }
 });
 
@@ -324,12 +354,19 @@ router.post('/', formRecordAuth, requireFormRecordPermission('form_records:creat
         governanceSource: governanceSource != null && typeof governanceSource === 'object' ? governanceSource : undefined,
         relatedEntityType: relType,
         relatedEntityId: relId,
+        recordVersion: 1,
         createdById: req.user?.id ?? undefined,
       },
       include: {
         templateDocument: { select: { documentId: true, title: true } },
       },
     });
+    const qmsHashCreate = computeQmsHash('FormRecord', { ...record, finalizedAt: null });
+    await prisma.formRecord.update({
+      where: { id: record.id },
+      data: { qmsHash: qmsHashCreate },
+    });
+    record.qmsHash = qmsHashCreate;
 
     const auditUid = auditUserId(req);
     if (auditUid) {
@@ -366,6 +403,18 @@ router.put('/:id', formRecordAuth, requireFormRecordPermission('form_records:upd
     if (governanceSource !== undefined) data.governanceSource = governanceSource != null && typeof governanceSource === 'object' ? governanceSource : undefined;
     if (approvalTrail !== undefined) data.approvalTrail = approvalTrail != null && (typeof approvalTrail === 'object' || Array.isArray(approvalTrail)) ? approvalTrail : undefined;
     data.updatedById = req.user?.id ?? undefined;
+    data.recordVersion = (existing.recordVersion ?? 1) + 1;
+    const payloadForHash = data.payload !== undefined ? data.payload : existing.payload;
+    const titleForHash = data.title !== undefined ? data.title : existing.title;
+    const recordForHash = {
+      ...existing,
+      ...data,
+      payload: payloadForHash,
+      title: titleForHash,
+      recordVersion: data.recordVersion,
+      finalizedAt: existing.finalizedAt,
+    };
+    data.qmsHash = computeQmsHash('FormRecord', recordForHash);
 
     const updated = await prisma.formRecord.update({
       where: { id: req.params.id },
@@ -440,12 +489,25 @@ router.post('/:id/finalize', formRecordAuth, requireFormRecordPermission('form_r
       }
     }
 
+    const finalPayload = payload != null && typeof payload === 'object' ? payload : existing.payload;
+    const recordVersionFinal = (existing.recordVersion ?? 1) + 1;
+    const recordForHash = {
+      ...existing,
+      status: 'FINAL',
+      payload: finalPayload,
+      finalizedAt: now,
+      recordVersion: recordVersionFinal,
+    };
+    const qmsHashFinal = computeQmsHash('FormRecord', recordForHash);
+
     const updateData = {
       status: 'FINAL',
       lockedAt: now,
       finalizedAt: now,
       finalizedById: req.user?.id ?? undefined,
       approvalTrail,
+      recordVersion: recordVersionFinal,
+      qmsHash: qmsHashFinal,
       ...(payload != null && typeof payload === 'object' ? { payload } : {}),
       ...(pdfFileAssetId ? { pdfFileAssetId } : {}),
     };
