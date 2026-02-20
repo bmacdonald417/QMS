@@ -199,13 +199,25 @@ export function CompletedForms() {
       : []),
   ];
 
+  const isSystemAdmin = user?.roleName === 'System Admin' || user?.roleName === 'Admin';
+  const showNewFormButton = !isSystemAdmin && (user?.permissions?.includes('form_records:create') ?? true);
+
   return (
     <PageShell
       title="Completed Forms"
       subtitle="View and manage completed form instances (e.g. Clause Risk Assessment)."
-      primaryAction={{ label: 'New Completed Form', onClick: () => setShowNewModal(true) }}
+      primaryAction={showNewFormButton ? { label: 'New Completed Form', onClick: () => setShowNewModal(true) } : undefined}
     >
-      {error && <p className="mb-3 text-sm text-compliance-red">{error}</p>}
+      {error && (
+        <div className="mb-3 rounded-lg border border-compliance-red/30 bg-compliance-red/10 p-3">
+          <p className="text-sm text-compliance-red">{error}</p>
+          {error.includes('prisma') || error.includes('db push') || error.includes('schema') ? (
+            <p className="mt-2 text-xs text-gray-400">
+              In the project folder run: <code className="rounded bg-black/30 px-1">cd server && npx prisma db push</code>, then restart the server.
+            </p>
+          ) : null}
+        </div>
+      )}
 
       <Card padding="md" className="mb-4">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
