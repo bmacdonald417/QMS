@@ -82,7 +82,7 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
         { path: '/', label: 'Dashboard', icon: icons.dashboard },
         { path: '/training', label: 'Training', icon: icons.training },
         { path: '/periodic-reviews', label: 'Periodic Reviews', icon: icons.periodicReviews },
-        { path: '/team-documents', label: 'Team Documents', icon: icons.documents },
+        { path: '/documents', label: 'Document Control', icon: icons.documents },
         { path: '/team-training', label: 'Team Training', icon: icons.training },
         { path: '/approvals', label: 'Approvals', icon: icons.approvals },
         { path: '/completed-forms', label: 'Completed Forms', icon: icons.completedForms },

@@ -32,7 +32,6 @@ import {
   SystemESign,
 } from '@/pages/system';
 import {
-  TeamDocuments,
   TeamTraining,
   Approvals,
   MyTasks,
@@ -82,7 +81,7 @@ function AppRoutes() {
             <Route path="retention" element={<SystemRetention />} />
             <Route path="esign" element={<SystemESign />} />
           </Route>
-          <Route path="team-documents" element={<TeamDocuments />} />
+          <Route path="team-documents" element={<Navigate to="/documents" replace />} />
           <Route path="team-training" element={<TeamTraining />} />
           <Route path="approvals" element={<Approvals />} />
           <Route path="my-tasks" element={<MyTasks />} />
