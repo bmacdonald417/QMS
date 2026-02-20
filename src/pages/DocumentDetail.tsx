@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { Badge, Button, Card, Input, Modal } from '@/components/ui';
+import { DocumentContentRender } from '@/components/DocumentContentRender';
+import { RichTextEditor } from '@/components/RichTextEditor';
 import { GovernanceApprovalPanel } from '@/components/modules/compliance/GovernanceApprovalPanel';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest, apiUrl } from '@/lib/api';
@@ -371,12 +373,11 @@ export function DocumentDetail() {
               </select>
             </div>
             <div>
-              <label className="label-caps mb-1.5 block">Content (Markdown)</label>
-              <textarea
-                rows={12}
+              <label className="label-caps mb-1.5 block">Content</label>
+              <RichTextEditor
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+                onChange={setContent}
+                minHeight="280px"
               />
             </div>
             {(canEdit || user?.roleName === 'Quality Manager' || user?.roleName === 'Admin') && (
@@ -412,9 +413,7 @@ export function DocumentDetail() {
           </div>
         ) : (
           <div className="min-h-[240px] rounded-lg border border-surface-border bg-surface-overlay p-4">
-            <div className="prose prose-invert max-w-none prose-p:text-gray-200 prose-headings:text-white">
-              <ReactMarkdown>{doc.content || 'No content provided.'}</ReactMarkdown>
-            </div>
+            <DocumentContentRender content={doc.content} />
           </div>
         )}
       </Card>

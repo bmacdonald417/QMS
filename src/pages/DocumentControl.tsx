@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Table, Badge, Button, Modal, Input } from '@/components/ui';
+import { RichTextEditor } from '@/components/RichTextEditor';
 import { PageShell } from './PageShell';
 import type { Column } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
@@ -185,12 +186,11 @@ export function DocumentControl() {
           </div>
           <div>
             <label className="label-caps block mb-1.5">Content</label>
-            <textarea
+            <RichTextEditor
               value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={8}
-              className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
-              placeholder="Enter document content..."
+              onChange={setContent}
+              minHeight="240px"
+              placeholder="Enter or paste content. Tables and formatting from Word/Excel are preserved."
             />
           </div>
         </div>

@@ -109,9 +109,20 @@ function logoLockup() {
   `;
 }
 
+function sanitizeHtmlForPdf(html) {
+  if (!html || typeof html !== 'string') return '';
+  return html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/\s on\w+\s*=\s*["'][^"']*["']/gi, '')
+    .replace(/\s on\w+\s*=\s*[^\s>]*/gi, '');
+}
+
 function buildHtml({ document, signatures, revisions, uncontrolled }) {
   const version = `${document.versionMajor}.${document.versionMinor}`;
-  const markdownHtml = marked.parse(document.content || '');
+  const raw = (document.content || '').trim();
+  const isHtml = raw.startsWith('<') && raw.includes('>');
+  const contentHtml = isHtml ? sanitizeHtmlForPdf(raw) : marked.parse(raw);
   const effectiveDateText = document.effectiveDate
     ? new Date(document.effectiveDate).toLocaleDateString()
     : 'Pending Release';
@@ -288,7 +299,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
   <div class="page content-flow">
     ${watermark(uncontrolled)}
     <div class="content">
-      ${markdownHtml}
+      ${contentHtml}
     </div>
   </div>
 

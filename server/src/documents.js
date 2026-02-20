@@ -122,14 +122,23 @@ router.get('/templates/forms', requirePermission('document:view'), async (req, r
   }
 });
 
-// GET /api/documents — list all (requires document:view)
-router.get('/', requirePermission('document:view'), async (_req, res) => {
+// GET /api/documents — list all (requires document:view). ?type=form-template → FORM, EFFECTIVE only
+router.get('/', requirePermission('document:view'), async (req, res) => {
   try {
+    const typeFilter = typeof req.query.type === 'string' ? req.query.type.trim().toLowerCase() : '';
+    const where = {};
+    if (typeFilter === 'form-template') {
+      where.documentType = 'FORM';
+      where.status = 'EFFECTIVE';
+    }
     const documents = await prisma.document.findMany({
+      where,
       include: {
         author: { select: { id: true, firstName: true, lastName: true, email: true } },
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: typeFilter === 'form-template'
+        ? [{ documentId: 'asc' }, { versionMajor: 'desc' }, { versionMinor: 'desc' }]
+        : { updatedAt: 'desc' },
     });
     res.json({ documents });
   } catch (err) {
@@ -203,6 +212,36 @@ router.put('/comments/:commentId', requirePermission('document:review'), async (
   }
 });
 
+// GET /api/documents/completed-forms — list form records (alias for client compatibility)
+router.get('/completed-forms', requirePermission('document:view'), async (req, res) => {
+  try {
+    const limitNum = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const offsetNum = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    const status = typeof req.query.status === 'string' ? req.query.status.trim() : undefined;
+    const templateCode = typeof req.query.templateCode === 'string' ? req.query.templateCode.trim() : undefined;
+    const where = {};
+    if (status) where.status = status;
+    if (templateCode) where.templateCode = templateCode;
+    const [records, total] = await Promise.all([
+      prisma.formRecord.findMany({
+        where,
+        skip: offsetNum,
+        take: limitNum,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          templateDocument: { select: { documentId: true, title: true, versionMajor: true, versionMinor: true } },
+          createdBy: { select: { id: true, firstName: true, lastName: true } },
+        },
+      }),
+      prisma.formRecord.count({ where }),
+    ]);
+    res.json({ records, total });
+  } catch (err) {
+    console.error('List completed forms error:', err);
+    res.status(500).json({ error: 'Failed to list completed forms' });
+  }
+});
+
 // GET /api/documents/:id/pdf
 router.get('/:id/pdf', async (req, res) => {
   try {
@@ -245,6 +284,37 @@ router.get('/:id/pdf', async (req, res) => {
   } catch (err) {
     console.error('Generate PDF error:', err);
     res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
+// GET /api/documents/:id/download — PDF as attachment (alias for client compatibility)
+router.get('/:id/download', async (req, res) => {
+  const base = req.originalUrl.replace(/\/download\/?$/, '/pdf');
+  const sep = base.includes('?') ? '&' : '?';
+  return res.redirect(302, `${base}${sep}mode=download`);
+});
+
+// GET /api/documents/:id/template — document as template payload (e.g. for form builder)
+router.get('/:id/template', requirePermission('document:view'), async (req, res) => {
+  try {
+    const document = await prisma.document.findUnique({
+      where: { id: req.params.id },
+      select: {
+        id: true,
+        documentId: true,
+        title: true,
+        documentType: true,
+        versionMajor: true,
+        versionMinor: true,
+        content: true,
+        status: true,
+      },
+    });
+    if (!document) return res.status(404).json({ error: 'Document not found' });
+    res.json(document);
+  } catch (err) {
+    console.error('Get document template error:', err);
+    res.status(500).json({ error: 'Failed to get document template' });
   }
 });
 
