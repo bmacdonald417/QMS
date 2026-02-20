@@ -587,6 +587,62 @@ router.put('/:id', requirePermission('document:create'), async (req, res) => {
   }
 });
 
+// DELETE /api/documents/:id — System Admin only (document:delete)
+router.delete('/:id', requirePermission('document:delete'), async (req, res) => {
+  try {
+    const docId = req.params.id;
+    const document = await prisma.document.findUnique({
+      where: { id: docId },
+      select: { id: true, documentId: true, title: true, versionMajor: true, versionMinor: true },
+    });
+    if (!document) return res.status(404).json({ error: 'Document not found' });
+
+    const usedAsTemplate = await prisma.formRecord.count({
+      where: { templateDocumentId: docId },
+    });
+    if (usedAsTemplate > 0) {
+      return res.status(400).json({
+        error: 'Cannot delete document: it is used as a template by form records. Remove or reassign those form records first.',
+      });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.documentLink.deleteMany({
+        where: { OR: [{ sourceDocumentId: docId }, { targetDocumentId: docId }] },
+      });
+      await tx.documentComment.deleteMany({ where: { documentId: docId } });
+      await tx.documentHistory.deleteMany({ where: { documentId: docId } });
+      await tx.documentSignature.deleteMany({ where: { documentId: docId } });
+      await tx.documentAssignment.deleteMany({ where: { documentId: docId } });
+      await tx.documentRevision.deleteMany({ where: { documentId: docId } });
+      await tx.periodicReview.deleteMany({ where: { documentId: docId } });
+      const modules = await tx.trainingModule.findMany({ where: { documentId: docId }, select: { id: true } });
+      for (const m of modules) {
+        await tx.userTrainingRecord.deleteMany({ where: { trainingModuleId: m.id } });
+      }
+      await tx.trainingModule.deleteMany({ where: { documentId: docId } });
+      await tx.document.delete({ where: { id: docId } });
+    });
+
+    const auditCtx = getAuditContext(req);
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'DOCUMENT_DELETED',
+      entityType: DOCUMENT_ENTITY,
+      entityId: docId,
+      beforeValue: document,
+      afterValue: null,
+      reason: req.body?.reason || null,
+      ...auditCtx,
+    });
+
+    res.json({ ok: true, deleted: { id: docId, documentId: document.documentId, title: document.title } });
+  } catch (err) {
+    console.error('Delete document error:', err);
+    res.status(500).json({ error: 'Failed to delete document' });
+  }
+});
+
 async function submitForReviewHandler(req, res) {
   try {
     const { reviewerIds = [], approverId, comments, dueDate } = req.body;

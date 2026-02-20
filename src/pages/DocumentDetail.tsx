@@ -120,6 +120,9 @@ export function DocumentDetail() {
   const [signatureComment, setSignatureComment] = useState('');
   const [signatureError, setSignatureError] = useState('');
   const [showReviseModal, setShowReviseModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const [links, setLinks] = useState<DocumentLinkRef[]>([]);
   const [comments, setComments] = useState<DocumentCommentRef[]>([]);
@@ -214,6 +217,7 @@ export function DocumentDetail() {
   const canApprove = !!pendingMyApproval && doc.status === 'IN_REVIEW';
   const canRelease = (!!pendingMyRelease || user?.roleName === 'System Admin') && doc.status === 'APPROVED';
   const canRevise = doc.status === 'EFFECTIVE';
+  const canDelete = user?.permissions?.includes('document:delete');
 
   const reviewers = users.filter((u) => u.id !== user?.id);
   const approvers = users.filter(
@@ -564,6 +568,18 @@ export function DocumentDetail() {
         </Card>
       )}
 
+      {canDelete && (
+        <Card padding="md">
+          <h2 className="mb-2 text-lg text-white">Delete Document</h2>
+          <p className="mb-3 text-sm text-gray-400">
+            Permanently remove this document and all its history, signatures, and links. Cannot be undone. Documents used as form templates cannot be deleted.
+          </p>
+          <Button variant="danger" onClick={() => { setDeleteError(''); setShowDeleteModal(true); }}>
+            Delete document
+          </Button>
+        </Card>
+      )}
+
       <Card padding="md">
         <h2 className="mb-4 text-lg text-white">Where Used</h2>
         {links.length === 0 ? (
@@ -904,6 +920,51 @@ export function DocumentDetail() {
               }}
             >
               Major Revision
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => { if (!deleteSubmitting) { setShowDeleteModal(false); setDeleteError(''); } }}
+        title="Delete document"
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-gray-300">
+            Permanently delete <strong>{doc.documentId}</strong> v{doc.versionMajor}.{doc.versionMinor} – {doc.title}? This cannot be undone.
+          </p>
+          {deleteError && <p className="text-sm text-compliance-red">{deleteError}</p>}
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="secondary"
+              onClick={() => { setShowDeleteModal(false); setDeleteError(''); }}
+              disabled={deleteSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              disabled={deleteSubmitting}
+              onClick={async () => {
+                if (!token) return;
+                setDeleteSubmitting(true);
+                setDeleteError('');
+                try {
+                  await apiRequest(`/api/documents/${doc.id}`, {
+                    token,
+                    method: 'DELETE',
+                  });
+                  setShowDeleteModal(false);
+                  navigate('/documents');
+                } catch (err) {
+                  setDeleteError(err instanceof Error ? err.message : 'Delete failed');
+                } finally {
+                  setDeleteSubmitting(false);
+                }
+              }}
+            >
+              {deleteSubmitting ? 'Deleting…' : 'Delete permanently'}
             </Button>
           </div>
         </div>

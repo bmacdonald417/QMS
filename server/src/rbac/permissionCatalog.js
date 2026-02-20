@@ -21,6 +21,7 @@ const PERMISSION_LIST = [
   { code: 'document:review', description: 'Review documents' },
   { code: 'document:approve', description: 'Approve documents' },
   { code: 'document:release', description: 'Release documents (quality release)' },
+  { code: 'document:delete', description: 'Delete documents (System Admin only)' },
   { code: 'document:revise:major', description: 'Revise document (major)' },
   { code: 'document:revise:minor', description: 'Revise document (minor)' },
   { code: 'capa:view', description: 'View CAPA records' },
