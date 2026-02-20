@@ -607,6 +607,10 @@ router.delete('/:id', requirePermission('document:delete'), async (req, res) => 
     }
 
     await prisma.$transaction(async (tx) => {
+      await tx.document.updateMany({
+        where: { supersedesDocumentId: docId },
+        data: { supersedesDocumentId: null },
+      });
       await tx.documentLink.deleteMany({
         where: { OR: [{ sourceDocumentId: docId }, { targetDocumentId: docId }] },
       });
@@ -639,7 +643,12 @@ router.delete('/:id', requirePermission('document:delete'), async (req, res) => 
     res.json({ ok: true, deleted: { id: docId, documentId: document.documentId, title: document.title } });
   } catch (err) {
     console.error('Delete document error:', err);
-    res.status(500).json({ error: 'Failed to delete document' });
+    const message = err?.message || 'Failed to delete document';
+    const isTemplateError = /form_record|template_document|foreign key/i.test(message);
+    const userMessage = isTemplateError
+      ? 'Cannot delete: this document is used as a template by form records. Delete or reassign those form records first.'
+      : message;
+    res.status(500).json({ error: userMessage });
   }
 });
 
