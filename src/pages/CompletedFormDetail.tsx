@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Button, Input } from '@/components/ui';
+import { Card, Button, Input, Modal } from '@/components/ui';
 import { GovernanceApprovalPanel } from '@/components/modules/compliance/GovernanceApprovalPanel';
 import { PageShell } from './PageShell';
 import { useAuth } from '@/context/AuthContext';
@@ -41,7 +41,7 @@ function entriesToPayload(entries: [string, string][]): Record<string, unknown> 
 export function CompletedFormDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [record, setRecord] = useState<FormRecordDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -50,6 +50,9 @@ export function CompletedFormDetail() {
   const [saveSubmitting, setSaveSubmitting] = useState(false);
   const [finalizeSubmitting, setFinalizeSubmitting] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const canDelete = user?.permissions?.includes('form_records:delete');
 
   const fetchRecord = async () => {
     if (!token || !id) return;
@@ -105,6 +108,21 @@ export function CompletedFormDetail() {
       setError(err instanceof Error ? err.message : 'Failed to finalize');
     } finally {
       setFinalizeSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!token || !id) return;
+    setDeleteSubmitting(true);
+    setError('');
+    try {
+      await apiRequest(`/api/form-records/${id}`, { token, method: 'DELETE' });
+      setShowDeleteModal(false);
+      navigate('/completed-forms');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete');
+    } finally {
+      setDeleteSubmitting(false);
     }
   };
 
@@ -233,8 +251,33 @@ export function CompletedFormDetail() {
           <Button variant="secondary" onClick={handleExportPdf} disabled={exportingPdf}>
             {exportingPdf ? 'Exporting…' : 'Export PDF'}
           </Button>
+          {canDelete && (
+            <Button variant="danger" onClick={() => setShowDeleteModal(true)} disabled={deleteSubmitting}>
+              Delete
+            </Button>
+          )}
         </div>
       </Card>
+
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => { if (!deleteSubmitting) setShowDeleteModal(false); }}
+        title="Delete form record"
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-gray-300">
+            Permanently delete <strong>{record?.recordNumber}</strong> – {record?.title}? This cannot be undone. (Status: {record?.status}.)
+          </p>
+          <div className="flex gap-2 justify-end">
+            <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleteSubmitting}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDelete} disabled={deleteSubmitting}>
+              {deleteSubmitting ? 'Deleting…' : 'Delete permanently'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </PageShell>
   );
 }

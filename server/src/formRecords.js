@@ -112,7 +112,8 @@ function requireFormRecordPermission(permission) {
   return (req, res, next) => {
     if (req.formRecordActor === 'integration') return next();
     if (req.formRecordActor !== 'user' || !req.user) return res.status(401).json({ error: 'Unauthorized' });
-    if (req.user.roleName === 'System Admin' || req.user.roleName === 'Admin') return next();
+    const role = (req.user.roleName || '').trim();
+    if (role === 'System Admin' || role === 'Admin' || role.toLowerCase() === 'system admin') return next();
     const perms = req.user.permissions || [];
     if (!perms.includes(permission)) return res.status(403).json({ error: `Missing permission: ${permission}` });
     next();
@@ -193,7 +194,11 @@ router.get('/', formRecordAuth, requireFormRecordPermission('form_records:view')
     });
   } catch (err) {
     console.error('Form records list error:', err);
-    res.status(500).json({ error: 'Failed to list form records' });
+    const msg = err?.message || '';
+    const hint = msg.includes('Unknown column') || msg.includes('qms_hash') || msg.includes('record_version')
+      ? ' Database schema may be out of date. Run in server: npx prisma db push'
+      : '';
+    res.status(500).json({ error: 'Failed to list form records' + hint });
   }
 });
 
@@ -540,6 +545,46 @@ router.post('/:id/finalize', formRecordAuth, requireFormRecordPermission('form_r
   } catch (err) {
     console.error('Form record finalize error:', err);
     res.status(500).json({ error: 'Failed to finalize form record' });
+  }
+});
+
+// DELETE /api/form-records/:id — any status (DRAFT, FINAL, VOID). Requires form_records:delete.
+router.delete('/:id', formRecordAuth, requireFormRecordPermission('form_records:delete'), async (req, res) => {
+  try {
+    const record = await prisma.formRecord.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, recordNumber: true, title: true, status: true, pdfFileAssetId: true },
+    });
+    if (!record) return res.status(404).json({ error: 'Form record not found' });
+
+    await prisma.formRecord.delete({ where: { id: req.params.id } });
+
+    if (record.pdfFileAssetId) {
+      await prisma.fileAsset.update({
+        where: { id: record.pdfFileAssetId },
+        data: { isDeleted: true, deletedAt: new Date() },
+      });
+    }
+
+    const auditUid = auditUserId(req);
+    if (auditUid) {
+      const auditCtx = getAuditContext(req);
+      await createAuditLog({
+        userId: auditUid,
+        action: 'FORM_RECORD_DELETED',
+        entityType: ENTITY,
+        entityId: record.id,
+        beforeValue: record,
+        afterValue: null,
+        reason: req.formRecordActor === 'integration' ? 'Governance integration' : null,
+        ...auditCtx,
+      });
+    }
+
+    res.json({ ok: true, deleted: { id: record.id, recordNumber: record.recordNumber, title: record.title } });
+  } catch (err) {
+    console.error('Form record delete error:', err);
+    res.status(500).json({ error: 'Failed to delete form record' });
   }
 });
 

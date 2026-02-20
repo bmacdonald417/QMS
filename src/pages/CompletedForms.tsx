@@ -36,7 +36,8 @@ const statusVariant: Record<string, 'default' | 'info' | 'success' | 'warning' |
 
 export function CompletedForms() {
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const canDelete = user?.permissions?.includes('form_records:delete');
   const [records, setRecords] = useState<FormRecordListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -58,6 +59,7 @@ export function CompletedForms() {
   const [relatedEntityId, setRelatedEntityId] = useState('');
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchRecords = async () => {
     if (!token) return;
@@ -165,6 +167,36 @@ export function CompletedForms() {
       width: '120px',
       render: (row) => new Date(row.updatedAt).toLocaleDateString(),
     },
+    ...(canDelete
+      ? [
+          {
+            key: 'actions',
+            header: '',
+            width: '80px',
+            render: (row) => (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-compliance-red hover:text-compliance-red"
+                disabled={deletingId === row.id}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (!token || !window.confirm(`Delete ${row.recordNumber} – ${row.title}? This cannot be undone.`)) return;
+                  setDeletingId(row.id);
+                  try {
+                    await apiRequest(`/api/form-records/${row.id}`, { token, method: 'DELETE' });
+                    await fetchRecords();
+                  } finally {
+                    setDeletingId(null);
+                  }
+                }}
+              >
+                {deletingId === row.id ? '…' : 'Delete'}
+              </Button>
+            ),
+          } as Column<FormRecordListItem>,
+        ]
+      : []),
   ];
 
   return (

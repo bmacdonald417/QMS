@@ -47,6 +47,7 @@ const PERMISSION_LIST = [
   { code: 'form_records:update', description: 'Update DRAFT form records' },
   { code: 'form_records:finalize', description: 'Finalize (lock) form records' },
   { code: 'form_records:export', description: 'Export form record PDF' },
+  { code: 'form_records:delete', description: 'Delete form records (any status)' },
 ];
 
 const VALID_CODES = new Set(PERMISSION_LIST.map((p) => p.code));
