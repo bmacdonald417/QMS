@@ -18,7 +18,7 @@ interface FormRecordDetail {
   createdAt: string;
   updatedAt: string;
   finalizedAt: string | null;
-  templateDocument: { id: string; documentId: string; title: string; versionMajor: number; versionMinor: number };
+  templateDocument: { id: string; documentId: string; title: string; versionMajor: number; versionMinor: number } | null;
   createdBy: { id: string; firstName: string; lastName: string } | null;
   updatedBy: { id: string; firstName: string; lastName: string } | null;
   finalizedBy: { id: string; firstName: string; lastName: string } | null;
@@ -175,13 +175,17 @@ export function CompletedFormDetail() {
       <Card padding="md" className="mb-4">
         <div className="flex flex-wrap items-center gap-4">
           <span className="text-gray-400">Template:</span>
-          <button
-            type="button"
-            onClick={() => navigate(`/documents/${record.templateDocument.id}`)}
-            className="text-mactech-blue hover:underline"
-          >
-            {record.templateDocument.documentId} – {record.templateDocument.title} (v{record.templateDocument.versionMajor}.{record.templateDocument.versionMinor})
-          </button>
+          {record.templateDocument ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/documents/${record.templateDocument!.id}`)}
+              className="text-mactech-blue hover:underline"
+            >
+              {record.templateDocument.documentId} – {record.templateDocument.title} (v{record.templateDocument.versionMajor}.{record.templateDocument.versionMinor})
+            </button>
+          ) : (
+            <span className="text-gray-500 italic">Template (removed)</span>
+          )}
           <span className="text-gray-400">|</span>
           <span className="text-gray-400">Created: {new Date(record.createdAt).toLocaleString()}</span>
           {record.finalizedAt && (

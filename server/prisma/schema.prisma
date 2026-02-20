@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/.prisma2/client"
 }
 
 datasource db {
@@ -830,7 +829,7 @@ model FormRecordCounter {
 model FormRecord {
   id                   String            @id @default(uuid())
   recordNumber         String            @unique @map("record_number")
-  templateDocumentId   String            @map("template_document_id")
+  templateDocumentId   String?           @map("template_document_id")
   templateCode         String            @map("template_code")
   templateVersionMajor Int               @map("template_version_major")
   templateVersionMinor Int               @map("template_version_minor")
@@ -852,7 +851,7 @@ model FormRecord {
   lockedAt             DateTime?         @map("locked_at")
   pdfFileAssetId       String?           @unique @map("pdf_file_asset_id")
 
-  templateDocument Document  @relation(fields: [templateDocumentId], references: [id], onDelete: Restrict)
+  templateDocument Document? @relation(fields: [templateDocumentId], references: [id], onDelete: SetNull)
   pdfFileAsset     FileAsset? @relation(fields: [pdfFileAssetId], references: [id], onDelete: SetNull)
   createdBy        User?      @relation("FormRecordCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedBy        User?      @relation("FormRecordUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)

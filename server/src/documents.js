@@ -600,7 +600,8 @@ router.delete('/:id', requirePermission('document:delete'), async (req, res) => 
     const usedAsTemplate = await prisma.formRecord.count({
       where: { templateDocumentId: docId },
     });
-    if (usedAsTemplate > 0) {
+    const isSystemAdmin = (req.user.roleName || '').trim() === 'System Admin' || (req.user.roleName || '').trim() === 'Admin';
+    if (usedAsTemplate > 0 && !isSystemAdmin) {
       return res.status(400).json({
         error: 'Cannot delete document: it is used as a template by form records. Remove or reassign those form records first.',
       });

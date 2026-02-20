@@ -17,7 +17,7 @@ interface FormRecordListItem {
   createdAt: string;
   updatedAt: string;
   createdBy: { id: string; firstName: string; lastName: string } | null;
-  templateDocument: { documentId: string; title: string; versionMajor: number; versionMinor: number };
+  templateDocument: { documentId: string; title: string; versionMajor: number; versionMinor: number } | null;
 }
 
 interface FormTemplate {
