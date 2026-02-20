@@ -112,4 +112,46 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/tasks/history — completed document approval/review assignments for current user
+router.get('/history', async (req, res) => {
+  try {
+    const assignments = await prisma.documentAssignment.findMany({
+      where: {
+        assignedToId: req.user.id,
+        status: 'COMPLETED',
+        assignmentType: { in: ['REVIEW', 'APPROVAL', 'QUALITY_RELEASE'] },
+      },
+      include: {
+        document: {
+          select: {
+            id: true,
+            documentId: true,
+            title: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: { completedAt: 'desc' },
+      take: 100,
+    });
+    const items = assignments.map((a) => ({
+      type: 'DOCUMENT_ASSIGNMENT',
+      id: a.id,
+      taskType: a.assignmentType,
+      status: a.status,
+      entityLabel: a.document.documentId,
+      documentId: a.document.id,
+      docId: a.document.documentId,
+      title: a.document.title,
+      documentStatus: a.document.status,
+      completedAt: a.completedAt,
+      link: `/documents/${a.document.id}`,
+    }));
+    res.json({ history: items });
+  } catch (err) {
+    console.error('List task history error:', err);
+    res.status(500).json({ error: 'Failed to fetch approval history' });
+  }
+});
+
 export default router;
