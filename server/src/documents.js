@@ -122,8 +122,8 @@ router.get('/templates/forms', requirePermission('document:view'), async (req, r
   }
 });
 
-// GET /api/documents
-router.get('/', async (_req, res) => {
+// GET /api/documents — list all (requires document:view)
+router.get('/', requirePermission('document:view'), async (_req, res) => {
   try {
     const documents = await prisma.document.findMany({
       include: {
@@ -139,7 +139,7 @@ router.get('/', async (_req, res) => {
 });
 
 // GET /api/documents/search?query=...&tags=tag1,tag2
-router.get('/search', async (req, res) => {
+router.get('/search', requirePermission('document:view'), async (req, res) => {
   try {
     const query = typeof req.query.query === 'string' ? req.query.query.trim() : '';
     const tagsParam = typeof req.query.tags === 'string' ? req.query.tags : '';

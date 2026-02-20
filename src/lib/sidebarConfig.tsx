@@ -51,6 +51,11 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
     case 'System Administrator':
     case 'System Admin':
       return [
+        { path: '/', label: 'Dashboard', icon: icons.dashboard },
+        { path: '/documents', label: 'Document Control', icon: icons.documents },
+        { path: '/search', label: 'Search', icon: icons.search },
+        { path: '/change-control', label: 'Change Control', icon: icons.changeControl },
+        { path: '/capas', label: 'CAPA', icon: icons.capa },
         { path: '/system', label: 'System Management', icon: icons.system },
         { path: '/completed-forms', label: 'Completed Forms', icon: icons.completedForms },
       ];
