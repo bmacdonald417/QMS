@@ -124,43 +124,147 @@ function auditUserId(req) {
   return req.auditUserId || req.user?.id;
 }
 
+/** Legacy list when DB lacks qms_hash/record_version — raw query without those columns */
+async function listFormRecordsLegacy(filters, skip, limitNum) {
+  const { templateCode, relatedEntityType, relatedEntityId, status, q, startDate, endDate } = filters;
+  const conditions = [];
+  const params = [];
+  let idx = 0;
+  if (templateCode) {
+    idx += 1;
+    conditions.push(`fr.template_code = $${idx}`);
+    params.push(String(templateCode).trim());
+  }
+  if (relatedEntityType) {
+    idx += 1;
+    conditions.push(`fr.related_entity_type = $${idx}`);
+    params.push(String(relatedEntityType).trim().toUpperCase());
+  }
+  if (relatedEntityId) {
+    idx += 1;
+    conditions.push(`fr.related_entity_id = $${idx}`);
+    params.push(String(relatedEntityId).trim());
+  }
+  if (status) {
+    idx += 1;
+    conditions.push(`fr.status = $${idx}`);
+    params.push(String(status).trim().toUpperCase());
+  }
+  if (startDate) {
+    idx += 1;
+    conditions.push(`fr.created_at >= $${idx}`);
+    params.push(new Date(String(startDate)));
+  }
+  if (endDate) {
+    idx += 1;
+    const d = new Date(String(endDate));
+    d.setHours(23, 59, 59, 999);
+    conditions.push(`fr.created_at <= $${idx}`);
+    params.push(d);
+  }
+  if (q && String(q).trim()) {
+    const qq = `%${String(q).trim()}%`;
+    idx += 1;
+    const p1 = idx;
+    idx += 1;
+    const p2 = idx;
+    conditions.push(`(fr.record_number ILIKE $${p1} OR fr.title ILIKE $${p2})`);
+    params.push(qq, qq);
+  }
+  const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const countResult = await prisma.$queryRawUnsafe(
+    `SELECT COUNT(*)::int AS c FROM form_records fr ${whereClause}`,
+    ...params
+  );
+  const total = countResult[0]?.c ?? 0;
+  params.push(limitNum, skip);
+  const limitIdx = params.length;
+  const offsetIdx = params.length + 1;
+  const rows = await prisma.$queryRawUnsafe(
+    `SELECT fr.id, fr.record_number AS "recordNumber", fr.template_document_id AS "templateDocumentId", fr.template_code AS "templateCode",
+       fr.template_version_major AS "templateVersionMajor", fr.template_version_minor AS "templateVersionMinor",
+       fr.title, fr.status, fr.payload, fr.related_entity_type AS "relatedEntityType", fr.related_entity_id AS "relatedEntityId",
+       fr.created_by_id AS "createdById", fr.created_at AS "createdAt", fr.updated_at AS "updatedAt",
+       d.doc_id AS "doc_documentId", d.title AS "doc_title", d.major_version AS "doc_versionMajor", d.minor_version AS "doc_versionMinor",
+       u.id AS "creator_id", u.first_name AS "creator_firstName", u.last_name AS "creator_lastName"
+     FROM form_records fr
+     LEFT JOIN documents d ON d.id = fr.template_document_id
+     LEFT JOIN users u ON u.id = fr.created_by_id
+     ${whereClause}
+     ORDER BY fr.created_at DESC
+     LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
+    ...params
+  );
+  const records = (rows || []).map((row) => ({
+    id: row.id,
+    recordNumber: row.recordNumber,
+    templateDocumentId: row.templateDocumentId,
+    templateCode: row.templateCode,
+    templateVersionMajor: row.templateVersionMajor,
+    templateVersionMinor: row.templateVersionMinor,
+    title: row.title,
+    status: row.status,
+    payload: row.payload,
+    relatedEntityType: row.relatedEntityType,
+    relatedEntityId: row.relatedEntityId,
+    createdById: row.createdById,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    templateDocument: row.doc_documentId != null ? {
+      documentId: row.doc_documentId,
+      title: row.doc_title,
+      versionMajor: row.doc_versionMajor,
+      versionMinor: row.doc_versionMinor,
+    } : null,
+    createdBy: row.creator_id != null ? {
+      id: row.creator_id,
+      firstName: row.creator_firstName,
+      lastName: row.creator_lastName,
+    } : null,
+  }));
+  return { records, total };
+}
+
 // GET /api/form-records — list with filters, paginated
 router.get('/', formRecordAuth, requireFormRecordPermission('form_records:view'), async (req, res) => {
+  const { templateCode, relatedEntityType, relatedEntityId, status, q, page = '1', limit = '20', startDate, endDate } = req.query;
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+  const skip = (pageNum - 1) * limitNum;
+
+  const where = {};
+  if (templateCode) where.templateCode = String(templateCode).trim();
+  if (relatedEntityType) where.relatedEntityType = String(relatedEntityType).trim().toUpperCase();
+  if (relatedEntityId) where.relatedEntityId = String(relatedEntityId).trim();
+  if (status) where.status = String(status).trim().toUpperCase();
+  if (startDate || endDate) {
+    where.createdAt = {};
+    if (startDate) {
+      const d = new Date(String(startDate));
+      if (!isNaN(d.getTime())) where.createdAt.gte = d;
+    }
+    if (endDate) {
+      const d = new Date(String(endDate));
+      if (!isNaN(d.getTime())) {
+        d.setHours(23, 59, 59, 999);
+        where.createdAt.lte = d;
+      }
+    }
+    if (Object.keys(where.createdAt).length === 0) delete where.createdAt;
+  }
+  if (q && String(q).trim()) {
+    const qq = String(q).trim();
+    where.OR = [
+      { recordNumber: { contains: qq, mode: 'insensitive' } },
+      { title: { contains: qq, mode: 'insensitive' } },
+    ];
+  }
+
+  let records;
+  let total;
+
   try {
-    const { templateCode, relatedEntityType, relatedEntityId, status, q, page = '1', limit = '20', startDate, endDate } = req.query;
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
-    const skip = (pageNum - 1) * limitNum;
-
-    const where = {};
-    if (templateCode) where.templateCode = String(templateCode).trim();
-    if (relatedEntityType) where.relatedEntityType = String(relatedEntityType).trim().toUpperCase();
-    if (relatedEntityId) where.relatedEntityId = String(relatedEntityId).trim();
-    if (status) where.status = String(status).trim().toUpperCase();
-    if (startDate || endDate) {
-      where.createdAt = {};
-      if (startDate) {
-        const d = new Date(String(startDate));
-        if (!isNaN(d.getTime())) where.createdAt.gte = d;
-      }
-      if (endDate) {
-        const d = new Date(String(endDate));
-        if (!isNaN(d.getTime())) {
-          d.setHours(23, 59, 59, 999);
-          where.createdAt.lte = d;
-        }
-      }
-      if (Object.keys(where.createdAt).length === 0) delete where.createdAt;
-    }
-    if (q && String(q).trim()) {
-      const qq = String(q).trim();
-      where.OR = [
-        { recordNumber: { contains: qq, mode: 'insensitive' } },
-        { title: { contains: qq, mode: 'insensitive' } },
-      ];
-    }
-
-    const [records, total] = await Promise.all([
+    [records, total] = await Promise.all([
       prisma.formRecord.findMany({
         where,
         skip,
@@ -173,7 +277,31 @@ router.get('/', formRecordAuth, requireFormRecordPermission('form_records:view')
       }),
       prisma.formRecord.count({ where }),
     ]);
+  } catch (err) {
+    const msg = err?.message || '';
+    const isSchemaError = /Unknown column|qms_hash|record_version|column.*does not exist/i.test(msg);
+    if (isSchemaError) {
+      try {
+        const legacy = await listFormRecordsLegacy(
+          { templateCode, relatedEntityType, relatedEntityId, status, q, startDate, endDate },
+          skip,
+          limitNum
+        );
+        records = legacy.records;
+        total = legacy.total;
+      } catch (legacyErr) {
+        console.error('Form records legacy list error:', legacyErr);
+        return res.status(500).json({
+          error: 'Failed to list form records. Database schema may be out of date. Run in server: npx prisma db push',
+        });
+      }
+    } else {
+      console.error('Form records list error:', err);
+      return res.status(500).json({ error: 'Failed to list form records' });
+    }
+  }
 
+  try {
     const auditUid = auditUserId(req);
     if (auditUid) {
       const auditCtx = getAuditContext(req);
@@ -193,12 +321,8 @@ router.get('/', formRecordAuth, requireFormRecordPermission('form_records:view')
       pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) },
     });
   } catch (err) {
-    console.error('Form records list error:', err);
-    const msg = err?.message || '';
-    const hint = msg.includes('Unknown column') || msg.includes('qms_hash') || msg.includes('record_version')
-      ? ' Database schema may be out of date. Run in server: npx prisma db push'
-      : '';
-    res.status(500).json({ error: 'Failed to list form records' + hint });
+    console.error('Form records list response error:', err);
+    res.status(500).json({ error: 'Failed to list form records' });
   }
 });
 
