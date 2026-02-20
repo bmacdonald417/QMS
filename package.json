@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@floating-ui/dom": "^1.7.5",
     "@hookform/resolvers": "^5.2.2",
     "@tiptap/extension-table": "^3.20.0",
     "@tiptap/react": "^3.20.0",
