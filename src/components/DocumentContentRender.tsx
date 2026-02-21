@@ -10,7 +10,7 @@ const ALLOWED_TAGS = [
 /** Convert HTML paragraphs with " - item" patterns into proper ul/li for correct alignment */
 function convertHtmlParagraphsToLists(html: string): string {
   return html.replace(/<p>([\s\S]*?) - ([\s\S]+?)((?: - [\s\S]+?)+)<\/p>/g, (_match, intro, first, rest) => {
-    const items = [first.trim(), ...(rest ? rest.split(/ - /).slice(1).map((s) => s.trim()).filter(Boolean) : [])];
+    const items = [first.trim(), ...(rest ? rest.split(/ - /).slice(1).map((s: string) => s.trim()).filter(Boolean) : [])];
     return intro.trim() ? `<p>${intro.trim()}</p><ul><li>${items.join('</li><li>')}</li></ul>` : `<ul><li>${items.join('</li><li>')}</li></ul>`;
   });
 }
