@@ -147,7 +147,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       width: 210mm;
       min-height: 0;
       height: auto;
-      padding: 20mm;
+      padding: 12mm;
       box-sizing: border-box;
       position: relative;
       display: flex;
@@ -255,7 +255,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       color: #555;
     }
     .supersedes-container {
-      padding-top: 20mm;
+      padding-top: 10mm;
       font-size: 8pt;
       font-style: italic;
       text-align: center;
@@ -333,7 +333,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
 `;
 }
 
-/** Build Puppeteer header template – 0.5in margin so header has room to breathe */
+/** Build Puppeteer header template – compact padding to avoid excess space and content cutoff */
 function buildPdfHeaderTemplate({ document, version }) {
   const title = esc(document.title);
   const meta = `${esc(document.documentId)}/${esc(version)}`;
@@ -342,7 +342,7 @@ function buildPdfHeaderTemplate({ document, version }) {
     : '<span style="font-weight: 700; font-size: 9pt; color: #707070;">MacTech SOLUTIONS</span>';
   const gray = 'color: #707070;';
   return `
-    <div id="header" style="background: #ffffff !important; width: 100%; margin: 0; padding: 0.5in 0.5in 4px 0.5in; border: none; border-bottom: 1px solid #707070; box-sizing: border-box; -webkit-print-color-adjust: exact;">
+    <div id="header" style="background: #ffffff !important; width: 100%; margin: 0; padding: 2mm 4mm 2mm 4mm; border: none; border-bottom: 1px solid #707070; box-sizing: border-box; -webkit-print-color-adjust: exact;">
       <div style="width: 100%; font-size: 11pt; font-weight: bold; line-height: 1.2; display: table; color: #707070;">
         <div style="display: table-cell; width: 20%; text-align: left; vertical-align: middle;">${logoHtml}</div>
         <div style="display: table-cell; width: 60%; text-align: center; vertical-align: middle;"><span style="${gray}">${title}</span></div>
@@ -352,10 +352,10 @@ function buildPdfHeaderTemplate({ document, version }) {
   `.trim();
 }
 
-/** Build Puppeteer footer template – 0.5in margin, page number at bottom of footer */
+/** Build Puppeteer footer template – compact padding to avoid excess space and content cutoff */
 function buildPdfFooterTemplate() {
   return `
-    <div id="footer" style="background: #ffffff !important; width: 100%; margin: 0; padding: 0 0.5in 0.5in 0.5in; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; min-height: 100%; -webkit-print-color-adjust: exact;">
+    <div id="footer" style="background: #ffffff !important; width: 100%; margin: 0; padding: 2mm 4mm 2mm 4mm; box-sizing: border-box; font-size: 9pt; color: #555555; text-align: center; -webkit-print-color-adjust: exact;">
       <div style="width: 100%; font-size: 9pt; color: #555555; text-align: center;">
         Page <span class="pageNumber"></span> of <span class="totalPages"></span>
       </div>
@@ -380,7 +380,7 @@ export async function generateDocumentPdf({ document, signatures, revisions, unc
       displayHeaderFooter: true,
       headerTemplate: buildPdfHeaderTemplate({ document, version }),
       footerTemplate: buildPdfFooterTemplate(),
-      margin: { top: '21mm', right: '20mm', bottom: '14mm', left: '20mm' },
+      margin: { top: '14mm', right: '15mm', bottom: '12mm', left: '15mm' },
     });
     return pdf;
   } finally {
