@@ -133,6 +133,24 @@ function sanitizeHtmlForPdf(html) {
     .replace(/\bwhite-space\s*=\s*["'][^"']*["']/gi, '');
 }
 
+/** Convert consecutive <p>- item</p> into proper <ul><li> */
+function convertParagraphsToBulletLists(html) {
+  if (!html || typeof html !== 'string') return html;
+  return html.replace(/(<p>\s*-\s*([\s\S]*?)<\/p>\s*)+/g, (match) => {
+    const items = [...match.matchAll(/<p>\s*-\s*([\s\S]*?)<\/p>/g)].map((m) => m[1].trim());
+    if (!items.length) return match;
+    return '<ul>' + items.map((item) => '<li>' + item + '</li>').join('') + '</ul>';
+  });
+}
+
+/** Convert numbered section paragraphs (1. Purpose, 4.1 Baseline) into headings */
+function convertNumberedSectionsToHeadings(html) {
+  if (!html || typeof html !== 'string') return html;
+  return html
+    .replace(/<p>(\d+\.\d+\s+[\s\S]*?)<\/p>/g, '<h4>$1</h4>')
+    .replace(/<p>(\d+\.\s+[\s\S]*?)<\/p>/g, '<h3>$1</h3>');
+}
+
 /** Convert HTML paragraphs with " - item" patterns into proper ul/li for correct alignment */
 function convertHtmlParagraphsToLists(html) {
   if (!html || typeof html !== 'string') return html;
@@ -176,10 +194,15 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
   if (isHtml) {
     let html = sanitizeHtmlForPdf(raw);
     html = splitFlatParagraph(html);
+    html = convertParagraphsToBulletLists(html);
+    html = convertNumberedSectionsToHeadings(html);
     html = convertHtmlParagraphsToLists(html);
     contentHtml = convertMarkdownSyntaxInHtml(html);
   } else {
-    contentHtml = marked.parse(raw);
+    let html = marked.parse(raw);
+    html = convertParagraphsToBulletLists(html);
+    html = convertNumberedSectionsToHeadings(html);
+    contentHtml = convertMarkdownSyntaxInHtml(html);
   }  
   const effectiveDateText = document.effectiveDate
     ? new Date(document.effectiveDate).toLocaleDateString()
@@ -349,7 +372,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     .content ul { list-style-type: disc; }
     .content ol { list-style-type: decimal; }
     .content li {
-      margin: 0.25em 0;
+      margin: 2mm 0;
       padding-left: 0.25em;
       display: list-item;
       overflow-wrap: break-word;
