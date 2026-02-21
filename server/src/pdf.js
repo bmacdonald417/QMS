@@ -1,7 +1,4 @@
 import puppeteer from 'puppeteer';
-import { marked } from 'marked';
-
-marked.setOptions({ gfm: true, breaks: true });
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -143,35 +140,29 @@ function convertHtmlParagraphsToLists(html) {
   });
 }
 
-/** Convert inline " - item" patterns to proper Markdown list items for correct wrapping/alignment */
-function preprocessMarkdownForLists(text) {
-  if (!text || typeof text !== 'string') return text;
+/** Plain text: each newline = new paragraph. One line in = one line out. */
+function plainTextToHtml(text) {
+  if (!text || typeof text !== 'string') return '';
+  const esc = (s) =>
+    String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   return text
-    .replace(/: - /g, ':\n- ')
-    .replace(/\. - /g, '.\n- ')
-    .replace(/ - ([A-Za-z])/g, '\n- $1');
-}
-
-/** Insert paragraph breaks before numbered sections (e.g. " 2. Scope", " 3. Objectives") when content lacks newlines */
-function ensureSectionBreaks(text) {
-  if (!text || typeof text !== 'string') return text;
-  return text
-    .replace(/(\S)\s+(\d+)\.\s+([A-Z])/g, '$1\n\n$2. $3')
-    .replace(/(\S)\s+(\d+\.\d+)\s+([A-Z])/g, '$1\n\n$2 $3');
+    .split(/\r?\n/)
+    .map((line) => `<p>${esc(line.trim()) || '&nbsp;'}</p>`)
+    .join('');
 }
 
 function buildHtml({ document, signatures, revisions, uncontrolled }) {
   const version = `${document.versionMajor}.${document.versionMinor}`;
   const raw = (document.content || '').trim();
   const isHtml = raw.startsWith('<') && raw.includes('>');
-  let contentHtml;
-  
-  if (isHtml) {
-    contentHtml = convertHtmlParagraphsToLists(sanitizeHtmlForPdf(raw));
-  } else {
-    const preprocessed = ensureSectionBreaks(preprocessMarkdownForLists(raw));
-    contentHtml = marked.parse(preprocessed);
-  }  
+  const contentHtml = isHtml
+    ? convertHtmlParagraphsToLists(sanitizeHtmlForPdf(raw))
+    : plainTextToHtml(raw);  
   const effectiveDateText = document.effectiveDate
     ? new Date(document.effectiveDate).toLocaleDateString()
     : 'Pending Release';
