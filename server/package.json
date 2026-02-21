@@ -10,7 +10,8 @@
     "db:push": "prisma db push",
     "db:seed": "node src/seed.js",
     "db:studio": "prisma studio",
-    "db:migrate-roles": "node src/scripts/migrateRoles.js"
+    "db:migrate-roles": "node src/scripts/migrateRoles.js",
+    "db:migrate-plain-text": "node scripts/migrate-plain-text-docs.js"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",

@@ -33,6 +33,30 @@ export function RichTextEditor({
       attributes: {
         class: 'prose prose-invert max-w-none min-h-[120px] p-3 focus:outline-none break-words',
       },
+      handlePaste: (view, event) => {
+        const text = event.clipboardData?.getData('text/plain');
+        const html = event.clipboardData?.getData('text/html');
+        if (html && html.trim().length > 0) {
+          event.preventDefault();
+          editorRef.current?.chain().focus().insertContent(html, { parseOptions: { preserveWhitespace: 'full' } }).run();
+          return true;
+        }
+        if (text && text.trim().length > 0) {
+          event.preventDefault();
+          const esc = (s: string) =>
+            s
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#039;');
+          const lines = text.split('\n').filter((line) => line.trim().length > 0);
+          const htmlContent = lines.map((line) => `<p>${esc(line || '') || '&nbsp;'}</p>`).join('');
+          editorRef.current?.chain().focus().insertContent(htmlContent, { parseOptions: { preserveWhitespace: 'full' } }).run();
+          return true;
+        }
+        return false;
+      },
     },
   });
   editorRef.current = editor;
@@ -57,21 +81,6 @@ export function RichTextEditor({
     const norm = (s: string) => (s || '').trim() || '<p></p>';
     if (norm(value) !== norm(current)) editor.commands.setContent(value || '<p></p>', { emitUpdate: false });
   }, [value, editor]);
-
-  useEffect(() => {
-    if (!editor) return;
-    const el = editor.view.dom;
-    const onPaste = (e: ClipboardEvent) => {
-      const html = e.clipboardData?.getData('text/html');
-      if (html && editorRef.current) {
-        editorRef.current.chain().focus().insertContent(html, { parseOptions: { preserveWhitespace: 'full' } }).run();
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-    el.addEventListener('paste', onPaste);
-    return () => el.removeEventListener('paste', onPaste);
-  }, [editor]);
 
   if (!editor) return null;
 
