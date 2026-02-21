@@ -1,5 +1,7 @@
 import puppeteer from 'puppeteer';
 import { marked } from 'marked';
+
+marked.setOptions({ gfm: true, breaks: false });
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -281,11 +283,30 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       word-wrap: break-word;
     }
     .final-section { page-break-before: always; }
-    .content h1, .content h2, .content h3 {
-      font-size: 12pt; font-weight: bold; margin-top: 8mm; margin-bottom: 3mm; text-transform: uppercase;
+    .content h1, .content h2, .content h3, .content h4, .content h5, .content h6 {
+      font-size: 12pt; font-weight: bold; margin-top: 8mm; margin-bottom: 3mm;
     }
+    .content h4, .content h5, .content h6 { font-size: 11pt; margin-top: 6mm; margin-bottom: 2mm; }
     .content p { margin: 0 0 4mm 0; text-align: justify; overflow-wrap: break-word; word-wrap: break-word; }
-    .content h1, .content h2, .content h3 { page-break-after: avoid; }
+    .content strong, .content b { font-weight: bold; }
+    .content em, .content i { font-style: italic; }
+    .content code {
+      font-family: "Consolas", "Monaco", "Courier New", monospace;
+      font-size: 10pt;
+      background: #f5f5f5;
+      padding: 0.5mm 1mm;
+      border-radius: 1pt;
+    }
+    .content p code { font-size: inherit; }
+    .content pre {
+      margin: 4mm 0;
+      padding: 4mm;
+      background: #f5f5f5;
+      border-radius: 1pt;
+      overflow-x: auto;
+    }
+    .content pre code { background: none; padding: 0; }
+    .content h1, .content h2, .content h3, .content h4, .content h5, .content h6 { page-break-after: avoid; }
     .content table { page-break-inside: avoid; }
     .content ul, .content ol {
       margin: 0.5em 0 0.5em 1.5em;
