@@ -226,16 +226,16 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       text-align: center;
     }
     .sop-label, .main-title {
-      font-size: 28pt;
+      font-size: 34pt;
       font-weight: bold;
       color: #000;
     }
     .sop-label { letter-spacing: 4pt; margin-bottom: 10mm; }
     .main-title { margin-bottom: 5mm; text-transform: uppercase; }
-    .main-id { font-size: 18pt; margin-bottom: 2mm; color: #000; }
-    .main-version { font-size: 14pt; margin-bottom: 10mm; color: #000; }
-    .main-date { font-size: 12pt; font-weight: bold; color: #000; }
-    .content { flex-grow: 1; font-size: 11pt; line-height: 1.5; color: #000; min-height: 0; }
+    .main-id { font-size: 22pt; margin-bottom: 2mm; color: #000; }
+    .main-version { font-size: 16pt; margin-bottom: 10mm; color: #000; }
+    .main-date { font-size: 14pt; font-weight: bold; color: #000; }
+    .content { flex-grow: 1; font-size: 12pt; line-height: 1.5; color: #000; min-height: 0; }
     .final-section { page-break-before: always; }
     .content h1, .content h2, .content h3 {
       font-size: 12pt; font-weight: bold; margin-top: 8mm; margin-bottom: 3mm; text-transform: uppercase;
@@ -256,11 +256,11 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     }
     .supersedes-container {
       padding-top: 10mm;
-      font-size: 8pt;
+      font-size: 12pt;
       font-style: italic;
       text-align: center;
       color: #333;
-      white-space: nowrap;
+      width: 100%;
     }
     .watermark {
       position: absolute;
