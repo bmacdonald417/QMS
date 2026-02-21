@@ -120,6 +120,16 @@ function sanitizeHtmlForPdf(html) {
     .replace(/\bwhite-space\s*=\s*["'][^"']*["']/gi, '');
 }
 
+/** Convert HTML paragraphs with " - item" patterns into proper ul/li for correct alignment */
+function convertHtmlParagraphsToLists(html) {
+  if (!html || typeof html !== 'string') return html;
+  return html.replace(/<p>([\s\S]*?) - ([\s\S]+?)((?: - [\s\S]+?)+)<\/p>/g, (match, intro, first, rest) => {
+    const items = [first.trim(), ...(rest ? rest.split(/ - /).slice(1).map((s) => s.trim()).filter(Boolean) : [])];
+    const listHtml = '<ul><li>' + items.join('</li><li>') + '</li></ul>';
+    return intro.trim() ? '<p>' + intro.trim() + '</p>' + listHtml : listHtml;
+  });
+}
+
 /** Convert inline " - item" patterns to proper Markdown list items for correct wrapping/alignment */
 function preprocessMarkdownForLists(text) {
   if (!text || typeof text !== 'string') return text;
@@ -134,7 +144,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
   const raw = (document.content || '').trim();
   const isHtml = raw.startsWith('<') && raw.includes('>');
   const contentHtml = isHtml
-    ? sanitizeHtmlForPdf(raw)
+    ? convertHtmlParagraphsToLists(sanitizeHtmlForPdf(raw))
     : marked.parse(preprocessMarkdownForLists(raw));
   const effectiveDateText = document.effectiveDate
     ? new Date(document.effectiveDate).toLocaleDateString()
@@ -279,16 +289,18 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     .content table { page-break-inside: avoid; }
     .content ul, .content ol {
       margin: 0.5em 0 0.5em 1.5em;
-      padding-left: 0.5em;
+      padding-left: 2em;
       list-style-position: outside;
     }
     .content ul { list-style-type: disc; }
     .content ol { list-style-type: decimal; }
     .content li {
       margin: 0.25em 0;
+      padding-left: 0.25em;
       display: list-item;
       overflow-wrap: break-word;
       word-wrap: break-word;
+      text-indent: 0;
     }
     table { width: 100%; border-collapse: collapse; margin-top: 5mm; table-layout: fixed; }
     th, td { border: 0.5pt solid #000; padding: 3mm; font-size: 9pt; text-align: left; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; }

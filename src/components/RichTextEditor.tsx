@@ -84,10 +84,10 @@ export function RichTextEditor({
       <style>{`
         .ProseMirror { overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; }
         .ProseMirror p { margin: 0.25em 0; }
-        .ProseMirror ul, .ProseMirror ol { margin: 0.5em 0 0.5em 1.5em; padding-left: 0.5em; list-style-position: outside; }
+        .ProseMirror ul, .ProseMirror ol { margin: 0.5em 0 0.5em 1.5em; padding-left: 2em; list-style-position: outside; }
         .ProseMirror ul { list-style-type: disc; }
         .ProseMirror ol { list-style-type: decimal; }
-        .ProseMirror li { margin: 0.25em 0; display: list-item; overflow-wrap: break-word; word-wrap: break-word; }
+        .ProseMirror li { margin: 0.25em 0; padding-left: 0.25em; display: list-item; overflow-wrap: break-word; word-wrap: break-word; text-indent: 0; }
         .ProseMirror table { border-collapse: collapse; width: 100%; margin: 0.5em 0; table-layout: fixed; }
         .ProseMirror th, .ProseMirror td { border: 1px solid var(--color-surface-border, #374151); padding: 6px 10px; text-align: left; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; }
         .ProseMirror th { background: rgba(255,255,255,0.06); font-weight: 600; }
