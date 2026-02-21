@@ -1,5 +1,8 @@
 import puppeteer from 'puppeteer';
+import { marked } from 'marked';
 import fs from 'node:fs';
+
+marked.setOptions({ gfm: true, breaks: true });
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -140,29 +143,44 @@ function convertHtmlParagraphsToLists(html) {
   });
 }
 
-/** Plain text: each newline = new paragraph. One line in = one line out. */
-function plainTextToHtml(text) {
-  if (!text || typeof text !== 'string') return '';
-  const esc = (s) =>
-    String(s ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  return text
-    .split(/\r?\n/)
-    .map((line) => `<p>${esc(line.trim()) || '&nbsp;'}</p>`)
-    .join('');
+/** Convert literal Markdown syntax (** and `) inside HTML to proper tags */
+function convertMarkdownSyntaxInHtml(html) {
+  if (!html || typeof html !== 'string') return '';
+  return html
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+}
+
+/** Split single long <p> into multiple paragraphs on section/list boundaries */
+function splitFlatParagraph(html) {
+  const singleP = /^<p>([\s\S]*?)<\/p>\s*$/;
+  const m = html.trim().match(singleP);
+  if (!m) return html;
+  const inner = m[1];
+  if (inner.length <= 200) return html;
+  const parts = inner
+    .split(/(?=\d+\.\s|\*\*[^*]+\*\*|\n\s*-\s)/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (parts.length <= 1) return html;
+  return parts.map((p) => `<p>${p}</p>`).join('');
 }
 
 function buildHtml({ document, signatures, revisions, uncontrolled }) {
   const version = `${document.versionMajor}.${document.versionMinor}`;
   const raw = (document.content || '').trim();
   const isHtml = raw.startsWith('<') && raw.includes('>');
-  const contentHtml = isHtml
-    ? convertHtmlParagraphsToLists(sanitizeHtmlForPdf(raw))
-    : plainTextToHtml(raw);  
+
+  let contentHtml;
+  if (isHtml) {
+    let html = sanitizeHtmlForPdf(raw);
+    html = splitFlatParagraph(html);
+    html = convertHtmlParagraphsToLists(html);
+    contentHtml = convertMarkdownSyntaxInHtml(html);
+  } else {
+    contentHtml = marked.parse(raw);
+  }  
   const effectiveDateText = document.effectiveDate
     ? new Date(document.effectiveDate).toLocaleDateString()
     : 'Pending Release';
