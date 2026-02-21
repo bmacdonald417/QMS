@@ -1,0 +1,53 @@
+---
+description: Generate QMS document content as clean HTML for TipTap editor (no Markdown)
+alwaysApply: true
+---
+
+# QMS Content Generation
+
+When generating or reformatting procedures, policies, or other QMS document content, **output clean, semantic HTML only**. Do not use Markdown. The content will be pasted into a TipTap-based rich text editor.
+
+## Formatting Rules
+
+| Element | Use |
+|---------|-----|
+| Paragraphs | `<p>...</p>` |
+| Headings | `<h1>`, `<h2>`, etc. for section titles |
+| Bulleted lists | `<ul>` with `<li>` items |
+| Numbered lists | `<ol>` with `<li>` items |
+| Bold | `<strong>` |
+| Italic | `<em>` |
+| Tables | `<table>`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, `<td>` |
+
+## Checklists & Approval Boxes
+
+Use `<ul>` with Unicode checkbox characters:
+- `☐` (unchecked)
+- `☑` (checked)
+
+Example: `<li>☐ Verified by: __________________</li>`
+
+## Example
+
+```html
+<h1>Equipment Calibration Procedure</h1>
+<p>This document outlines the process for periodic calibration of measurement equipment.</p>
+
+<h2>1.0 Pre-Calibration Checklist</h2>
+<ul>
+    <li>☐ Verify equipment is clean and free from damage.</li>
+    <li>☐ Confirm calibration standard is within certification date.</li>
+</ul>
+
+<h2>2.0 Results Log</h2>
+<table>
+    <thead>
+        <tr><th>Equipment ID</th><th>Parameter</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>TEMP-001</td><td>Temperature (°C)</td><td>Pass</td></tr>
+    </tbody>
+</table>
+```
+
+Output a single block of well-formed HTML that can be pasted directly into the editor.
