@@ -115,7 +115,9 @@ function sanitizeHtmlForPdf(html) {
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/\s on\w+\s*=\s*["'][^"']*["']/gi, '')
-    .replace(/\s on\w+\s*=\s*[^\s>]*/gi, '');
+    .replace(/\s on\w+\s*=\s*[^\s>]*/gi, '')
+    .replace(/\bwhite-space\s*:\s*[^;}\s]+/gi, 'white-space: normal')
+    .replace(/\bwhite-space\s*=\s*["'][^"']*["']/gi, '');
 }
 
 function buildHtml({ document, signatures, revisions, uncontrolled }) {
@@ -142,9 +144,13 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
       box-sizing: border-box;
+      max-width: 210mm;
+      overflow-x: hidden;
     }
     .page {
       width: 210mm;
+      max-width: 210mm;
+      min-width: 0;
       min-height: 0;
       height: auto;
       padding: 0.5in;
@@ -153,7 +159,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       display: flex;
       flex-direction: column;
       page-break-after: always;
-      overflow: visible;
+      overflow: hidden;
     }
     .page.cover-page {
       height: 262mm;
@@ -241,9 +247,17 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       line-height: 1.5;
       color: #000;
       min-height: 0;
+      min-width: 0;
       overflow-wrap: break-word;
       word-wrap: break-word;
       word-break: break-word;
+      max-width: 100%;
+      width: 100%;
+    }
+    .content * {
+      white-space: normal !important;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
       max-width: 100%;
     }
     .final-section { page-break-before: always; }
@@ -383,6 +397,7 @@ export async function generateDocumentPdf({ document, signatures, revisions, unc
   });
   try {
     const page = await browser.newPage();
+    await page.setViewport({ width: 794, height: 1123 }); // A4 at 96dpi for correct layout/wrapping
     await page.setContent(html, { waitUntil: 'networkidle0' });
     const pdf = await page.pdf({
       format: 'A4',
