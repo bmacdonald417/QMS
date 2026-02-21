@@ -120,11 +120,22 @@ function sanitizeHtmlForPdf(html) {
     .replace(/\bwhite-space\s*=\s*["'][^"']*["']/gi, '');
 }
 
+/** Convert inline " - item" patterns to proper Markdown list items for correct wrapping/alignment */
+function preprocessMarkdownForLists(text) {
+  if (!text || typeof text !== 'string') return text;
+  return text
+    .replace(/: - /g, ':\n- ')
+    .replace(/\. - /g, '.\n- ')
+    .replace(/ - ([A-Za-z])/g, '\n- $1');
+}
+
 function buildHtml({ document, signatures, revisions, uncontrolled }) {
   const version = `${document.versionMajor}.${document.versionMinor}`;
   const raw = (document.content || '').trim();
   const isHtml = raw.startsWith('<') && raw.includes('>');
-  const contentHtml = isHtml ? sanitizeHtmlForPdf(raw) : marked.parse(raw);
+  const contentHtml = isHtml
+    ? sanitizeHtmlForPdf(raw)
+    : marked.parse(preprocessMarkdownForLists(raw));
   const effectiveDateText = document.effectiveDate
     ? new Date(document.effectiveDate).toLocaleDateString()
     : 'Pending Release';
@@ -258,7 +269,6 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       white-space: normal !important;
       overflow-wrap: break-word;
       word-wrap: break-word;
-      max-width: 100%;
     }
     .final-section { page-break-before: always; }
     .content h1, .content h2, .content h3 {
@@ -267,7 +277,19 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     .content p { margin: 0 0 4mm 0; text-align: justify; overflow-wrap: break-word; word-wrap: break-word; }
     .content h1, .content h2, .content h3 { page-break-after: avoid; }
     .content table { page-break-inside: avoid; }
-    .content li, .content ul, .content ol { overflow-wrap: break-word; word-wrap: break-word; }
+    .content ul, .content ol {
+      margin: 0.5em 0 0.5em 1.5em;
+      padding-left: 0.5em;
+      list-style-position: outside;
+    }
+    .content ul { list-style-type: disc; }
+    .content ol { list-style-type: decimal; }
+    .content li {
+      margin: 0.25em 0;
+      display: list-item;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+    }
     table { width: 100%; border-collapse: collapse; margin-top: 5mm; table-layout: fixed; }
     th, td { border: 0.5pt solid #000; padding: 3mm; font-size: 9pt; text-align: left; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; }
     th { background-color: #f0f0f0; font-weight: bold; }

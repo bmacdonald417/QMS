@@ -31,6 +31,10 @@ export function DocumentContentRender({ content, className = '' }: DocumentConte
         />
         <style>{`
           .document-content { overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; }
+          .document-content ul, .document-content ol { margin: 0.5em 0 0.5em 1.5em; padding-left: 0.5em; list-style-position: outside; }
+          .document-content ul { list-style-type: disc; }
+          .document-content ol { list-style-type: decimal; }
+          .document-content li { margin: 0.25em 0; display: list-item; overflow-wrap: break-word; word-wrap: break-word; }
           .document-content table { border-collapse: collapse; width: 100%; margin: 0.5em 0; table-layout: fixed; }
           .document-content th, .document-content td { border: 1px solid #374151; padding: 6px 10px; text-align: left; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; }
           .document-content th { background: rgba(255,255,255,0.08); font-weight: 600; }
