@@ -4,6 +4,7 @@ import { Card, Input, Button } from '@/components/ui';
 import { PageShell } from './PageShell';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/lib/api';
+import { stripMarkdownFormatting } from '@/lib/format';
 
 interface SearchDocument {
   id: string;
@@ -83,7 +84,7 @@ export function SearchPage() {
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
                         <p className="font-medium text-white">
-                          {doc.documentId} v{doc.versionMajor}.{doc.versionMinor} – {doc.title}
+                          {doc.documentId} v{doc.versionMajor}.{doc.versionMinor} – {stripMarkdownFormatting(doc.title)}
                         </p>
                         <p className="mt-1 text-sm text-gray-500">
                           {doc.documentType} • {doc.status.replace(/_/g, ' ')}

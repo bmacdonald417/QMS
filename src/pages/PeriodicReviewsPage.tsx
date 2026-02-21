@@ -4,6 +4,7 @@ import { Card, Button, Badge, Input } from '@/components/ui';
 import { PageShell } from './PageShell';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/lib/api';
+import { stripMarkdownFormatting } from '@/lib/format';
 
 interface PeriodicReviewItem {
   id: string;
@@ -76,7 +77,7 @@ export function PeriodicReviewsPage() {
                           to={`/documents/${r.document.id}`}
                           className="font-medium text-mactech-blue hover:underline"
                         >
-                          {r.document.documentId} v{r.document.versionMajor}.{r.document.versionMinor} – {r.document.title}
+                          {r.document.documentId} v{r.document.versionMajor}.{r.document.versionMinor} – {stripMarkdownFormatting(r.document.title)}
                         </Link>
                         <Badge variant={r.status === 'OVERDUE' ? 'danger' : r.status === 'COMPLETED' ? 'success' : 'warning'}>
                           {r.status}

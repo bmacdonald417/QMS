@@ -4,6 +4,7 @@ import { Card, Badge, Button } from '@/components/ui';
 import { PageShell } from './PageShell';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/lib/api';
+import { stripMarkdownFormatting } from '@/lib/format';
 
 interface DashboardMetrics {
   documentsByStatus: Record<string, number>;
@@ -122,7 +123,7 @@ export function QualityHealthDashboard() {
               {metrics.documentsNearingReview.map((doc) => (
                 <li key={doc.id} className="flex items-center justify-between rounded-lg border border-surface-border bg-surface-overlay px-3 py-2">
                   <span className="text-gray-200">
-                    {doc.documentId} v{doc.versionMajor}.{doc.versionMinor} – {doc.title}
+                    {doc.documentId} v{doc.versionMajor}.{doc.versionMinor} – {stripMarkdownFormatting(doc.title)}
                   </span>
                   <div className="flex items-center gap-2">
                     {doc.nextReviewDate && (

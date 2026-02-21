@@ -7,6 +7,7 @@ import { RichTextEditor } from '@/components/RichTextEditor';
 import { GovernanceApprovalPanel } from '@/components/modules/compliance/GovernanceApprovalPanel';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest, apiUrl } from '@/lib/api';
+import { stripMarkdownFormatting } from '@/lib/format';
 
 interface UserRef {
   id: string;
@@ -298,7 +299,7 @@ export function DocumentDetail() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1>
-            {doc.documentId} - {doc.title}
+            {doc.documentId} - {stripMarkdownFormatting(doc.title)}
           </h1>
           <p className="mt-1 text-gray-500">
             {doc.documentType} • Version {doc.versionMajor}.{doc.versionMinor} • Author:{' '}
@@ -596,7 +597,7 @@ export function DocumentDetail() {
                     className="text-mactech-blue hover:underline"
                     onClick={() => navigate(`/documents/${other.id}`)}
                   >
-                    {other.documentId} v{other.versionMajor}.{other.versionMinor} – {other.title}
+                    {other.documentId} v{other.versionMajor}.{other.versionMinor} – {stripMarkdownFormatting(other.title)}
                   </button>
                 </li>
               );
@@ -622,7 +623,7 @@ export function DocumentDetail() {
               <option value="">Select document</option>
               {documentsForLink.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.documentId} – {d.title}
+                  {d.documentId} – {stripMarkdownFormatting(d.title)}
                 </option>
               ))}
             </select>
@@ -931,7 +932,7 @@ export function DocumentDetail() {
       >
         <div className="space-y-3">
           <p className="text-sm text-gray-300">
-            Permanently delete <strong>{doc.documentId}</strong> v{doc.versionMajor}.{doc.versionMinor} – {doc.title}? This cannot be undone.
+            Permanently delete <strong>{doc.documentId}</strong> v{doc.versionMajor}.{doc.versionMinor} – {stripMarkdownFormatting(doc.title)}? This cannot be undone.
           </p>
           {deleteError && <p className="text-sm text-compliance-red">{deleteError}</p>}
           <div className="flex gap-2 justify-end">

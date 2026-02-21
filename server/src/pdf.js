@@ -30,6 +30,17 @@ function esc(value) {
     .replaceAll("'", '&#39;');
 }
 
+/** Strip Markdown bold/italic so "**Title**" displays as "Title" in headers and cover */
+function stripMarkdownFormatting(text) {
+  if (!text || typeof text !== 'string') return '';
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    .trim();
+}
+
 function renderSignatureRows(signatures) {
   if (!signatures.length) {
     return `
@@ -366,7 +377,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     ${watermark(uncontrolled)}
     <div class="cover-main">
       <div class="sop-label">${esc(documentTypeLabel(document.documentType))}</div>
-      <div class="main-title">${esc(document.title)}</div>
+      <div class="main-title">${esc(stripMarkdownFormatting(document.title))}</div>
       <div class="main-id">${esc(document.documentId)}</div>
       <div class="main-version">Version ${esc(version)}</div>
       <div class="main-date">Effective Date: ${esc(effectiveDateText)}</div>
@@ -415,7 +426,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
 
 /** Build Puppeteer header template – compact padding to avoid excess space and content cutoff */
 function buildPdfHeaderTemplate({ document, version }) {
-  const title = esc(document.title);
+  const title = esc(stripMarkdownFormatting(document.title));
   const meta = `${esc(document.documentId)}/${esc(version)}`;
   const logoHtml = LOGO_DATA_URI
     ? `<img src="${LOGO_DATA_URI}" style="height: 7mm; width: auto; display: block; object-fit: contain;" alt="" />`

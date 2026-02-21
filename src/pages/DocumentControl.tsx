@@ -6,6 +6,7 @@ import { PageShell } from './PageShell';
 import type { Column } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/lib/api';
+import { stripMarkdownFormatting } from '@/lib/format';
 
 interface DocumentListItem {
   id: string;
@@ -85,7 +86,7 @@ export function DocumentControl() {
 
   const columns: Column<DocumentListItem>[] = [
     { key: 'documentId', header: 'Doc ID', width: '140px' },
-    { key: 'title', header: 'Title' },
+    { key: 'title', header: 'Title', render: (row) => stripMarkdownFormatting(row.title) },
     { key: 'documentType', header: 'Type', width: '140px' },
     {
       key: 'version',
