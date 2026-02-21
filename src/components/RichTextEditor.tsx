@@ -31,7 +31,7 @@ export function RichTextEditor({
     content: value || '',
     editorProps: {
       attributes: {
-        class: 'prose prose-invert max-w-none min-h-[120px] p-3 focus:outline-none',
+        class: 'prose prose-invert max-w-none min-h-[120px] p-3 focus:outline-none break-words',
       },
     },
   });
@@ -82,9 +82,10 @@ export function RichTextEditor({
     >
       <EditorContent editor={editor} />
       <style>{`
+        .ProseMirror { overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; }
         .ProseMirror p { margin: 0.25em 0; }
-        .ProseMirror table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
-        .ProseMirror th, .ProseMirror td { border: 1px solid var(--color-surface-border, #374151); padding: 6px 10px; text-align: left; }
+        .ProseMirror table { border-collapse: collapse; width: 100%; margin: 0.5em 0; table-layout: fixed; }
+        .ProseMirror th, .ProseMirror td { border: 1px solid var(--color-surface-border, #374151); padding: 6px 10px; text-align: left; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; }
         .ProseMirror th { background: rgba(255,255,255,0.06); font-weight: 600; }
         .ProseMirror-focused { outline: none; }
       `}</style>

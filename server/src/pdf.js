@@ -133,7 +133,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
 <head>
   <meta charset="UTF-8" />
   <style>
-    @page { size: A4; margin: 21mm 20mm 14mm 20mm; }
+    @page { size: A4; margin: 0.5in; }
     body {
       font-family: "Helvetica", "Arial", sans-serif;
       margin: 0;
@@ -147,7 +147,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       width: 210mm;
       min-height: 0;
       height: auto;
-      padding: 12mm;
+      padding: 0.5in;
       box-sizing: border-box;
       position: relative;
       display: flex;
@@ -235,16 +235,27 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     .main-id { font-size: 22pt; margin-bottom: 2mm; color: #000; }
     .main-version { font-size: 16pt; margin-bottom: 10mm; color: #000; }
     .main-date { font-size: 14pt; font-weight: bold; color: #000; }
-    .content { flex-grow: 1; font-size: 12pt; line-height: 1.5; color: #000; min-height: 0; }
+    .content {
+      flex-grow: 1;
+      font-size: 12pt;
+      line-height: 1.5;
+      color: #000;
+      min-height: 0;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-word;
+      max-width: 100%;
+    }
     .final-section { page-break-before: always; }
     .content h1, .content h2, .content h3 {
       font-size: 12pt; font-weight: bold; margin-top: 8mm; margin-bottom: 3mm; text-transform: uppercase;
     }
-    .content p { margin: 0 0 4mm 0; text-align: justify; }
+    .content p { margin: 0 0 4mm 0; text-align: justify; overflow-wrap: break-word; word-wrap: break-word; }
     .content h1, .content h2, .content h3 { page-break-after: avoid; }
     .content table { page-break-inside: avoid; }
-    table { width: 100%; border-collapse: collapse; margin-top: 5mm; }
-    th, td { border: 0.5pt solid #000; padding: 3mm; font-size: 9pt; text-align: left; }
+    .content li, .content ul, .content ol { overflow-wrap: break-word; word-wrap: break-word; }
+    table { width: 100%; border-collapse: collapse; margin-top: 5mm; table-layout: fixed; }
+    th, td { border: 0.5pt solid #000; padding: 3mm; font-size: 9pt; text-align: left; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; }
     th { background-color: #f0f0f0; font-weight: bold; }
     .footer {
       height: 10mm;
@@ -380,7 +391,7 @@ export async function generateDocumentPdf({ document, signatures, revisions, unc
       displayHeaderFooter: true,
       headerTemplate: buildPdfHeaderTemplate({ document, version }),
       footerTemplate: buildPdfFooterTemplate(),
-      margin: { top: '14mm', right: '15mm', bottom: '12mm', left: '15mm' },
+      margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' },
     });
     return pdf;
   } finally {
