@@ -3,6 +3,7 @@ node_modules/
 
 # Build
 # dist/ - commented out, we need to commit dist for Railway
+server/dist/
 *.local
 
 # Env
