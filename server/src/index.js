@@ -57,12 +57,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const distPath = join(__dirname, '../../dist');
 if (existsSync(distPath)) {
+  // Serve static assets
   app.use(express.static(distPath));
   // Serve index.html for all non-API routes (SPA routing)
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(join(distPath, 'index.html'));
+  // This must be last, after all API routes
+  app.get('*', (req, res, next) => {
+    // Skip API routes
+    if (req.path.startsWith('/api')) {
+      return next();
     }
+    res.sendFile(join(distPath, 'index.html'));
   });
 }
 
