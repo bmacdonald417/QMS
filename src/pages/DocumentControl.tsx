@@ -24,6 +24,8 @@ interface DocumentListItem {
     lastName: string;
     email: string;
   };
+  isCmmc?: boolean;
+  cmmcCode?: string;
 }
 
 const statusVariant: Record<string, 'default' | 'info' | 'success' | 'warning' | 'neutral' | 'danger'> = {
@@ -46,12 +48,14 @@ export function DocumentControl() {
   const [content, setContent] = useState('');
   const [error, setError] = useState('');
   const [suggestIdLoading, setSuggestIdLoading] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
 
   const fetchDocuments = async () => {
     if (!token) return;
     try {
       setLoading(true);
-      const data = await apiRequest<{ documents: DocumentListItem[] }>('/api/documents', { token });
+      const params = categoryFilter ? `?category=${encodeURIComponent(categoryFilter)}` : '';
+      const data = await apiRequest<{ documents: DocumentListItem[] }>(`/api/documents${params}`, { token });
       setDocuments(data.documents);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load documents');
@@ -62,7 +66,7 @@ export function DocumentControl() {
 
   useEffect(() => {
     fetchDocuments();
-  }, [token]);
+  }, [token, categoryFilter]);
 
   const fetchSuggestedDocumentId = async (type: string) => {
     if (!token) return;
@@ -112,12 +116,39 @@ export function DocumentControl() {
       primaryAction={{ label: 'New Document', onClick: () => setShowCreate(true) }}
     >
       {error && <p className="mb-3 text-sm text-compliance-red">{error}</p>}
+      
+      {/* Category Filter */}
+      <Card padding="md" className="mb-4">
+        <div className="flex items-center gap-4">
+          <label className="text-sm font-medium text-gray-300">Category:</label>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+          >
+            <option value="">All Documents</option>
+            <option value="CMMC Governance">CMMC Governance</option>
+          </select>
+          {categoryFilter && (
+            <Badge variant="info" className="text-xs">
+              {documents.length} document{documents.length !== 1 ? 's' : ''}
+            </Badge>
+          )}
+        </div>
+      </Card>
+      
       <Card padding="none">
         <Table
           columns={columns}
           data={documents}
           keyExtractor={(row) => row.id}
-          onRowClick={(row) => navigate(`/documents/${row.id}`)}
+          onRowClick={(row) => {
+            if (row.isCmmc && row.cmmcCode) {
+              navigate(`/cmmc/docs/${row.cmmcCode}`);
+            } else {
+              navigate(`/documents/${row.id}`);
+            }
+          }}
           emptyMessage="No documents. Create one to get started."
         />
       </Card>

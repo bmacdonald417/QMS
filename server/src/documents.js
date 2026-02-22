@@ -123,14 +123,24 @@ router.get('/templates/forms', requirePermission('document:view'), async (req, r
 });
 
 // GET /api/documents — list all (requires document:view). ?type=form-template → FORM, EFFECTIVE only
+// ?category=CMMC Governance → include CMMC documents
 router.get('/', requirePermission('document:view'), async (req, res) => {
   try {
     const typeFilter = typeof req.query.type === 'string' ? req.query.type.trim().toLowerCase() : '';
+    const categoryFilter = typeof req.query.category === 'string' ? req.query.category.trim() : '';
+    const includeCmmc = categoryFilter === 'CMMC Governance';
+    
     const where = {};
     if (typeFilter === 'form-template') {
       where.documentType = 'FORM';
       where.status = 'EFFECTIVE';
     }
+    
+    // If filtering by CMMC Governance, also filter regular documents by tag
+    if (includeCmmc) {
+      where.tags = { has: 'CMMC Governance' };
+    }
+    
     const documents = await prisma.document.findMany({
       where,
       include: {
@@ -140,7 +150,49 @@ router.get('/', requirePermission('document:view'), async (req, res) => {
         ? [{ documentId: 'asc' }, { versionMajor: 'desc' }, { versionMinor: 'desc' }]
         : { updatedAt: 'desc' },
     });
-    res.json({ documents });
+    
+    // If including CMMC, fetch and merge CMMC documents
+    let allDocuments = documents;
+    if (includeCmmc) {
+      const cmmcDocs = await prisma.cmmcDocument.findMany({
+        include: {
+          revisions: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+        orderBy: { code: 'asc' },
+      });
+      
+      // Transform CMMC documents to match DocumentListItem format
+      const cmmcTransformed = cmmcDocs.map((doc) => {
+        const latestRev = doc.revisions[0];
+        const versionParts = (latestRev?.revisionLabel || '1.0').split('.');
+        return {
+          id: doc.id,
+          documentId: doc.code,
+          title: doc.title,
+          documentType: doc.kind.toUpperCase().replace(/\s+/g, '_'),
+          versionMajor: parseInt(versionParts[0] || '1'], 10),
+          versionMinor: parseInt(versionParts[1] || '0', 10),
+          status: doc.status,
+          createdAt: doc.createdAt.toISOString(),
+          updatedAt: doc.updatedAt.toISOString(),
+          author: {
+            id: 'system',
+            firstName: 'System',
+            lastName: '',
+            email: 'system@qms',
+          },
+          isCmmc: true, // Flag to identify CMMC documents
+          cmmcCode: doc.code,
+        };
+      });
+      
+      allDocuments = [...documents, ...cmmcTransformed];
+    }
+    
+    res.json({ documents: allDocuments });
   } catch (err) {
     console.error('List documents error:', err);
     res.status(500).json({ error: 'Failed to list documents' });
