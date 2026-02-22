@@ -1,8 +1,5 @@
 import puppeteer from 'puppeteer';
-import { marked } from 'marked';
 import fs from 'node:fs';
-
-marked.setOptions({ gfm: true, breaks: true });
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -133,35 +130,7 @@ function sanitizeHtmlForPdf(html) {
     .replace(/\bwhite-space\s*=\s*["'][^"']*["']/gi, '');
 }
 
-/** Convert consecutive <p>- item</p> into proper <ul><li> */
-function convertParagraphsToBulletLists(html) {
-  if (!html || typeof html !== 'string') return html;
-  return html.replace(/(<p>\s*-\s*([\s\S]*?)<\/p>\s*)+/g, (match) => {
-    const items = [...match.matchAll(/<p>\s*-\s*([\s\S]*?)<\/p>/g)].map((m) => m[1].trim());
-    if (!items.length) return match;
-    return '<ul>' + items.map((item) => '<li>' + item + '</li>').join('') + '</ul>';
-  });
-}
-
-/** Convert numbered section paragraphs (1. Purpose, 4.1 Baseline) into headings */
-function convertNumberedSectionsToHeadings(html) {
-  if (!html || typeof html !== 'string') return html;
-  return html
-    .replace(/<p>(\d+\.\d+\s+[\s\S]*?)<\/p>/g, '<h4>$1</h4>')
-    .replace(/<p>(\d+\.\s+[\s\S]*?)<\/p>/g, '<h3>$1</h3>');
-}
-
-/** Convert HTML paragraphs with " - item" patterns into proper ul/li for correct alignment */
-function convertHtmlParagraphsToLists(html) {
-  if (!html || typeof html !== 'string') return html;
-  return html.replace(/<p>([\s\S]*?) - ([\s\S]+?)((?: - [\s\S]+?)+)<\/p>/g, (match, intro, first, rest) => {
-    const items = [first.trim(), ...(rest ? rest.split(/ - /).slice(1).map((s) => s.trim()).filter(Boolean) : [])];
-    const listHtml = '<ul><li>' + items.join('</li><li>') + '</li></ul>';
-    return intro.trim() ? '<p>' + intro.trim() + '</p>' + listHtml : listHtml;
-  });
-}
-
-/** Convert literal Markdown syntax (** and `) inside HTML to proper tags */
+/** Convert literal Markdown syntax (** and `) to proper HTML tags */
 function convertMarkdownSyntaxInHtml(html) {
   if (!html || typeof html !== 'string') return '';
   return html
@@ -170,40 +139,142 @@ function convertMarkdownSyntaxInHtml(html) {
     .replace(/\*([^*]+)\*/g, '<em>$1</em>');
 }
 
-/** Split single long <p> into multiple paragraphs on section/list boundaries */
-function splitFlatParagraph(html) {
-  const singleP = /^<p>([\s\S]*?)<\/p>\s*$/;
-  const m = html.trim().match(singleP);
-  if (!m) return html;
-  const inner = m[1];
-  if (inner.length <= 200) return html;
-  const parts = inner
-    .split(/(?=\d+\.\s|\*\*[^*]+\*\*|\n\s*-\s)/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (parts.length <= 1) return html;
-  return parts.map((p) => `<p>${p}</p>`).join('');
+/** Decode HTML entities in plain text */
+function decodeEntities(s) {
+  if (!s || typeof s !== 'string') return '';
+  return s
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+/** Split a single long line (no newlines) on section/list boundaries */
+function splitFlatLine(line) {
+  if (!line || line.length <= 100) return [line];
+  const parts = [];
+  const sectionSplit = line.split(/(?=\d+\.\d+\s|\d+\.\s)/);
+  for (const chunk of sectionSplit) {
+    const t = chunk.trim();
+    if (!t) continue;
+    const dashMatches = t.match(/\s+-\s+/g);
+    const dashCount = dashMatches ? dashMatches.length : 0;
+    if (dashCount >= 2) {
+      const listParts = t.split(/\s+-\s+/);
+      const intro = listParts[0].trim();
+      if (intro) parts.push(intro);
+      for (let i = 1; i < listParts.length; i++) {
+        const item = listParts[i].trim();
+        if (item) parts.push('- ' + item);
+      }
+    } else if (dashCount === 1) {
+      const [intro, firstItem] = t.split(/\s+-\s+/, 2);
+      if (intro.trim()) parts.push(intro.trim());
+      if (firstItem?.trim()) parts.push('- ' + firstItem.trim());
+    } else {
+      parts.push(t);
+    }
+  }
+  return parts.length > 1 ? parts : [line];
+}
+
+/** Extract content to array of lines. One line in = one line out. */
+function contentToLines(raw) {
+  const trimmed = (raw || '').trim();
+  if (!trimmed) return [];
+
+  const isHtml = trimmed.startsWith('<') && trimmed.includes('>');
+  let lines;
+
+  if (isHtml) {
+    const sanitized = sanitizeHtmlForPdf(trimmed);
+    const withNewlines = sanitized
+      .replace(/<\/p>\s*/gi, '\n')
+      .replace(/<\/li>\s*/gi, '\n')
+      .replace(/<\/h[1-6]>\s*/gi, '\n')
+      .replace(/<br\s*\/?>\s*/gi, '\n')
+      .replace(/<\/div>\s*/gi, '\n');
+    const stripped = withNewlines.replace(/<[^>]+>/g, ' ').trim();
+    const decoded = decodeEntities(stripped);
+    lines = decoded.split(/\n/).map((l) => l.replace(/\s+/g, ' ').trim());
+    const expanded = [];
+    for (const line of lines) {
+      if (line.length > 100 && !line.includes('\n')) {
+        expanded.push(...splitFlatLine(line));
+      } else {
+        expanded.push(line);
+      }
+    }
+    lines = expanded;
+  } else {
+    lines = trimmed.split(/\r?\n/).map((l) => l.trim());
+    const expanded = [];
+    for (const line of lines) {
+      if (line.length > 100 && !line.includes('\n')) {
+        expanded.push(...splitFlatLine(line));
+      } else {
+        expanded.push(line);
+      }
+    }
+    lines = expanded;
+  }
+
+  return lines;
+}
+
+/** Render lines to HTML. Each line becomes a block (p, h3, h4, or li). */
+function linesToHtml(lines) {
+  if (!lines || !lines.length) return '';
+
+  const esc = (s) =>
+    String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+  const out = [];
+  let listItems = [];
+
+  function flushList() {
+    if (listItems.length) {
+      out.push('<ul>' + listItems.map((item) => '<li>' + convertMarkdownSyntaxInHtml(esc(item)) + '</li>').join('') + '</ul>');
+      listItems = [];
+    }
+  }
+
+  for (const line of lines) {
+    if (/^\s*-\s+/.test(line)) {
+      listItems.push(line.replace(/^\s*-\s+/, '').trim());
+      continue;
+    }
+    flushList();
+    if (!line) {
+      out.push('<p>&nbsp;</p>');
+      continue;
+    }
+    const formatted = convertMarkdownSyntaxInHtml(esc(line));
+    if (/^\d+\.\d+\s/.test(line)) {
+      out.push('<h4>' + formatted + '</h4>');
+    } else if (/^\d+\.\s/.test(line)) {
+      out.push('<h3>' + formatted + '</h3>');
+    } else {
+      out.push('<p>' + formatted + '</p>');
+    }
+  }
+  flushList();
+
+  return out.join('');
 }
 
 function buildHtml({ document, signatures, revisions, uncontrolled }) {
   const version = `${document.versionMajor}.${document.versionMinor}`;
   const raw = (document.content || '').trim();
-  const isHtml = raw.startsWith('<') && raw.includes('>');
-
-  let contentHtml;
-  if (isHtml) {
-    let html = sanitizeHtmlForPdf(raw);
-    html = splitFlatParagraph(html);
-    html = convertParagraphsToBulletLists(html);
-    html = convertNumberedSectionsToHeadings(html);
-    html = convertHtmlParagraphsToLists(html);
-    contentHtml = convertMarkdownSyntaxInHtml(html);
-  } else {
-    let html = marked.parse(raw);
-    html = convertParagraphsToBulletLists(html);
-    html = convertNumberedSectionsToHeadings(html);
-    contentHtml = convertMarkdownSyntaxInHtml(html);
-  }  
+  const lines = contentToLines(raw);
+  const contentHtml = linesToHtml(lines);  
   const effectiveDateText = document.effectiveDate
     ? new Date(document.effectiveDate).toLocaleDateString()
     : 'Pending Release';

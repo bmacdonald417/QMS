@@ -36,23 +36,28 @@ export function RichTextEditor({
       handlePaste: (view, event) => {
         const text = event.clipboardData?.getData('text/plain');
         const html = event.clipboardData?.getData('text/html');
+        const textLines = text ? text.split(/\r?\n/) : [];
+
+        const esc = (s: string) =>
+          s
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+
+        const usePlainText = text && text.trim().length > 0 && (textLines.length > 1 || !html || html.trim().length === 0);
+        if (usePlainText) {
+          event.preventDefault();
+          const htmlContent = textLines
+            .map((line) => `<p>${esc(line.trim()) || '&nbsp;'}</p>`)
+            .join('');
+          editorRef.current?.chain().focus().insertContent(htmlContent, { parseOptions: { preserveWhitespace: 'full' } }).run();
+          return true;
+        }
         if (html && html.trim().length > 0) {
           event.preventDefault();
           editorRef.current?.chain().focus().insertContent(html, { parseOptions: { preserveWhitespace: 'full' } }).run();
-          return true;
-        }
-        if (text && text.trim().length > 0) {
-          event.preventDefault();
-          const esc = (s: string) =>
-            s
-              .replace(/&/g, '&amp;')
-              .replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;')
-              .replace(/"/g, '&quot;')
-              .replace(/'/g, '&#039;');
-          const lines = text.split('\n').filter((line) => line.trim().length > 0);
-          const htmlContent = lines.map((line) => `<p>${esc(line || '') || '&nbsp;'}</p>`).join('');
-          editorRef.current?.chain().focus().insertContent(htmlContent, { parseOptions: { preserveWhitespace: 'full' } }).run();
           return true;
         }
         return false;
