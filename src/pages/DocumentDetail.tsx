@@ -8,7 +8,7 @@ import { GovernanceApprovalPanel } from '@/components/modules/compliance/Governa
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest, apiUrl } from '@/lib/api';
 import { stripMarkdownFormatting } from '@/lib/format';
-import { DOCUMENT_TYPES } from '@/lib/documentTypes';
+import { useDocumentTypes } from '@/hooks/useDocumentTypes';
 
 interface UserRef {
   id: string;
@@ -106,6 +106,7 @@ export function DocumentDetail() {
   const { id } = useParams<{ id: string }>();
   const { token, user } = useAuth();
   const navigate = useNavigate();
+  const documentTypes = useDocumentTypes();
   const [doc, setDoc] = useState<DocumentDetailModel | null>(null);
   const [users, setUsers] = useState<UserRef[]>([]);
   const [loading, setLoading] = useState(true);
@@ -367,7 +368,7 @@ export function DocumentDetail() {
                 onChange={(e) => setDocumentType(e.target.value)}
                 className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
               >
-                {DOCUMENT_TYPES.map(({ value, label }) => (
+                {documentTypes.map(({ value, label }) => (
                   <option key={value} value={value}>{label}</option>
                 ))}
               </select>

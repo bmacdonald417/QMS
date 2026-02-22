@@ -24,6 +24,20 @@ const DOC_TYPE_PREFIX = {
   OTHER: 'DOC',
 };
 
+/** Document types with display labels for dropdowns. Single source of truth for API. */
+const DOCUMENT_TYPES = [
+  { value: 'SOP', label: 'Standard Operating Procedure' },
+  { value: 'POLICY', label: 'Policy' },
+  { value: 'WORK_INSTRUCTION', label: 'Work Instruction Process' },
+  { value: 'FORM', label: 'Form' },
+  { value: 'IT_SYSTEM', label: 'IT & System' },
+  { value: 'SECURITY', label: 'Security' },
+  { value: 'AUDIT_ASSESSMENT', label: 'Audit & Assessment' },
+  { value: 'INCIDENT_RESPONSE_PLAN', label: 'Incident Response Plan' },
+  { value: 'CONFIGURATION_MANAGEMENT_PLAN', label: 'Configuration Management Plan' },
+  { value: 'OTHER', label: 'Other' },
+];
+
 function normalizeDocumentType(value) {
   if (!value || typeof value !== 'string') return null;
   const normalized = value.trim().toUpperCase().replaceAll(' ', '_').replaceAll('-', '_');
@@ -107,6 +121,11 @@ export async function generateDocumentId(documentType) {
   const next = String(max + 1).padStart(3, '0');
   return `MAC-${prefix}-${next}`;
 }
+
+// GET /api/documents/types — document types for dropdowns (avoids frontend cache issues)
+router.get('/types', requirePermission('document:view'), (req, res) => {
+  res.json({ types: DOCUMENT_TYPES });
+});
 
 // GET /api/documents/suggest-id?documentType=SOP — next available document ID for type
 router.get('/suggest-id', requirePermission('document:view'), async (req, res) => {

@@ -7,7 +7,7 @@ import type { Column } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/lib/api';
 import { stripMarkdownFormatting } from '@/lib/format';
-import { DOCUMENT_TYPES } from '@/lib/documentTypes';
+import { useDocumentTypes } from '@/hooks/useDocumentTypes';
 import { Search, Filter, X } from 'lucide-react';
 
 interface DocumentListItem {
@@ -40,6 +40,7 @@ const statusVariant: Record<string, 'default' | 'info' | 'success' | 'warning' |
 export function DocumentControl() {
   const navigate = useNavigate();
   const { token } = useAuth();
+  const documentTypes = useDocumentTypes();
   const [documents, setDocuments] = useState<DocumentListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -231,7 +232,7 @@ export function DocumentControl() {
                   className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
                 >
                   <option value="">All Types</option>
-                  {DOCUMENT_TYPES.map(({ value, label }) => (
+                  {documentTypes.map(({ value, label }) => (
                     <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
@@ -338,7 +339,7 @@ export function DocumentControl() {
               onChange={(e) => setDocumentType(e.target.value)}
               className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
             >
-              {DOCUMENT_TYPES.map(({ value, label }) => (
+              {documentTypes.map(({ value, label }) => (
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
