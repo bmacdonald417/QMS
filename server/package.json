@@ -11,7 +11,8 @@
     "db:seed": "node src/seed.js",
     "db:studio": "prisma studio",
     "db:migrate-roles": "node src/scripts/migrateRoles.js",
-    "db:migrate-plain-text": "node scripts/migrate-plain-text-docs.js"
+    "db:migrate-plain-text": "node scripts/migrate-plain-text-docs.js",
+    "db:add-document-types": "node scripts/add-document-types-enum.js"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",
