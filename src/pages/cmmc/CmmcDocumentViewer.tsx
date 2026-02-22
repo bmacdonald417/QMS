@@ -127,13 +127,11 @@ export function CmmcDocumentViewer() {
     <PageShell
       title={document.title}
       subtitle={document.code}
-      backLink="/cmmc"
-      primaryAction={
-        <Button variant="ghost" onClick={() => navigate(`/cmmc/docs/${code}/evidence`)}>
-          <FileText className="w-4 h-4 mr-2" />
-          Evidence
-        </Button>
-      }
+      backLink={{ label: 'Back to CMMC Documents', href: '/cmmc' }}
+      primaryAction={{
+        label: 'Evidence',
+        onClick: () => navigate(`/cmmc/docs/${code}/evidence`),
+      }}
       sidePanel={
         <SignPanel
           documentCode={document.code}

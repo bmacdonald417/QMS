@@ -46,8 +46,8 @@ export function Callout({ type = 'info', title, children }: CalloutProps) {
       <div className="flex gap-3">
         <Icon className={`w-5 h-5 ${config.iconColor} flex-shrink-0 mt-0.5`} />
         <div className="flex-1">
-          {title && <div className={`font-semibold ${config.text} mb-2`}>{title}</div>
-          <div className={config.text}>{children}</div>}
+          {title && <div className={`font-semibold ${config.text} mb-2`}>{title}</div>}
+          <div className={config.text}>{children}</div>
         </div>
       </div>
     </div>

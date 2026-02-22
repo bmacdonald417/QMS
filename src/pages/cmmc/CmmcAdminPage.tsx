@@ -132,12 +132,16 @@ export function CmmcAdminPage() {
         {/* Documents List */}
         <Card>
           <h3 className="text-lg font-semibold text-white mb-4">Documents</h3>
-          <Table
-            data={documents}
-            columns={columns}
-            loading={loading}
-            emptyMessage="No documents found"
-          />
+          {loading ? (
+            <div className="text-center py-12 text-gray-400">Loading...</div>
+          ) : (
+            <Table
+              data={documents}
+              columns={columns}
+              keyExtractor={(doc) => doc.id}
+              emptyMessage="No documents found"
+            />
+          )}
         </Card>
       </div>
     </PageShell>

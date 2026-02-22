@@ -116,7 +116,7 @@ export function CmmcEvidencePage() {
     <PageShell
       title="Evidence"
       subtitle={`${evidence.document.code} - ${evidence.document.title}`}
-      backLink={`/cmmc/docs/${code}`}
+      backLink={{ label: 'Back to Document', href: `/cmmc/docs/${code}` }}
     >
       <div className="space-y-6">
         {/* Document Control */}
@@ -247,7 +247,11 @@ export function CmmcEvidencePage() {
         <Card>
           <h3 className="text-lg font-semibold text-white mb-4">Signature History</h3>
           {evidence.signatures.length > 0 ? (
-            <Table data={evidence.signatures} columns={signatureColumns} />
+            <Table
+              data={evidence.signatures}
+              columns={signatureColumns}
+              keyExtractor={(sig) => sig.id}
+            />
           ) : (
             <div className="text-gray-400 text-center py-8">No signatures yet</div>
           )}

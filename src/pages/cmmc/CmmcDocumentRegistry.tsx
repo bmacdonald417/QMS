@@ -239,12 +239,16 @@ export function CmmcDocumentRegistry() {
         <div className="flex-1">
           {viewMode === 'list' ? (
             <Card>
-              <Table
-                data={filteredDocuments}
-                columns={columns}
-                loading={loading}
-                emptyMessage="No documents found"
-              />
+              {loading ? (
+                <div className="text-center py-12 text-gray-400">Loading...</div>
+              ) : (
+                <Table
+                  data={filteredDocuments}
+                  columns={columns}
+                  keyExtractor={(doc) => doc.code}
+                  emptyMessage="No documents found"
+                />
+              )}
             </Card>
           ) : (
             <div className="space-y-6">
