@@ -1,4 +1,9 @@
 import express from 'express';
+import multer from 'multer';
+import path from 'node:path';
+import fs from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import AdmZip from 'adm-zip';
 import { prisma } from './db.js';
 import { authMiddleware, requirePermission, requireRoles } from './auth.js';
 import { createAuditLog } from './audit.js';
@@ -13,6 +18,38 @@ import {
 } from './lib/cmmc/hashing.js';
 
 const router = express.Router();
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
+const CMMC_BUNDLE_DIR = path.join(UPLOAD_DIR, 'cmmc-bundles');
+
+// Ensure directories exist
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+if (!fs.existsSync(CMMC_BUNDLE_DIR)) {
+  fs.mkdirSync(CMMC_BUNDLE_DIR, { recursive: true });
+}
+
+// Multer configuration for zip upload
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, CMMC_BUNDLE_DIR);
+  },
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    cb(null, `cmmc-bundle-${timestamp}.zip`);
+  },
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/zip' || file.mimetype === 'application/x-zip-compressed' || file.originalname.endsWith('.zip')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only ZIP files are allowed'));
+    }
+  },
+});
 
 /**
  * GET /api/cmmc/documents

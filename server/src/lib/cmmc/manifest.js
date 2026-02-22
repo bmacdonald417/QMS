@@ -31,22 +31,38 @@ const ManifestSchema = z.object({
 
 /**
  * Get the path to the CMMC bundle directory
- * Defaults to docs/cmmc-extracted relative to project root
+ * Priority:
+ * 1. Uploaded bundle path (from .current-bundle-path file)
+ * 2. CMMC_BUNDLE_PATH environment variable
+ * 3. Default locations (docs/cmmc-extracted)
  */
 export function getCmmcBundlePath() {
+  // 1. Check for uploaded bundle path
+  const UPLOAD_DIR = process.env.UPLOAD_DIR || join(process.cwd(), 'uploads');
+  const CMMC_BUNDLE_DIR = join(UPLOAD_DIR, 'cmmc-bundles');
+  const configPath = join(CMMC_BUNDLE_DIR, '.current-bundle-path');
+  
+  if (existsSync(configPath)) {
+    const uploadedPath = readFileSync(configPath, 'utf-8').trim();
+    if (existsSync(uploadedPath)) {
+      return uploadedPath;
+    }
+  }
+
+  // 2. Check environment variable
   const customPath = process.env.CMMC_BUNDLE_PATH;
-  if (customPath) {
+  if (customPath && existsSync(customPath)) {
     return customPath;
   }
   
-  // Try multiple possible locations
-  // 1. Relative to current working directory (Railway deployment)
+  // 3. Try multiple possible locations
+  // Relative to current working directory (Railway deployment)
   const cwdPath = join(process.cwd(), 'docs', 'cmmc-extracted');
   
-  // 2. Relative to server directory (if cwd is server/)
+  // Relative to server directory (if cwd is server/)
   const serverPath = join(process.cwd(), '..', 'docs', 'cmmc-extracted');
   
-  // 3. Relative to lib file location (development)
+  // Relative to lib file location (development)
   const libPath = join(__dirname, '../../../..', 'docs', 'cmmc-extracted');
   
   // Check which path exists
