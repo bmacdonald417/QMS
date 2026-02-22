@@ -1,6 +1,9 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { existsSync } from 'node:fs';
 import authRoutes, { authMiddleware } from './auth.js';
 import documentRoutes from './documents.js';
 import notificationRoutes from './notifications.js';
@@ -49,8 +52,25 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true });
 });
 
+// Serve static frontend files if they exist (for Railway deployment)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const distPath = join(__dirname, '../../dist');
+if (existsSync(distPath)) {
+  app.use(express.static(distPath));
+  // Serve index.html for all non-API routes (SPA routing)
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(join(distPath, 'index.html'));
+    }
+  });
+}
+
 startPeriodicReviewScheduler();
 
 app.listen(PORT, () => {
   console.log(`QMS API listening on http://localhost:${PORT}`);
+  if (existsSync(distPath)) {
+    console.log(`Serving frontend from ${distPath}`);
+  }
 });
