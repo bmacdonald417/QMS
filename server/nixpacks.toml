@@ -6,7 +6,7 @@ cmds = []
 
 [phases.build]
 cmds = [
-  "cd .. && npm ci && npm run build",
+  "cd .. && npm install && npm run build",
   "npm ci",
   "npx prisma generate"
 ]
