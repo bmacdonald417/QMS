@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { existsSync } from 'node:fs';
 import authRoutes, { authMiddleware } from './auth.js';
-import documentRoutes from './documents.js';
+import documentRoutes, { DOCUMENT_TYPES } from './documents.js';
 import notificationRoutes from './notifications.js';
 import taskRoutes from './tasks.js';
 import userRoutes from './users.js';
@@ -32,6 +32,10 @@ app.use(requestIdMiddleware);
 app.use('/api/auth', authRoutes);
 app.get('/api/auth/me', authMiddleware, (req, res) => {
   res.json({ user: req.user });
+});
+app.get('/api/documents/types', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache');
+  res.json({ types: DOCUMENT_TYPES });
 });
 app.use('/api/documents', authMiddleware, documentRoutes);
 app.use('/api/notifications', authMiddleware, notificationRoutes);
