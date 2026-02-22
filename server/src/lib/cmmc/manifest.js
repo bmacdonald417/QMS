@@ -32,30 +32,17 @@ const ManifestSchema = z.object({
 /**
  * Get the path to the CMMC bundle directory
  * Priority:
- * 1. Uploaded bundle path (from .current-bundle-path file)
- * 2. CMMC_BUNDLE_PATH environment variable
- * 3. Default locations (docs/cmmc-extracted)
+ * 1. CMMC_BUNDLE_PATH environment variable
+ * 2. Default locations (docs/cmmc-extracted)
  */
 export function getCmmcBundlePath() {
-  // 1. Check for uploaded bundle path
-  const UPLOAD_DIR = process.env.UPLOAD_DIR || join(process.cwd(), 'uploads');
-  const CMMC_BUNDLE_DIR = join(UPLOAD_DIR, 'cmmc-bundles');
-  const configPath = join(CMMC_BUNDLE_DIR, '.current-bundle-path');
-  
-  if (existsSync(configPath)) {
-    const uploadedPath = readFileSync(configPath, 'utf-8').trim();
-    if (existsSync(uploadedPath)) {
-      return uploadedPath;
-    }
-  }
-
-  // 2. Check environment variable
+  // 1. Check environment variable
   const customPath = process.env.CMMC_BUNDLE_PATH;
   if (customPath && existsSync(customPath)) {
     return customPath;
   }
   
-  // 3. Try multiple possible locations
+  // 2. Try multiple possible locations
   // Relative to current working directory (Railway deployment)
   const cwdPath = join(process.cwd(), 'docs', 'cmmc-extracted');
   
@@ -76,10 +63,9 @@ export function getCmmcBundlePath() {
     return libPath;
   }
   
-  // Default to cwd path (most common in Railway)
-  // Log warning if path doesn't exist
-  console.warn(`CMMC bundle path not found. Tried: ${cwdPath}, ${serverPath}, ${libPath}. Using: ${cwdPath}`);
-  return cwdPath;
+  // Default to lib path (development - most common)
+  console.warn(`CMMC bundle path not found. Tried: ${cwdPath}, ${serverPath}, ${libPath}. Using: ${libPath}`);
+  return libPath;
 }
 
 /**
