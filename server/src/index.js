@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import authRoutes, { authMiddleware } from './auth.js';
 import documentRoutes, { DOCUMENT_TYPES } from './documents.js';
 import notificationRoutes from './notifications.js';
@@ -78,27 +78,23 @@ for (const path of possibleDistPaths) {
 }
 
 if (distPath) {
-  // Serve static assets (no cache for index.html so users get latest build)
-  app.use(express.static(distPath, {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith('index.html')) {
-        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
-      }
-    },
-  }));
+  // Serve static assets (index: false so our handler injects document types into index.html)
+  app.use(express.static(distPath, { index: false }));
   // Serve index.html for all non-API routes (SPA routing)
-  // This must be last, after all API routes
+  // Inject document types into HTML so dropdown always has correct options (avoids JS cache issues)
   app.get('*', (req, res, next) => {
-    // Skip API routes
-    if (req.path.startsWith('/api')) {
-      return next();
-    }
+    if (req.path.startsWith('/api')) return next();
     const indexPath = join(distPath, 'index.html');
-    if (existsSync(indexPath)) {
+    if (!existsSync(indexPath)) return next();
+    try {
+      let html = readFileSync(indexPath, 'utf8');
+      const script = `<script>window.__DOCUMENT_TYPES__=${JSON.stringify(DOCUMENT_TYPES)};</script>`;
+      html = html.replace('</head>', `${script}</head>`);
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+      res.type('html').send(html);
+    } catch (err) {
+      console.error('Error serving index.html:', err);
       res.sendFile(indexPath);
-    } else {
-      next();
     }
   });
 } else {
