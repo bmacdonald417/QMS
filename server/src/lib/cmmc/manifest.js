@@ -43,21 +43,27 @@ export function getCmmcBundlePath() {
   }
   
   // 2. Try multiple possible locations
+  // In server directory (Railway deployment - root is server/)
+  const serverPath = join(process.cwd(), 'docs', 'cmmc-extracted');
+  
   // Relative to current working directory (Railway deployment)
   const cwdPath = join(process.cwd(), 'docs', 'cmmc-extracted');
   
   // Relative to server directory (if cwd is server/)
-  const serverPath = join(process.cwd(), '..', 'docs', 'cmmc-extracted');
+  const parentPath = join(process.cwd(), '..', 'docs', 'cmmc-extracted');
   
   // Relative to lib file location (development)
   const libPath = join(__dirname, '../../../..', 'docs', 'cmmc-extracted');
   
-  // Check which path exists
+  // Check which path exists (prioritize server/ path for Railway)
+  if (existsSync(serverPath)) {
+    return serverPath;
+  }
   if (existsSync(cwdPath)) {
     return cwdPath;
   }
-  if (existsSync(serverPath)) {
-    return serverPath;
+  if (existsSync(parentPath)) {
+    return parentPath;
   }
   if (existsSync(libPath)) {
     return libPath;
