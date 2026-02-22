@@ -59,13 +59,14 @@ app.get('/api/health', (req, res) => {
 // Serve static frontend files if they exist (for Railway deployment)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-// Try multiple possible paths for dist folder (prefer project root dist, NOT server/dist)
+// Try multiple possible paths for dist folder
+// Railway runs "cd server && npm start" so process.cwd()=server/; dist must be in server/dist
 const possibleDistPaths = [
-  join(__dirname, '../../dist'), // From server/src/ to project root (primary)
+  join(process.cwd(), 'dist'), // server/dist - primary for Railway
+  join(__dirname, '../../dist'), // From server/src/ to project root
   join(process.cwd(), '../dist'), // From server/ to project root
-  '/app/dist', // Railway: project root
-  '/app/../dist', // Railway from server/ to root
-  join(process.cwd(), 'dist'), // server/dist - last resort (often stale)
+  '/app/dist',
+  '/app/server/dist',
 ];
 
 let distPath = null;
