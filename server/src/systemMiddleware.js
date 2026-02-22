@@ -58,7 +58,14 @@ export const systemSensitiveLimiter = rateLimit({
   max: 30,
   message: { error: 'Too many requests. Try again later.' },
   standardHeaders: true,
-  keyGenerator: (req) => req.user?.id || req.ip || 'anonymous',
+  keyGenerator: (req) => {
+    if (req.user?.id) {
+      return req.user.id;
+    }
+    // Use ipKeyGenerator helper for IPv6 support
+    const { ipKeyGenerator } = rateLimit;
+    return ipKeyGenerator(req) || 'anonymous';
+  },
 });
 
 /**
