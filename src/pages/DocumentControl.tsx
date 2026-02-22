@@ -7,6 +7,7 @@ import type { Column } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/lib/api';
 import { stripMarkdownFormatting } from '@/lib/format';
+import { DOCUMENT_TYPES } from '@/lib/documentTypes';
 import { Search, Filter, X } from 'lucide-react';
 
 interface DocumentListItem {
@@ -229,11 +230,9 @@ export function DocumentControl() {
                   className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
                 >
                   <option value="">All Types</option>
-                  <option value="SOP">SOP</option>
-                  <option value="POLICY">Policy</option>
-                  <option value="WORK_INSTRUCTION">Work Instruction</option>
-                  <option value="FORM">Form</option>
-                  <option value="OTHER">Other</option>
+                  {DOCUMENT_TYPES.map(({ value, label }) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
                 </select>
               </div>
 
@@ -331,16 +330,9 @@ export function DocumentControl() {
               onChange={(e) => setDocumentType(e.target.value)}
               className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
             >
-              <option value="SOP">Standard Operating Procedure</option>
-              <option value="POLICY">Policy</option>
-              <option value="WORK_INSTRUCTION">Work Instruction Process</option>
-              <option value="FORM">Form</option>
-              <option value="IT_SYSTEM">IT & System</option>
-              <option value="SECURITY">Security</option>
-              <option value="AUDIT_ASSESSMENT">Audit & Assessment</option>
-              <option value="INCIDENT_RESPONSE_PLAN">Incident Response Plan</option>
-              <option value="CONFIGURATION_MANAGEMENT_PLAN">Configuration Management Plan</option>
-              <option value="OTHER">Other</option>
+              {DOCUMENT_TYPES.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
             </select>
           </div>
           <div>
