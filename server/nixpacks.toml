@@ -2,13 +2,12 @@
 nixPkgs = ["nodejs_18", "npm-9_x"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = []
 
 [phases.build]
 cmds = [
-  "cd .. && npm install",
-  "cd .. && npm run build",
-  "npm install",
+  "cd .. && npm ci && npm run build",
+  "npm ci",
   "npx prisma generate"
 ]
 
