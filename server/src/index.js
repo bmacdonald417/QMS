@@ -74,8 +74,14 @@ for (const path of possibleDistPaths) {
 }
 
 if (distPath) {
-  // Serve static assets
-  app.use(express.static(distPath));
+  // Serve static assets (no cache for index.html so users get latest build)
+  app.use(express.static(distPath, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('index.html')) {
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+      }
+    },
+  }));
   // Serve index.html for all non-API routes (SPA routing)
   // This must be last, after all API routes
   app.get('*', (req, res, next) => {
@@ -85,6 +91,7 @@ if (distPath) {
     }
     const indexPath = join(distPath, 'index.html');
     if (existsSync(indexPath)) {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
       res.sendFile(indexPath);
     } else {
       next();
