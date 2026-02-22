@@ -91,7 +91,19 @@ export function DocumentControl() {
   const columns: Column<DocumentListItem>[] = [
     { key: 'documentId', header: 'Doc ID', width: '140px' },
     { key: 'title', header: 'Title', render: (row) => stripMarkdownFormatting(row.title) },
-    { key: 'documentType', header: 'Type', width: '140px' },
+    {
+      key: 'documentType',
+      header: 'Type',
+      width: '140px',
+      render: (row) => (
+        <div className="flex items-center gap-2">
+          <span>{row.documentType}</span>
+          {row.isCmmc && (
+            <Badge variant="info" className="text-xs">CMMC</Badge>
+          )}
+        </div>
+      ),
+    },
     {
       key: 'version',
       header: 'Version',
