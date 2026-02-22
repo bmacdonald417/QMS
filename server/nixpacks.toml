@@ -6,8 +6,8 @@ cmds = []
 
 [phases.build]
 cmds = [
-  "cd .. && npm cache clean --force && rm -rf node_modules .npm && npm install && npm run build",
-  "npm cache clean --force && rm -rf node_modules .npm && npm ci",
+  "cd .. && (rm -rf node_modules .npm || true) && npm install && npm run build",
+  "(rm -rf node_modules .npm || true) && npm install",
   "npx prisma generate"
 ]
 
