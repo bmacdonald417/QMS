@@ -351,18 +351,6 @@ export function DocumentControl() {
             </select>
           </div>
           <div>
-            <Input
-              label="Document ID"
-              value={documentId}
-              onChange={(e) => setDocumentId(e.target.value)}
-              placeholder={suggestIdLoading ? 'Loading suggestion…' : 'e.g. MAC-SOP-001'}
-              disabled={suggestIdLoading}
-            />
-            <p className="mt-1 text-xs text-gray-400">
-              Suggested when type is selected; you can edit to use a different ID.
-            </p>
-          </div>
-          <div>
             <label className="label-caps block mb-1.5">Tags</label>
             <div className="flex flex-wrap items-center gap-2">
               <Input
@@ -391,6 +379,18 @@ export function DocumentControl() {
             </div>
             <p className="mt-1 text-xs text-gray-400">
               Enter comma-separated tags or use the button to add the CMMC tag.
+            </p>
+          </div>
+          <div>
+            <Input
+              label="Document ID"
+              value={documentId}
+              onChange={(e) => setDocumentId(e.target.value)}
+              placeholder={suggestIdLoading ? 'Loading suggestion…' : 'e.g. MAC-SOP-001'}
+              disabled={suggestIdLoading}
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              Suggested when type is selected; you can edit to use a different ID.
             </p>
           </div>
           <div>
