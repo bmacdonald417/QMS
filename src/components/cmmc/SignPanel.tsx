@@ -45,6 +45,14 @@ export function SignPanel({
     return signatures.some((sig) => sig.user.email === user.email);
   }, [signatures, user]);
 
+  // Debug logging
+  console.log('SignPanel Debug:', {
+    status,
+    latestRevision,
+    userHasSigned,
+    canSign: status !== 'RETIRED' && latestRevision && !userHasSigned,
+  });
+
   const handleSign = async (data: {
     method: 'TYPED' | 'DRAWN' | 'CLICKWRAP';
     role: 'APPROVER' | 'ACKNOWLEDGER';
@@ -72,31 +80,49 @@ export function SignPanel({
   };
 
   // Allow signing if document is not retired, has a revision, and user hasn't signed yet
-  const canSign = status !== 'RETIRED' && latestRevision !== null && latestRevision !== undefined && !userHasSigned;
+  // Also allow if revision exists but signingHash is null (needs to be computed)
+  const hasRevision = latestRevision && latestRevision.id;
+  const canSign = status !== 'RETIRED' && hasRevision && !userHasSigned;
 
   return (
-    <Card variant="bordered" padding="md" className="sticky top-4">
-      <h3 className="text-sm font-semibold text-gray-300 mb-4">Signing</h3>
+    <Card variant="bordered" padding="lg" className="sticky top-4 bg-surface-elevated">
+      <div className="flex items-center gap-2 mb-6">
+        <PenTool className="w-5 h-5 text-mactech-blue" />
+        <h3 className="text-lg font-semibold text-white">Sign Document</h3>
+      </div>
 
       {canSign ? (
         <div className="space-y-4">
+          <div className="p-4 bg-surface-overlay rounded-lg border border-surface-border">
+            <p className="text-sm text-gray-300 mb-2">
+              Sign this document to acknowledge your review and approval.
+            </p>
+            <p className="text-xs text-gray-400">
+              Your signature will be cryptographically bound to this document version.
+            </p>
+          </div>
           <Button
             variant="primary"
+            size="lg"
             className="w-full"
             onClick={() => setIsModalOpen(true)}
             disabled={signing}
           >
-            <PenTool className="w-4 h-4 mr-2" />
-            Sign Document
+            <PenTool className="w-5 h-5 mr-2" />
+            {signing ? 'Signing...' : 'Sign Document'}
           </Button>
         </div>
       ) : (
-        <div className="text-sm text-gray-400">
-          {status === 'RETIRED' 
-            ? 'Document is retired' 
-            : userHasSigned 
-            ? 'You have already signed this document'
-            : 'No revision available for signing'}
+        <div className="p-4 bg-surface-overlay rounded-lg border border-surface-border">
+          <div className="text-sm text-gray-400">
+            {status === 'RETIRED' 
+              ? '⚠️ Document is retired and cannot be signed' 
+              : userHasSigned 
+              ? '✅ You have already signed this document'
+              : !hasRevision
+              ? '⚠️ No revision available for signing. Please sync documents first.'
+              : '⚠️ Unable to sign at this time'}
+          </div>
         </div>
       )}
 
@@ -110,23 +136,23 @@ export function SignPanel({
       )}
 
       {signatures.length > 0 && (
-        <div className="mt-6">
-          <h4 className="text-xs font-semibold text-gray-400 mb-3">Signature History</h4>
-          <div className="space-y-3">
+        <div className="mt-8 pt-6 border-t border-surface-border">
+          <h4 className="text-sm font-semibold text-gray-300 mb-4">Signature History</h4>
+          <div className="space-y-4">
             {signatures.map((sig) => (
-              <div key={sig.id} className="text-sm">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-white font-medium">
+              <div key={sig.id} className="p-3 bg-surface-overlay rounded-lg border border-surface-border">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-white font-medium text-sm">
                     {sig.user.firstName} {sig.user.lastName}
                   </span>
                   <Badge variant="success" className="text-xs">
                     {sig.role}
                   </Badge>
                 </div>
-                <div className="text-gray-400 text-xs">
+                <div className="text-gray-400 text-xs mb-1">
                   {new Date(sig.signedAt).toLocaleString()}
                 </div>
-                <div className="text-gray-500 text-xs mt-1">Method: {sig.method}</div>
+                <div className="text-gray-500 text-xs">Method: {sig.method}</div>
               </div>
             ))}
           </div>

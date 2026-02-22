@@ -83,6 +83,9 @@ export function CmmcDocumentViewer() {
           apiRequest<ContentData>(`/api/cmmc/documents/${code}/content`, { token }),
         ]);
 
+        console.log('Document data:', docData);
+        console.log('Latest revision:', docData.document.latestRevision);
+
         setDocument(docData.document);
         setContent(contentData.body || contentData.content);
       } catch (err) {

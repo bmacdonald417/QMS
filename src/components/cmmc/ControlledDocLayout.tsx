@@ -61,10 +61,14 @@ export function ControlledDocLayout({
         </Card>
       )}
 
-      <div className="flex gap-6">
+      <div className="flex gap-8">
         {/* Main Content */}
-        <div className="flex-1">
-          <div className="mb-4 flex items-center justify-between">
+        <div className="flex-1 min-w-0">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">{title}</h1>
+              <div className="text-lg text-gray-400 font-mono">{code}</div>
+            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -84,20 +88,22 @@ export function ControlledDocLayout({
             </Button>
           </div>
 
-          <DocControlTable
-            code={code}
-            title={title}
-            kind={kind}
-            qmsDocType={qmsDocType}
-            version={version}
-            date={date}
-            status={status}
-            reviewCadence={reviewCadence}
-            nextReviewDue={nextReviewDue}
-            hash={hash}
-          />
+          <div className="mb-6">
+            <DocControlTable
+              code={code}
+              title={title}
+              kind={kind}
+              qmsDocType={qmsDocType}
+              version={version}
+              date={date}
+              status={status}
+              reviewCadence={reviewCadence}
+              nextReviewDue={nextReviewDue}
+              hash={hash}
+            />
+          </div>
 
-          <Card variant="elevated" padding="lg">
+          <Card variant="elevated" padding="lg" className="prose prose-invert max-w-none">
             <CmmcMarkdownRenderer content={content} />
           </Card>
 
@@ -110,7 +116,7 @@ export function ControlledDocLayout({
         </div>
 
         {/* Sidebar - TOC */}
-        <div className="w-64 flex-shrink-0">
+        <div className="w-80 flex-shrink-0">
           <DocTOC content={content} />
         </div>
       </div>
