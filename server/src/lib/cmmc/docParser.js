@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { getCmmcBundlePath } from './manifest.js';
 
@@ -117,6 +117,10 @@ export function readDocumentFile(relativePath) {
   const fullPath = join(bundlePath, relativePath);
 
   try {
+    if (!existsSync(fullPath)) {
+      throw new Error(`Document file not found: ${fullPath} (relative: ${relativePath}, bundle: ${bundlePath})`);
+    }
+
     const content = readFileSync(fullPath, 'utf-8');
     const metadata = parseDocumentHeader(content);
     const body = extractMarkdownBody(content);
@@ -127,8 +131,8 @@ export function readDocumentFile(relativePath) {
       body,
     };
   } catch (error) {
-    if (error.code === 'ENOENT') {
-      throw new Error(`Document file not found: ${relativePath}`);
+    if (error.code === 'ENOENT' || error.message.includes('not found')) {
+      throw new Error(`Document file not found: ${fullPath} (relative: ${relativePath}, bundle: ${bundlePath}, cwd: ${process.cwd()})`);
     }
     throw error;
   }

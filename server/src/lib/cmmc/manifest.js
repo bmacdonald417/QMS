@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
@@ -38,8 +38,32 @@ export function getCmmcBundlePath() {
   if (customPath) {
     return customPath;
   }
-  // Go up from server/src/lib/cmmc to project root, then to docs/cmmc-extracted
-  return join(__dirname, '../../../..', 'docs', 'cmmc-extracted');
+  
+  // Try multiple possible locations
+  // 1. Relative to current working directory (Railway deployment)
+  const cwdPath = join(process.cwd(), 'docs', 'cmmc-extracted');
+  
+  // 2. Relative to server directory (if cwd is server/)
+  const serverPath = join(process.cwd(), '..', 'docs', 'cmmc-extracted');
+  
+  // 3. Relative to lib file location (development)
+  const libPath = join(__dirname, '../../../..', 'docs', 'cmmc-extracted');
+  
+  // Check which path exists
+  if (existsSync(cwdPath)) {
+    return cwdPath;
+  }
+  if (existsSync(serverPath)) {
+    return serverPath;
+  }
+  if (existsSync(libPath)) {
+    return libPath;
+  }
+  
+  // Default to cwd path (most common in Railway)
+  // Log warning if path doesn't exist
+  console.warn(`CMMC bundle path not found. Tried: ${cwdPath}, ${serverPath}, ${libPath}. Using: ${cwdPath}`);
+  return cwdPath;
 }
 
 /**
@@ -51,6 +75,16 @@ export async function loadManifest() {
   const manifestPath = join(bundlePath, 'qms-ingest-manifest.json');
 
   try {
+    // Log path for debugging
+    console.log(`Loading manifest from: ${manifestPath}`);
+    console.log(`Current working directory: ${process.cwd()}`);
+    console.log(`Bundle path: ${bundlePath}`);
+    console.log(`Manifest exists: ${existsSync(manifestPath)}`);
+
+    if (!existsSync(manifestPath)) {
+      throw new Error(`Manifest file not found at ${manifestPath}. Current working directory: ${process.cwd()}`);
+    }
+
     const content = readFileSync(manifestPath, 'utf-8');
     const raw = JSON.parse(content);
     const validated = ManifestSchema.parse(raw);
@@ -70,8 +104,8 @@ export async function loadManifest() {
     if (error instanceof z.ZodError) {
       throw new Error(`Manifest validation failed: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`);
     }
-    if (error.code === 'ENOENT') {
-      throw new Error(`Manifest file not found at ${manifestPath}`);
+    if (error.code === 'ENOENT' || error.message.includes('not found')) {
+      throw new Error(`Manifest file not found at ${manifestPath}. Error: ${error.message}`);
     }
     throw error;
   }
