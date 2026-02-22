@@ -23,7 +23,10 @@ export function CmmcAdminPage() {
   const [loading, setLoading] = useState(false);
 
   const handleSync = async () => {
-    if (!token) return;
+    if (!token) {
+      alert('Please log in to sync documents');
+      return;
+    }
 
     try {
       setSyncing(true);
@@ -35,7 +38,12 @@ export function CmmcAdminPage() {
       // Refresh documents list
       fetchDocuments();
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to sync documents');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to sync documents';
+      if (errorMessage.includes('token') || errorMessage.includes('401') || errorMessage.includes('403')) {
+        alert('Authentication error. Please log out and log back in.');
+      } else {
+        alert(errorMessage);
+      }
     } finally {
       setSyncing(false);
     }
