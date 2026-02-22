@@ -40,7 +40,6 @@ const icons = {
   periodicReviews: <CalendarCheck className="h-5 w-5" />,
   qualityHealth: <HeartPulse className="h-5 w-5" />,
   completedForms: <FileCheck className="h-5 w-5" />,
-  cmmc: <Shield className="h-5 w-5" />,
 };
 
 /**

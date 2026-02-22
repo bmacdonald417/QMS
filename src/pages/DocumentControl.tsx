@@ -47,6 +47,7 @@ export function DocumentControl() {
   const [documentType, setDocumentType] = useState('SOP');
   const [documentId, setDocumentId] = useState('');
   const [content, setContent] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [suggestIdLoading, setSuggestIdLoading] = useState(false);
   const [documentTypeFilter, setDocumentTypeFilter] = useState<string>('');
@@ -303,13 +304,20 @@ export function DocumentControl() {
                   const data = await apiRequest<{ document: DocumentListItem }>('/api/documents', {
                     token,
                     method: 'POST',
-                    body: { title, documentType, content, ...(documentId.trim() ? { documentId: documentId.trim() } : {}) },
+                    body: {
+                      title,
+                      documentType,
+                      content,
+                      ...(documentId.trim() ? { documentId: documentId.trim() } : {}),
+                      ...(tags.length > 0 ? { tags } : {}),
+                    },
                   });
                   setShowCreate(false);
                   setTitle('');
                   setContent('');
                   setDocumentId('');
                   setDocumentType('SOP');
+                  setTags([]);
                   navigate(`/documents/${data.document.id}`);
                 } catch (err) {
                   setError(err instanceof Error ? err.message : 'Failed to create draft');
@@ -345,6 +353,37 @@ export function DocumentControl() {
             />
             <p className="mt-1 text-xs text-gray-400">
               Suggested when type is selected; you can edit to use a different ID.
+            </p>
+          </div>
+          <div>
+            <label className="label-caps block mb-1.5">Tags</label>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                value={tags.join(', ')}
+                onChange={(e) =>
+                  setTags(
+                    e.target.value
+                      .split(',')
+                      .map((t) => t.trim())
+                      .filter(Boolean)
+                  )
+                }
+                placeholder="e.g. CMMC, Quality, Safety"
+                className="flex-1 min-w-[200px]"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  if (!tags.includes('CMMC')) setTags([...tags, 'CMMC']);
+                }}
+              >
+                Add CMMC Tag
+              </Button>
+            </div>
+            <p className="mt-1 text-xs text-gray-400">
+              Enter comma-separated tags or use the button to add the CMMC tag.
             </p>
           </div>
           <div>

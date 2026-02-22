@@ -595,7 +595,7 @@ router.post(
 // POST /api/documents
 router.post('/', requirePermission('document:create'), async (req, res) => {
   try {
-    const { title, documentType, content, summaryOfChange, documentId: requestedDocumentId } = req.body;
+    const { title, documentType, content, summaryOfChange, documentId: requestedDocumentId, tags: tagsBody } = req.body;
     if (!title || typeof title !== 'string') {
       return res.status(400).json({ error: 'title is required' });
     }
@@ -619,6 +619,10 @@ router.post('/', requirePermission('document:create'), async (req, res) => {
       finalDocumentId = await generateDocumentId(normalizedType);
     }
 
+    const tags = Array.isArray(tagsBody)
+      ? tagsBody.filter((t) => typeof t === 'string').map((t) => t.trim()).filter(Boolean)
+      : [];
+
     const created = await prisma.document.create({
       data: {
         documentId: finalDocumentId,
@@ -628,6 +632,7 @@ router.post('/', requirePermission('document:create'), async (req, res) => {
         versionMinor: 0,
         status: 'DRAFT',
         content: typeof content === 'string' ? content : '',
+        tags,
         authorId: req.user.id,
         revisions: {
           create: {
