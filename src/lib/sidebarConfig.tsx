@@ -40,6 +40,7 @@ const icons = {
   periodicReviews: <CalendarCheck className="h-5 w-5" />,
   qualityHealth: <HeartPulse className="h-5 w-5" />,
   completedForms: <FileCheck className="h-5 w-5" />,
+  cmmc: <Shield className="h-5 w-5" />,
 };
 
 /**
@@ -53,6 +54,8 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
       return [
         { path: '/', label: 'Dashboard', icon: icons.dashboard },
         { path: '/documents', label: 'Document Control', icon: icons.documents },
+        { path: '/cmmc', label: 'CMMC Documents', icon: icons.cmmc },
+        { path: '/cmmc/admin', label: 'CMMC Admin', icon: icons.system },
         { path: '/search', label: 'Search', icon: icons.search },
         { path: '/change-control', label: 'Change Control', icon: icons.changeControl },
         { path: '/capas', label: 'CAPA', icon: icons.capa },
@@ -66,6 +69,7 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
         { path: '/system', label: 'System Management', icon: icons.system },
         { path: '/dashboard', label: 'Quality Health', icon: icons.qualityHealth },
         { path: '/documents', label: 'Document Control', icon: icons.documents },
+        { path: '/cmmc', label: 'CMMC Documents', icon: icons.cmmc },
         { path: '/search', label: 'Search', icon: icons.search },
         { path: '/training', label: 'Training', icon: icons.training },
         { path: '/periodic-reviews', label: 'Periodic Reviews', icon: icons.periodicReviews },
@@ -92,6 +96,7 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
         { path: '/my-tasks', label: 'My Tasks', icon: icons.myTasks },
         { path: '/training', label: 'My Training', icon: icons.training },
         { path: '/documents', label: 'Documents', icon: icons.documents },
+        { path: '/cmmc', label: 'CMMC Documents', icon: icons.cmmc },
         { path: '/search', label: 'Search', icon: icons.search },
       ];
     default:

@@ -164,6 +164,7 @@ model User {
   formRecordsUpdated    FormRecord[]      @relation("FormRecordUpdatedBy")
   formRecordsFinalized  FormRecord[]      @relation("FormRecordFinalizedBy")
   signatureRequestsCreated SignatureRequest[]
+  cmmcSignatures           CmmcSignature[]
 
   @@map("users")
 }
@@ -915,4 +916,93 @@ model SignatureArtifact {
 
   @@index([entityType, entityId])
   @@map("signature_artifacts")
+}
+
+// --- CMMC Document Management ---
+enum CmmcDocumentStatus {
+  DRAFT
+  IN_REVIEW
+  EFFECTIVE
+  RETIRED
+}
+
+enum CmmcSignatureMethod {
+  TYPED
+  DRAWN
+  CLICKWRAP
+}
+
+enum CmmcSignatureRole {
+  APPROVER
+  ACKNOWLEDGER
+}
+
+model CmmcDocument {
+  id             String              @id @default(uuid())
+  code           String              @unique // e.g. MAC-POL-220
+  title          String
+  kind           String              // policy, procedure, plan, form, etc.
+  path           String              // relative path from bundle root
+  qmsDocType     String              @map("qms_doc_type")
+  reviewCadence  String?             @map("review_cadence") // annual, monthly, etc.
+  status         CmmcDocumentStatus  @default(DRAFT)
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  revisions CmmcRevision[]
+  signatures CmmcSignature[]
+
+  @@index([kind])
+  @@index([status])
+  @@index([reviewCadence])
+  @@map("cmmc_documents")
+}
+
+model CmmcRevision {
+  id                String   @id @default(uuid())
+  documentId        String   @map("document_id")
+  revisionLabel     String   @map("revision_label") // e.g. "1.0", "2.1"
+  date              String   // from parsed header
+  classification    String?  // from parsed header
+  framework         String?  // from parsed header
+  reference         String?  // from parsed header
+  appliesTo         String?  @map("applies_to") // from parsed header
+  templateVersion   String   @default("controlled-doc@1") @map("template_version")
+  contentHash       String   @map("content_hash") // SHA-256 of normalized markdown
+  manifestHash      String?  @map("manifest_hash") // SHA-256 of manifest fields
+  signingHash       String?  @map("signing_hash") // SHA-256 of signing payload
+  snapshotJson      Json?    @map("snapshot_json") // Full signing payload snapshot
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  document   CmmcDocument  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  signatures CmmcSignature[]
+
+  @@index([documentId])
+  @@index([contentHash])
+  @@index([signingHash])
+  @@map("cmmc_revisions")
+}
+
+model CmmcSignature {
+  id             String              @id @default(uuid())
+  revisionId     String              @map("revision_id")
+  documentId     String              @map("document_id")
+  userId         String              @map("user_id")
+  method         CmmcSignatureMethod
+  role           CmmcSignatureRole
+  signedAt       DateTime            @default(now()) @map("signed_at")
+  signatureData  String              @db.Text @map("signature_data") // PNG data URL or typed text
+  signingHash    String              @map("signing_hash") // Must match revision signingHash
+  userAgent      String?             @map("user_agent")
+  ip             String?
+
+  revision CmmcRevision @relation(fields: [revisionId], references: [id], onDelete: Restrict)
+  document CmmcDocument @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  user     User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([revisionId])
+  @@index([documentId])
+  @@index([userId])
+  @@index([signedAt])
+  @@map("cmmc_signatures")
 }

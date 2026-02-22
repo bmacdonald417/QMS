@@ -15,6 +15,7 @@ import changeControlRoutes from './changeControls.js';
 import fileRoutes from './files.js';
 import formRecordRoutes from './formRecords.js';
 import governanceRoutes from './governanceRoutes.js';
+import cmmcRoutes from './cmmc.js';
 import { requestIdMiddleware } from './audit.js';
 import { startPeriodicReviewScheduler } from './periodicReviewScheduler.js';
 
@@ -42,6 +43,7 @@ app.use('/api/files', authMiddleware, fileRoutes);
 app.use('/api/form-records', formRecordRoutes);
 app.use('/api/governance', governanceRoutes);
 app.use('/api/system', systemRoutes);
+app.use('/api/cmmc', authMiddleware, cmmcRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });
