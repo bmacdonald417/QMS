@@ -173,7 +173,7 @@ router.get('/', requirePermission('document:view'), async (req, res) => {
           documentId: doc.code,
           title: doc.title,
           documentType: doc.kind.toUpperCase().replace(/\s+/g, '_'),
-          versionMajor: parseInt(versionParts[0] || '1'], 10),
+          versionMajor: parseInt(versionParts[0] || '1', 10),
           versionMinor: parseInt(versionParts[1] || '0', 10),
           status: doc.status,
           createdAt: doc.createdAt.toISOString(),
