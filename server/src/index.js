@@ -55,8 +55,25 @@ app.get('/api/health', (req, res) => {
 // Serve static frontend files if they exist (for Railway deployment)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const distPath = join(__dirname, '../../dist');
-if (existsSync(distPath)) {
+// Try multiple possible paths for dist folder
+const possibleDistPaths = [
+  join(__dirname, '../../dist'), // From server/src/ to project root
+  join(process.cwd(), '../dist'), // From server/ to project root
+  join(process.cwd(), 'dist'), // If dist is in server/
+  '/app/dist', // Railway absolute path
+  '/app/../dist', // Railway from server/ to root
+];
+
+let distPath = null;
+for (const path of possibleDistPaths) {
+  if (existsSync(path)) {
+    distPath = path;
+    console.log(`Found dist folder at: ${distPath}`);
+    break;
+  }
+}
+
+if (distPath) {
   // Serve static assets
   app.use(express.static(distPath));
   // Serve index.html for all non-API routes (SPA routing)
@@ -66,8 +83,17 @@ if (existsSync(distPath)) {
     if (req.path.startsWith('/api')) {
       return next();
     }
-    res.sendFile(join(distPath, 'index.html'));
+    const indexPath = join(distPath, 'index.html');
+    if (existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      next();
+    }
   });
+} else {
+  console.warn('Dist folder not found. Tried paths:', possibleDistPaths);
+  console.warn('Current working directory:', process.cwd());
+  console.warn('__dirname:', __dirname);
 }
 
 startPeriodicReviewScheduler();
