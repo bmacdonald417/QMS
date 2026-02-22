@@ -122,23 +122,49 @@ router.get('/templates/forms', requirePermission('document:view'), async (req, r
   }
 });
 
-// GET /api/documents — list all (requires document:view). ?type=form-template → FORM, EFFECTIVE only
-// ?category=CMMC Governance → include CMMC documents
+// GET /api/documents — list all (requires document:view). 
+// Query params: ?type=form-template, ?documentType=SOP|POLICY|..., ?status=DRAFT|EFFECTIVE|..., ?tags=tag1,tag2, ?search=query
 router.get('/', requirePermission('document:view'), async (req, res) => {
   try {
     const typeFilter = typeof req.query.type === 'string' ? req.query.type.trim().toLowerCase() : '';
-    const categoryFilter = typeof req.query.category === 'string' ? req.query.category.trim() : '';
-    const includeCmmc = categoryFilter === 'CMMC Governance';
+    const documentTypeFilter = typeof req.query.documentType === 'string' ? req.query.documentType.trim() : '';
+    const statusFilter = typeof req.query.status === 'string' ? req.query.status.trim() : '';
+    const tagsParam = typeof req.query.tags === 'string' ? req.query.tags.trim() : '';
+    const searchQuery = typeof req.query.search === 'string' ? req.query.search.trim() : '';
     
     const where = {};
+    
+    // Form template filter
     if (typeFilter === 'form-template') {
       where.documentType = 'FORM';
       where.status = 'EFFECTIVE';
-    }
-    
-    // If filtering by CMMC Governance, also filter regular documents by tag
-    if (includeCmmc) {
-      where.tags = { has: 'CMMC Governance' };
+    } else {
+      // Document type filter
+      if (documentTypeFilter) {
+        where.documentType = documentTypeFilter.toUpperCase();
+      }
+      
+      // Status filter
+      if (statusFilter) {
+        where.status = statusFilter.toUpperCase();
+      }
+      
+      // Tags filter
+      if (tagsParam) {
+        const tags = tagsParam.split(',').map(t => t.trim()).filter(Boolean);
+        if (tags.length > 0) {
+          where.tags = { hasSome: tags };
+        }
+      }
+      
+      // Search filter
+      if (searchQuery) {
+        where.OR = [
+          { documentId: { contains: searchQuery, mode: 'insensitive' } },
+          { title: { contains: searchQuery, mode: 'insensitive' } },
+          { content: { contains: searchQuery, mode: 'insensitive' } },
+        ];
+      }
     }
     
     const documents = await prisma.document.findMany({
@@ -151,48 +177,7 @@ router.get('/', requirePermission('document:view'), async (req, res) => {
         : { updatedAt: 'desc' },
     });
     
-    // If including CMMC, fetch and merge CMMC documents
-    let allDocuments = documents;
-    if (includeCmmc) {
-      const cmmcDocs = await prisma.cmmcDocument.findMany({
-        include: {
-          revisions: {
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-          },
-        },
-        orderBy: { code: 'asc' },
-      });
-      
-      // Transform CMMC documents to match DocumentListItem format
-      const cmmcTransformed = cmmcDocs.map((doc) => {
-        const latestRev = doc.revisions[0];
-        const versionParts = (latestRev?.revisionLabel || '1.0').split('.');
-        return {
-          id: doc.id,
-          documentId: doc.code,
-          title: doc.title,
-          documentType: doc.kind.toUpperCase().replace(/\s+/g, '_'),
-          versionMajor: parseInt(versionParts[0] || '1', 10),
-          versionMinor: parseInt(versionParts[1] || '0', 10),
-          status: doc.status,
-          createdAt: doc.createdAt.toISOString(),
-          updatedAt: doc.updatedAt.toISOString(),
-          author: {
-            id: 'system',
-            firstName: 'System',
-            lastName: '',
-            email: 'system@qms',
-          },
-          isCmmc: true, // Flag to identify CMMC documents
-          cmmcCode: doc.code,
-        };
-      });
-      
-      allDocuments = [...documents, ...cmmcTransformed];
-    }
-    
-    res.json({ documents: allDocuments });
+    res.json({ documents });
   } catch (err) {
     console.error('List documents error:', err);
     res.status(500).json({ error: 'Failed to list documents' });

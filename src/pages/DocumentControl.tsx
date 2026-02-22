@@ -7,6 +7,7 @@ import type { Column } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/lib/api';
 import { stripMarkdownFormatting } from '@/lib/format';
+import { Search, Filter, X } from 'lucide-react';
 
 interface DocumentListItem {
   id: string;
@@ -18,14 +19,13 @@ interface DocumentListItem {
   status: string;
   createdAt: string;
   updatedAt: string;
+  tags?: string[];
   author: {
     id: string;
     firstName: string;
     lastName: string;
     email: string;
   };
-  isCmmc?: boolean;
-  cmmcCode?: string;
 }
 
 const statusVariant: Record<string, 'default' | 'info' | 'success' | 'warning' | 'neutral' | 'danger'> = {
@@ -48,13 +48,26 @@ export function DocumentControl() {
   const [content, setContent] = useState('');
   const [error, setError] = useState('');
   const [suggestIdLoading, setSuggestIdLoading] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [documentTypeFilter, setDocumentTypeFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [tagsFilter, setTagsFilter] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(false);
+
+  const buildQueryParams = () => {
+    const params = new URLSearchParams();
+    if (documentTypeFilter) params.append('documentType', documentTypeFilter);
+    if (statusFilter) params.append('status', statusFilter);
+    if (tagsFilter) params.append('tags', tagsFilter);
+    if (searchQuery) params.append('search', searchQuery);
+    return params.toString() ? `?${params.toString()}` : '';
+  };
 
   const fetchDocuments = async () => {
     if (!token) return;
     try {
       setLoading(true);
-      const params = categoryFilter ? `?category=${encodeURIComponent(categoryFilter)}` : '';
+      const params = buildQueryParams();
       const data = await apiRequest<{ documents: DocumentListItem[] }>(`/api/documents${params}`, { token });
       setDocuments(data.documents);
     } catch (err) {
@@ -66,7 +79,16 @@ export function DocumentControl() {
 
   useEffect(() => {
     fetchDocuments();
-  }, [token, categoryFilter]);
+  }, [token, documentTypeFilter, statusFilter, tagsFilter, searchQuery]);
+
+  const clearFilters = () => {
+    setDocumentTypeFilter('');
+    setStatusFilter('');
+    setTagsFilter('');
+    setSearchQuery('');
+  };
+
+  const hasActiveFilters = documentTypeFilter || statusFilter || tagsFilter || searchQuery;
 
   const fetchSuggestedDocumentId = async (type: string) => {
     if (!token) return;
@@ -97,10 +119,7 @@ export function DocumentControl() {
       width: '140px',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <span>{row.documentType}</span>
-          {row.isCmmc && (
-            <Badge variant="info" className="text-xs">CMMC</Badge>
-          )}
+          <span>{row.documentType.replace(/_/g, ' ')}</span>
         </div>
       ),
     },
@@ -118,7 +137,34 @@ export function DocumentControl() {
         <Badge variant={statusVariant[row.status] || 'default'}>{row.status.replace(/_/g, ' ')}</Badge>
       ),
     },
-    { key: 'updatedAt', header: 'Updated', render: (row) => new Date(row.updatedAt).toLocaleDateString() },
+    {
+      key: 'updatedAt',
+      header: 'Updated',
+      render: (row) => new Date(row.updatedAt).toLocaleDateString(),
+    },
+    {
+      key: 'tags',
+      header: 'Tags',
+      width: '200px',
+      render: (row) => (
+        <div className="flex flex-wrap gap-1">
+          {row.tags && row.tags.length > 0 ? (
+            row.tags.slice(0, 2).map((tag, idx) => (
+              <Badge key={idx} variant="neutral" className="text-xs">
+                {tag}
+              </Badge>
+            ))
+          ) : (
+            <span className="text-gray-500 text-xs">—</span>
+          )}
+          {row.tags && row.tags.length > 2 && (
+            <Badge variant="neutral" className="text-xs">
+              +{row.tags.length - 2}
+            </Badge>
+          )}
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -129,22 +175,104 @@ export function DocumentControl() {
     >
       {error && <p className="mb-3 text-sm text-compliance-red">{error}</p>}
       
-      {/* Category Filter */}
+      {/* Filters */}
       <Card padding="md" className="mb-4">
-        <div className="flex items-center gap-4">
-          <label className="text-sm font-medium text-gray-300">Category:</label>
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
-          >
-            <option value="">All Documents</option>
-            <option value="CMMC Governance">CMMC Governance</option>
-          </select>
-          {categoryFilter && (
-            <Badge variant="info" className="text-xs">
-              {documents.length} document{documents.length !== 1 ? 's' : ''}
-            </Badge>
+        <div className="space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="Search documents by ID, title, or content..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Filter Toggle */}
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+              {hasActiveFilters && (
+                <Badge variant="info" className="ml-2">
+                  {[documentTypeFilter, statusFilter, tagsFilter].filter(Boolean).length}
+                </Badge>
+              )}
+            </Button>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="flex items-center gap-2 text-gray-400 hover:text-gray-200"
+              >
+                <X className="w-4 h-4" />
+                Clear All
+              </Button>
+            )}
+          </div>
+
+          {/* Filter Options */}
+          {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-surface-border">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Document Type</label>
+                <select
+                  value={documentTypeFilter}
+                  onChange={(e) => setDocumentTypeFilter(e.target.value)}
+                  className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+                >
+                  <option value="">All Types</option>
+                  <option value="SOP">SOP</option>
+                  <option value="POLICY">Policy</option>
+                  <option value="WORK_INSTRUCTION">Work Instruction</option>
+                  <option value="FORM">Form</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Status</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="DRAFT">Draft</option>
+                  <option value="IN_REVIEW">In Review</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="EFFECTIVE">Effective</option>
+                  <option value="OBSOLETE">Obsolete</option>
+                  <option value="ARCHIVED">Archived</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Tags (comma-separated)</label>
+                <Input
+                  placeholder="e.g. CMMC, Quality, Safety"
+                  value={tagsFilter}
+                  onChange={(e) => setTagsFilter(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Results Count */}
+          {hasActiveFilters && (
+            <div className="pt-2 border-t border-surface-border">
+              <p className="text-sm text-gray-400">
+                Showing {documents.length} document{documents.length !== 1 ? 's' : ''} matching filters
+              </p>
+            </div>
           )}
         </div>
       </Card>
@@ -154,13 +282,7 @@ export function DocumentControl() {
           columns={columns}
           data={documents}
           keyExtractor={(row) => row.id}
-          onRowClick={(row) => {
-            if (row.isCmmc && row.cmmcCode) {
-              navigate(`/cmmc/docs/${row.cmmcCode}`);
-            } else {
-              navigate(`/documents/${row.id}`);
-            }
-          }}
+          onRowClick={(row) => navigate(`/documents/${row.id}`)}
           emptyMessage="No documents. Create one to get started."
         />
       </Card>

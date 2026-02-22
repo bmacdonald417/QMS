@@ -19,12 +19,6 @@ import {
   CompletedForms,
   CompletedFormDetail,
 } from '@/pages';
-import {
-  CmmcDocumentRegistry,
-  CmmcDocumentViewer,
-  CmmcEvidencePage,
-  CmmcAdminPage,
-} from '@/pages/cmmc';
 import { CAPAList, CAPANew, CAPADetail } from '@/pages/capas';
 import {
   SystemManagementLayout,
@@ -94,10 +88,6 @@ function AppRoutes() {
           <Route path="my-training" element={<MyTraining />} />
           <Route path="completed-forms" element={<CompletedForms />} />
           <Route path="completed-forms/:id" element={<CompletedFormDetail />} />
-          <Route path="cmmc" element={<CmmcDocumentRegistry />} />
-          <Route path="cmmc/docs/:code" element={<CmmcDocumentViewer />} />
-          <Route path="cmmc/docs/:code/evidence" element={<CmmcEvidencePage />} />
-          <Route path="cmmc/admin" element={<CmmcAdminPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Route>
