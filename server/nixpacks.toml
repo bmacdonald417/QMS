@@ -6,11 +6,11 @@ cmds = ["npm ci"]
 
 [phases.build]
 cmds = [
+  "cd .. && npm install",
+  "cd .. && npm run build",
   "npm install",
-  "npm run build",
-  "cd server && npm install",
-  "cd server && npx prisma generate"
+  "npx prisma generate"
 ]
 
 [start]
-cmd = "cd server && npm start"
+cmd = "npm start"
