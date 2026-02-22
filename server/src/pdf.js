@@ -419,7 +419,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       font-size: 12pt; font-weight: bold; margin-top: 8mm; margin-bottom: 3mm;
     }
     .content h4, .content h5, .content h6 { font-size: 11pt; margin-top: 6mm; margin-bottom: 2mm; }
-    .content p { margin: 0 0 4mm 0; text-align: justify; overflow-wrap: break-word; word-wrap: break-word; }
+    .content p { margin: 0 0 2mm 0; text-align: left; overflow-wrap: break-word; word-wrap: break-word; }
     .content strong, .content b { font-weight: bold; }
     .content em, .content i { font-style: italic; }
     .content code {
@@ -448,7 +448,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     .content ul { list-style-type: disc; }
     .content ol { list-style-type: decimal; }
     .content li {
-      margin: 2mm 0;
+      margin: 0.5mm 0;
       padding-left: 0.25em;
       display: list-item;
       overflow-wrap: break-word;
