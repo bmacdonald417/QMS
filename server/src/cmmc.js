@@ -288,7 +288,19 @@ router.get('/documents/:code/revisions', async (req, res) => {
 // Sync endpoint - require admin role or system admin
 router.post('/documents/sync', requireRoles('System Admin', 'Admin', 'System Administrator'), async (req, res) => {
   try {
-    const { manifest, metadata } = await loadManifest();
+    let manifest, metadata;
+    try {
+      const result = await loadManifest();
+      manifest = result.documents;
+      metadata = result.metadata;
+    } catch (error) {
+      console.error('Failed to load manifest:', error);
+      return res.status(500).json({
+        error: 'Failed to load manifest',
+        message: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      });
+    }
     const summary = {
       processed: 0,
       created: 0,
@@ -296,7 +308,7 @@ router.post('/documents/sync', requireRoles('System Admin', 'Admin', 'System Adm
       errors: [],
     };
 
-    for (const manifestDoc of manifest.documents) {
+    for (const manifestDoc of manifest) {
       try {
         summary.processed++;
 
@@ -410,6 +422,8 @@ router.post('/documents/sync', requireRoles('System Admin', 'Admin', 'System Adm
       error: 'Failed to sync documents',
       message: error.message,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      bundlePath: process.env.CMMC_BUNDLE_PATH || 'default',
+      cwd: process.cwd(),
     });
   }
 });

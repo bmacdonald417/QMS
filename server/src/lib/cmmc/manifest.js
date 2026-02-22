@@ -77,11 +77,13 @@ export async function loadManifest() {
   const manifestPath = join(bundlePath, 'qms-ingest-manifest.json');
 
   try {
-    // Log path for debugging
-    console.log(`Loading manifest from: ${manifestPath}`);
-    console.log(`Current working directory: ${process.cwd()}`);
-    console.log(`Bundle path: ${bundlePath}`);
-    console.log(`Manifest exists: ${existsSync(manifestPath)}`);
+    // Log path for debugging (only in development or if explicitly enabled)
+    if (process.env.NODE_ENV === 'development' || process.env.LOG_CMMC_PATHS === 'true') {
+      console.log(`Loading manifest from: ${manifestPath}`);
+      console.log(`Current working directory: ${process.cwd()}`);
+      console.log(`Bundle path: ${bundlePath}`);
+      console.log(`Manifest exists: ${existsSync(manifestPath)}`);
+    }
 
     if (!existsSync(manifestPath)) {
       throw new Error(`Manifest file not found at ${manifestPath}. Current working directory: ${process.cwd()}`);
