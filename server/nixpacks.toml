@@ -6,8 +6,8 @@ cmds = []
 
 [phases.build]
 cmds = [
-  "cd .. && rm -rf node_modules package-lock.json && npm install && npm run build",
-  "rm -rf node_modules && npm ci",
+  "cd .. && npm cache clean --force && rm -rf node_modules .npm && npm install && npm run build",
+  "npm cache clean --force && rm -rf node_modules .npm && npm ci",
   "npx prisma generate"
 ]
 
