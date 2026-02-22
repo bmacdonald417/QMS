@@ -5,11 +5,7 @@ nixPkgs = ["nodejs_18", "npm-9_x"]
 cmds = []
 
 [phases.build]
-cmds = [
-  "cd .. && (rm -rf node_modules .npm || true) && npm install && npm run build",
-  "(rm -rf node_modules .npm || true) && npm install",
-  "npx prisma generate"
-]
+cmds = ["./build.sh"]
 
 [start]
 cmd = "npm start"
