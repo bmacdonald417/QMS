@@ -116,12 +116,13 @@ export function DocumentControl() {
   }, [showCreate, documentType]);
 
   const columns: Column<DocumentListItem>[] = [
-    { key: 'documentId', header: 'Doc ID', width: '140px' },
-    { key: 'title', header: 'Title', render: (row) => stripMarkdownFormatting(row.title) },
+    { key: 'documentId', header: 'Doc ID', width: '140px', sortable: true },
+    { key: 'title', header: 'Title', sortable: true, render: (row) => stripMarkdownFormatting(row.title) },
     {
       key: 'documentType',
       header: 'Type',
       width: '140px',
+      sortable: true,
       render: (row) => (
         <div className="flex items-center gap-2">
           <span>{row.documentType.replace(/_/g, ' ')}</span>
@@ -132,12 +133,15 @@ export function DocumentControl() {
       key: 'version',
       header: 'Version',
       width: '100px',
+      sortable: true,
+      sortValue: (row) => `${String(row.versionMajor).padStart(5, '0')}.${String(row.versionMinor).padStart(5, '0')}`,
       render: (row) => `v${row.versionMajor}.${row.versionMinor}`,
     },
     {
       key: 'status',
       header: 'Status',
       width: '180px',
+      sortable: true,
       render: (row) => (
         <Badge variant={statusVariant[row.status] || 'default'}>{row.status.replace(/_/g, ' ')}</Badge>
       ),
@@ -145,12 +149,15 @@ export function DocumentControl() {
     {
       key: 'updatedAt',
       header: 'Updated',
+      sortable: true,
       render: (row) => new Date(row.updatedAt).toLocaleDateString(),
     },
     {
       key: 'tags',
       header: 'Tags',
       width: '200px',
+      sortable: true,
+      sortValue: (row) => row.tags?.join(', ') ?? '',
       render: (row) => (
         <div className="flex flex-wrap gap-1">
           {row.tags && row.tags.length > 0 ? (
@@ -171,6 +178,32 @@ export function DocumentControl() {
       ),
     },
   ];
+
+  const sortedDocuments = useMemo(() => {
+    if (!sortColumn) return documents;
+    const col = columns.find((c) => c.key === sortColumn);
+    const getVal = (row: DocumentListItem) => {
+      if (col?.sortValue) return col.sortValue(row);
+      return String((row as unknown as Record<string, unknown>)[sortColumn] ?? '');
+    };
+    return [...documents].sort((a, b) => {
+      const aVal = getVal(a);
+      const bVal = getVal(b);
+      const cmp = typeof aVal === 'number' && typeof bVal === 'number'
+        ? aVal - bVal
+        : String(aVal).localeCompare(String(bVal), undefined, { numeric: true });
+      return sortDirection === 'asc' ? cmp : -cmp;
+    });
+  }, [documents, sortColumn, sortDirection]);
+
+  const handleSort = (key: string) => {
+    if (sortColumn === key) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(key);
+      setSortDirection('asc');
+    }
+  };
 
   return (
     <PageShell

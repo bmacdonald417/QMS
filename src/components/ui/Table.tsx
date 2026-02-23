@@ -8,6 +8,8 @@ export interface Column<T> {
   width?: string;
   align?: 'left' | 'center' | 'right';
   sortable?: boolean;
+  /** When sortable, use this to get the sort value (e.g. for computed columns like version) */
+  sortValue?: (row: T) => string | number;
 }
 
 export interface TableProps<T> extends Omit<HTMLAttributes<HTMLTableElement>, 'children'> {
