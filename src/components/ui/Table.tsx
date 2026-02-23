@@ -1,4 +1,5 @@
 import { type HTMLAttributes } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 export interface Column<T> {
   key: string;
@@ -6,6 +7,7 @@ export interface Column<T> {
   render?: (row: T) => React.ReactNode;
   width?: string;
   align?: 'left' | 'center' | 'right';
+  sortable?: boolean;
 }
 
 export interface TableProps<T> extends Omit<HTMLAttributes<HTMLTableElement>, 'children'> {
@@ -14,6 +16,9 @@ export interface TableProps<T> extends Omit<HTMLAttributes<HTMLTableElement>, 'c
   keyExtractor: (row: T) => string;
   emptyMessage?: string;
   onRowClick?: (row: T) => void;
+  sortColumn?: string | null;
+  sortDirection?: 'asc' | 'desc' | null;
+  onSort?: (key: string) => void;
 }
 
 export function Table<T>({
@@ -22,6 +27,9 @@ export function Table<T>({
   keyExtractor,
   emptyMessage = 'No records found.',
   onRowClick,
+  sortColumn = null,
+  sortDirection = null,
+  onSort,
   className = '',
   ...props
 }: TableProps<T>) {
@@ -30,18 +38,32 @@ export function Table<T>({
       <table className={`w-full text-sm ${className}`} {...props}>
         <thead>
           <tr className="border-b border-surface-border bg-surface-overlay">
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                style={{
-                  width: col.width,
-                  textAlign: col.align ?? 'left',
-                }}
-              >
-                {col.header}
-              </th>
-            ))}
+            {columns.map((col) => {
+              const isSorted = sortColumn === col.key;
+              const canSort = col.sortable && onSort;
+              return (
+                <th
+                  key={col.key}
+                  className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 ${
+                    canSort ? 'cursor-pointer select-none hover:text-gray-300 hover:bg-surface-elevated/50 transition-colors' : ''
+                  }`}
+                  style={{
+                    width: col.width,
+                    textAlign: col.align ?? 'left',
+                  }}
+                  onClick={() => canSort && onSort(col.key)}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {col.header}
+                    {canSort && isSorted && (sortDirection === 'asc' ? (
+                      <ChevronUp className="w-3.5 h-3.5" aria-hidden />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5" aria-hidden />
+                    ))}
+                  </span>
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody className="divide-y divide-surface-border">

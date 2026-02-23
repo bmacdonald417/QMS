@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Table, Badge, Button, Modal, Input } from '@/components/ui';
 import { RichTextEditor } from '@/components/RichTextEditor';
@@ -56,6 +56,8 @@ export function DocumentControl() {
   const [tagsFilter, setTagsFilter] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
+  const [sortColumn, setSortColumn] = useState<string | null>('documentId');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const buildQueryParams = () => {
     const params = new URLSearchParams();
@@ -281,10 +283,13 @@ export function DocumentControl() {
       <Card padding="none">
         <Table
           columns={columns}
-          data={documents}
+          data={sortedDocuments}
           keyExtractor={(row) => row.id}
           onRowClick={(row) => navigate(`/documents/${row.id}`)}
           emptyMessage="No documents. Create one to get started."
+          sortColumn={sortColumn}
+          sortDirection={sortDirection}
+          onSort={handleSort}
         />
       </Card>
 
