@@ -26,7 +26,8 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+// Increase JSON body limit for large document content (default 100kb causes 413)
+app.use(express.json({ limit: '10mb' }));
 app.use(requestIdMiddleware);
 
 app.use('/api/auth', authRoutes);
