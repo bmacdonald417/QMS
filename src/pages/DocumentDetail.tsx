@@ -100,6 +100,7 @@ interface DocumentDetailModel {
   revisions: DocumentRevisionItem[];
   signatures: DocumentSignatureItem[];
   trainingModules?: TrainingModuleRef[];
+  canAddLinks?: boolean;
 }
 
 export function DocumentDetail() {
@@ -604,7 +605,7 @@ export function DocumentDetail() {
             })}
           </ul>
         )}
-        {isAuthor && doc.status !== 'OBSOLETE' && (
+        {(doc.canAddLinks ?? isAuthor) && doc.status !== 'OBSOLETE' && (
           <div className="mt-4 flex flex-wrap items-end gap-2">
             <select
               value={linkType}

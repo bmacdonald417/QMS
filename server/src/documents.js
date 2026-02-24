@@ -426,6 +426,9 @@ router.get('/:id', async (req, res) => {
     if (!document) return res.status(404).json({ error: 'Document not found' });
     document.qmsHash = computeQmsHash('Document', document);
     document.recordVersion = getRecordVersion('Document', document);
+    const isAuthor = req.user && document.authorId === req.user.id;
+    const hasAssignment = document.assignments?.some((a) => a.assignedToId === req.user?.id);
+    document.canAddLinks = !!(req.user && (isAuthor || hasAssignment) && document.status !== 'OBSOLETE');
     res.json({ document });
   } catch (err) {
     console.error('Get document error:', err);
@@ -495,8 +498,14 @@ router.post('/:id/link', requirePermission('document:create'), async (req, res) 
     if (!doc) return res.status(404).json({ error: 'Source document not found' });
     const target = await prisma.document.findUnique({ where: { id: targetDocumentId } });
     if (!target) return res.status(404).json({ error: 'Target document not found' });
-    if (doc.authorId !== req.user.id) {
-      return res.status(403).json({ error: 'Only the author can add links from this document' });
+    const isAuthor = doc.authorId === req.user.id;
+    const hasAssignment = await prisma.documentAssignment.findFirst({
+      where: { documentId: sourceId, assignedToId: req.user.id },
+    });
+    if (!isAuthor && !hasAssignment) {
+      return res.status(403).json({
+        error: 'Only the author or assigned reviewers/approvers can add links to this document',
+      });
     }
 
     const link = await prisma.documentLink.create({
