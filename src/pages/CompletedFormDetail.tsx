@@ -172,6 +172,20 @@ export function CompletedFormDetail() {
     >
       {error && <p className="mb-3 text-sm text-compliance-red">{error}</p>}
 
+      {isDraft && (
+        <Card padding="md" className="mb-4 border-mactech-blue/50 bg-mactech-blue-muted/20">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-white">Save your work</span>
+            <Button onClick={handleSaveDraft} disabled={saveSubmitting}>
+              {saveSubmitting ? 'Saving…' : 'Save draft'}
+            </Button>
+            <Button variant="success" onClick={handleFinalize} disabled={finalizeSubmitting}>
+              {finalizeSubmitting ? 'Finalizing…' : 'Finalize'}
+            </Button>
+          </div>
+        </Card>
+      )}
+
       <Card padding="md" className="mb-4">
         <div className="flex flex-wrap items-center gap-4">
           <span className="text-gray-400">Template:</span>

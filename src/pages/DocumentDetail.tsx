@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { Badge, Button, Card, Input, Modal } from '@/components/ui';
@@ -137,7 +137,12 @@ export function DocumentDetail() {
   const [newCommentSection, setNewCommentSection] = useState('');
   const [linkTargetId, setLinkTargetId] = useState('');
   const [linkType, setLinkType] = useState('references');
+  const [linkSearchQuery, setLinkSearchQuery] = useState('');
+  const [linkSelectedDoc, setLinkSelectedDoc] = useState<{ id: string; documentId: string; title: string } | null>(null);
+  const [linkDropdownOpen, setLinkDropdownOpen] = useState(false);
   const [documentsForLink, setDocumentsForLink] = useState<{ id: string; documentId: string; title: string }[]>([]);
+  const [linkSearchLoading, setLinkSearchLoading] = useState(false);
+  const linkDropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchDocument = async () => {
     if (!token || !id) return;
@@ -177,12 +182,38 @@ export function DocumentDetail() {
       .catch(() => setComments([]));
   }, [token, doc?.id, doc?.tags]);
 
+  // Debounced search for document link picker
   useEffect(() => {
     if (!token || !doc?.id) return;
-    apiRequest<{ documents: { id: string; documentId: string; title: string }[] }>('/api/documents', { token })
-      .then((d) => setDocumentsForLink((d.documents || []).filter((x) => x.id !== doc.id)))
-      .catch(() => setDocumentsForLink([]));
-  }, [token, doc?.id]);
+    const timer = setTimeout(() => {
+      if (!linkSearchQuery.trim()) {
+        setDocumentsForLink([]);
+        setLinkSearchLoading(false);
+        return;
+      }
+      setLinkSearchLoading(true);
+      const params = `?search=${encodeURIComponent(linkSearchQuery.trim())}`;
+      apiRequest<{ documents: { id: string; documentId: string; title: string }[] }>(
+        `/api/documents${params}`,
+        { token }
+      )
+        .then((d) => setDocumentsForLink((d.documents || []).filter((x) => x.id !== doc.id)))
+        .catch(() => setDocumentsForLink([]))
+        .finally(() => setLinkSearchLoading(false));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [token, doc?.id, linkSearchQuery]);
+
+  // Close link dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (linkDropdownRef.current && !linkDropdownRef.current.contains(e.target as Node)) {
+        setLinkDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!token) return;
@@ -618,21 +649,60 @@ export function DocumentDetail() {
               <option value="impacts">impacts</option>
               <option value="supersedes">supersedes</option>
             </select>
-            <select
-              value={linkTargetId}
-              onChange={(e) => setLinkTargetId(e.target.value)}
-              className="min-w-[200px] rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
-            >
-              <option value="">Select document</option>
-              {documentsForLink.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.documentId} – {stripMarkdownFormatting(d.title)}
-                </option>
-              ))}
-            </select>
+            <div ref={linkDropdownRef} className="relative min-w-[280px]">
+              <Input
+                placeholder="Type to search documents..."
+                value={linkSelectedDoc ? `${linkSelectedDoc.documentId} – ${stripMarkdownFormatting(linkSelectedDoc.title)}` : linkSearchQuery}
+                onChange={(e) => {
+                  setLinkSearchQuery(e.target.value);
+                  setLinkTargetId('');
+                  setLinkSelectedDoc(null);
+                  setLinkDropdownOpen(true);
+                }}
+                onFocus={() => setLinkDropdownOpen(true)}
+                className="pr-8"
+              />
+              {linkSelectedDoc && (
+                <button
+                  type="button"
+                  onClick={() => { setLinkTargetId(''); setLinkSelectedDoc(null); setLinkSearchQuery(''); setLinkDropdownOpen(true); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                  aria-label="Clear selection"
+                >
+                  ×
+                </button>
+              )}
+              {linkDropdownOpen && (
+                <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-auto rounded-lg border border-surface-border bg-surface-elevated shadow-lg">
+                  {linkSearchLoading ? (
+                    <div className="px-3 py-4 text-center text-sm text-gray-500">Searching...</div>
+                  ) : !linkSearchQuery.trim() ? (
+                    <div className="px-3 py-4 text-center text-sm text-gray-500">Type to search documents by ID or title</div>
+                  ) : documentsForLink.length === 0 ? (
+                    <div className="px-3 py-4 text-center text-sm text-gray-500">No documents found</div>
+                  ) : (
+                    documentsForLink.map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        className="w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-surface-overlay focus:bg-surface-overlay focus:outline-none"
+                        onClick={() => {
+                          setLinkTargetId(d.id);
+                          setLinkSearchQuery('');
+                          setLinkDropdownOpen(false);
+                        }}
+                      >
+                        {d.documentId} – {stripMarkdownFormatting(d.title)}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
             <Button
               variant="secondary"
               size="sm"
+              disabled={!linkTargetId}
               onClick={async () => {
                 if (!token || !linkTargetId) return;
                 await apiRequest(`/api/documents/${doc.id}/link`, {
@@ -641,6 +711,8 @@ export function DocumentDetail() {
                   body: { sourceDocumentId: doc.id, targetDocumentId: linkTargetId, linkType },
                 });
                 setLinkTargetId('');
+                setLinkSelectedDoc(null);
+                setLinkSearchQuery('');
                 const data = await apiRequest<{ links: DocumentLinkRef[] }>(`/api/documents/${doc.id}/links`, { token });
                 setLinks(data.links);
               }}

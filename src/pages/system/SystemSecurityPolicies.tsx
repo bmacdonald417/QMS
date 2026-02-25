@@ -65,8 +65,14 @@ export function SystemSecurityPolicies() {
             <Input
               label="Minimum length"
               type="number"
-              value={form.passwordMinLength ?? ''}
-              onChange={(e) => setForm((f) => ({ ...f, passwordMinLength: parseInt(e.target.value, 10) }))}
+              min={8}
+              max={128}
+              value={form.passwordMinLength !== undefined && form.passwordMinLength !== null && !Number.isNaN(form.passwordMinLength) ? form.passwordMinLength : ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === '') setForm((f) => ({ ...f, passwordMinLength: undefined }));
+                else { const n = parseInt(v, 10); if (!Number.isNaN(n)) setForm((f) => ({ ...f, passwordMinLength: n })); }
+              }}
             />
             <div className="flex items-center gap-2">
               <input
@@ -107,14 +113,24 @@ export function SystemSecurityPolicies() {
             <Input
               label="Lockout threshold (attempts)"
               type="number"
-              value={form.lockoutThreshold ?? ''}
-              onChange={(e) => setForm((f) => ({ ...f, lockoutThreshold: parseInt(e.target.value, 10) }))}
+              min={0}
+              value={form.lockoutThreshold !== undefined && form.lockoutThreshold !== null && !Number.isNaN(form.lockoutThreshold) ? form.lockoutThreshold : ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === '') setForm((f) => ({ ...f, lockoutThreshold: undefined }));
+                else { const n = parseInt(v, 10); if (!Number.isNaN(n)) setForm((f) => ({ ...f, lockoutThreshold: n })); }
+              }}
             />
             <Input
               label="Lockout duration (minutes)"
               type="number"
-              value={form.lockoutDurationMinutes ?? ''}
-              onChange={(e) => setForm((f) => ({ ...f, lockoutDurationMinutes: parseInt(e.target.value, 10) }))}
+              min={0}
+              value={form.lockoutDurationMinutes !== undefined && form.lockoutDurationMinutes !== null && !Number.isNaN(form.lockoutDurationMinutes) ? form.lockoutDurationMinutes : ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === '') setForm((f) => ({ ...f, lockoutDurationMinutes: undefined }));
+                else { const n = parseInt(v, 10); if (!Number.isNaN(n)) setForm((f) => ({ ...f, lockoutDurationMinutes: n })); }
+              }}
             />
           </div>
 
@@ -123,14 +139,24 @@ export function SystemSecurityPolicies() {
             <Input
               label="Idle timeout (minutes)"
               type="number"
-              value={form.sessionIdleTimeoutMinutes ?? ''}
-              onChange={(e) => setForm((f) => ({ ...f, sessionIdleTimeoutMinutes: parseInt(e.target.value, 10) }))}
+              min={0}
+              value={form.sessionIdleTimeoutMinutes !== undefined && form.sessionIdleTimeoutMinutes !== null && !Number.isNaN(form.sessionIdleTimeoutMinutes) ? form.sessionIdleTimeoutMinutes : ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === '') setForm((f) => ({ ...f, sessionIdleTimeoutMinutes: undefined }));
+                else { const n = parseInt(v, 10); if (!Number.isNaN(n)) setForm((f) => ({ ...f, sessionIdleTimeoutMinutes: n })); }
+              }}
             />
             <Input
               label="Max duration (minutes)"
               type="number"
-              value={form.sessionMaxDurationMinutes ?? ''}
-              onChange={(e) => setForm((f) => ({ ...f, sessionMaxDurationMinutes: parseInt(e.target.value, 10) }))}
+              min={0}
+              value={form.sessionMaxDurationMinutes !== undefined && form.sessionMaxDurationMinutes !== null && !Number.isNaN(form.sessionMaxDurationMinutes) ? form.sessionMaxDurationMinutes : ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === '') setForm((f) => ({ ...f, sessionMaxDurationMinutes: undefined }));
+                else { const n = parseInt(v, 10); if (!Number.isNaN(n)) setForm((f) => ({ ...f, sessionMaxDurationMinutes: n })); }
+              }}
             />
           </div>
 

@@ -38,6 +38,15 @@ const statusVariant: Record<string, 'default' | 'info' | 'success' | 'warning' |
   OBSOLETE: 'default',
 };
 
+const statusLabels: Record<string, string> = {
+  DRAFT: 'Draft',
+  IN_REVIEW: 'In Review',
+  AWAITING_APPROVAL: 'Awaiting Approval',
+  APPROVED: 'Approved',
+  EFFECTIVE: 'Effective',
+  OBSOLETE: 'Obsolete',
+};
+
 export function DocumentControl() {
   const navigate = useNavigate();
   const { token } = useAuth();

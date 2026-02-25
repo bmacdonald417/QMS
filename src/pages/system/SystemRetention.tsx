@@ -75,10 +75,11 @@ export function SystemRetention() {
             type="number"
             min={1}
             max={30}
-            value={form.auditLogRetentionYears ?? ''}
+            value={form.auditLogRetentionYears !== undefined && form.auditLogRetentionYears !== null && !Number.isNaN(form.auditLogRetentionYears) ? form.auditLogRetentionYears : ''}
             onChange={(e) => {
-              const v = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
-              setForm((f) => ({ ...f, auditLogRetentionYears: v !== undefined && !Number.isNaN(v) ? v : f.auditLogRetentionYears }));
+              const v = e.target.value;
+              if (v === '') setForm((f) => ({ ...f, auditLogRetentionYears: undefined }));
+              else { const n = parseInt(v, 10); if (!Number.isNaN(n)) setForm((f) => ({ ...f, auditLogRetentionYears: n })); }
             }}
           />
           <Input
@@ -86,13 +87,11 @@ export function SystemRetention() {
             type="number"
             min={1}
             max={50}
-            value={form.documentRetentionYears ?? ''}
+            value={form.documentRetentionYears != null && !Number.isNaN(form.documentRetentionYears) ? form.documentRetentionYears : ''}
             onChange={(e) => {
-              if (e.target.value === '') setForm((f) => ({ ...f, documentRetentionYears: null }));
-              else {
-                const v = parseInt(e.target.value, 10);
-                if (!Number.isNaN(v)) setForm((f) => ({ ...f, documentRetentionYears: v }));
-              }
+              const v = e.target.value;
+              if (v === '') setForm((f) => ({ ...f, documentRetentionYears: null }));
+              else { const n = parseInt(v, 10); if (!Number.isNaN(n)) setForm((f) => ({ ...f, documentRetentionYears: n })); }
             }}
           />
           <Input
