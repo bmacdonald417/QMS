@@ -7,6 +7,7 @@ export const requiredString = z.string().min(1, 'Required').trim();
 export const documentStatusSchema = z.enum([
   'DRAFT',
   'IN_REVIEW',
+  'AWAITING_APPROVAL',
   'APPROVED',
   'EFFECTIVE',
   'OBSOLETE',

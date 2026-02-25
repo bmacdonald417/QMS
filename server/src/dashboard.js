@@ -12,6 +12,7 @@ router.get('/metrics', async (_req, res) => {
   const statusCounts = {
     DRAFT: 0,
     IN_REVIEW: 0,
+    AWAITING_APPROVAL: 0,
     APPROVED: 0,
     EFFECTIVE: 0,
     OBSOLETE: 0,

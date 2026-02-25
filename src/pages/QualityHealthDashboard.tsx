@@ -24,6 +24,7 @@ interface DashboardMetrics {
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Draft',
   IN_REVIEW: 'In Review',
+  AWAITING_APPROVAL: 'Awaiting Approval',
   APPROVED: 'Approved',
   EFFECTIVE: 'Effective',
   OBSOLETE: 'Obsolete',

@@ -972,7 +972,13 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
     const pendingReviewCount = await prisma.documentAssignment.count({
       where: { documentId: document.id, assignmentType: 'REVIEW', status: 'PENDING' },
     });
+    let newStatus = document.status;
     if (pendingReviewCount === 0) {
+      await prisma.document.update({
+        where: { id: document.id },
+        data: { status: 'AWAITING_APPROVAL' },
+      });
+      newStatus = 'AWAITING_APPROVAL';
       const approvers = await prisma.documentAssignment.findMany({
         where: {
           documentId: document.id,
@@ -1000,12 +1006,12 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
       entityType: DOCUMENT_ENTITY,
       entityId: document.id,
       beforeValue: { status: document.status },
-      afterValue: { status: document.status },
+      afterValue: { status: newStatus },
       reason: req.body.reason || req.body.comments || null,
       ...auditCtx,
     });
 
-    res.json({ ok: true, status: document.status });
+    res.json({ ok: true, status: newStatus });
   } catch (err) {
     console.error('Review document error:', err);
     res.status(500).json({ error: 'Failed to complete review' });
@@ -1150,7 +1156,7 @@ router.post(
         action: 'DOCUMENT_APPROVED',
         entityType: DOCUMENT_ENTITY,
         entityId: document.id,
-        beforeValue: { status: 'IN_REVIEW' },
+        beforeValue: { status: 'AWAITING_APPROVAL' },
         afterValue: { status: 'APPROVED' },
         reason: req.body.reason || req.body.comments || null,
         ...auditCtx,

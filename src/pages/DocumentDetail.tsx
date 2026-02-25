@@ -87,7 +87,7 @@ interface DocumentDetailModel {
   documentType: string;
   versionMajor: number;
   versionMinor: number;
-  status: 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'EFFECTIVE' | 'OBSOLETE';
+  status: 'DRAFT' | 'IN_REVIEW' | 'AWAITING_APPROVAL' | 'APPROVED' | 'EFFECTIVE' | 'OBSOLETE';
   content?: string | null;
   authorId: string;
   effectiveDate?: string | null;
@@ -220,7 +220,7 @@ export function DocumentDetail() {
   const isAuthor = user?.id === doc.authorId;
   const canEdit = isAuthor && (doc.status === 'DRAFT' || doc.status === 'IN_REVIEW');
   const canSubmitReview = isAuthor && doc.status === 'DRAFT';
-  const canApprove = !!pendingMyApproval && doc.status === 'IN_REVIEW';
+  const canApprove = !!pendingMyApproval && doc.status === 'AWAITING_APPROVAL';
   const canRelease = (!!pendingMyRelease || user?.roleName === 'System Admin') && doc.status === 'APPROVED';
   const canRevise = doc.status === 'EFFECTIVE';
   const canDelete = user?.permissions?.includes('document:delete');
@@ -348,7 +348,9 @@ export function DocumentDetail() {
           <Button variant="secondary" onClick={() => openPdf(true)}>
             Download Uncontrolled Copy
           </Button>
-          <Badge variant="info">{doc.status.replace(/_/g, ' ')}</Badge>
+          <Badge variant={doc.status === 'EFFECTIVE' ? 'success' : doc.status === 'AWAITING_APPROVAL' || doc.status === 'IN_REVIEW' ? 'warning' : doc.status === 'APPROVED' ? 'info' : 'neutral'}>
+            {doc.status === 'AWAITING_APPROVAL' ? 'Awaiting Approval' : doc.status.replace(/_/g, ' ')}
+          </Badge>
           {doc.nextReviewDate && (
             <span className="text-sm text-gray-400">
               Next review: {new Date(doc.nextReviewDate).toLocaleDateString()}

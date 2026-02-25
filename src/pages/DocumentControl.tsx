@@ -32,6 +32,7 @@ interface DocumentListItem {
 const statusVariant: Record<string, 'default' | 'info' | 'success' | 'warning' | 'neutral' | 'danger'> = {
   DRAFT: 'neutral',
   IN_REVIEW: 'warning',
+  AWAITING_APPROVAL: 'warning',
   APPROVED: 'info',
   EFFECTIVE: 'success',
   OBSOLETE: 'default',
@@ -143,7 +144,7 @@ export function DocumentControl() {
       width: '180px',
       sortable: true,
       render: (row) => (
-        <Badge variant={statusVariant[row.status] || 'default'}>{row.status.replace(/_/g, ' ')}</Badge>
+        <Badge variant={statusVariant[row.status] || 'default'}>{statusLabels[row.status] ?? row.status.replace(/_/g, ' ')}</Badge>
       ),
     },
     {
@@ -283,6 +284,7 @@ export function DocumentControl() {
                   <option value="">All Statuses</option>
                   <option value="DRAFT">Draft</option>
                   <option value="IN_REVIEW">In Review</option>
+                  <option value="AWAITING_APPROVAL">Awaiting Approval</option>
                   <option value="APPROVED">Approved</option>
                   <option value="EFFECTIVE">Effective</option>
                   <option value="OBSOLETE">Obsolete</option>
