@@ -10,6 +10,8 @@ export interface Column<T> {
   sortable?: boolean;
   /** When sortable, use this to get the sort value (e.g. for computed columns like version) */
   sortValue?: (row: T) => string | number;
+  /** If true, clicking this cell does not trigger onRowClick (e.g. for inline-edit cells) */
+  preventRowClick?: boolean;
 }
 
 export interface TableProps<T> extends Omit<HTMLAttributes<HTMLTableElement>, 'children'> {
@@ -79,27 +81,24 @@ export function Table<T>({
             data.map((row) => (
               <tr
                 key={keyExtractor(row)}
-                onClick={(e) => {
-                  if ((e.target as HTMLElement).closest?.('[data-prevent-row-click]')) return;
-                  onRowClick?.(row);
-                }}
-                className={
-                  onRowClick
-                    ? 'cursor-pointer bg-surface-elevated hover:bg-surface-overlay transition-colors duration-200'
-                    : 'bg-surface-elevated'
-                }
+                className="bg-surface-elevated hover:bg-surface-overlay transition-colors duration-200"
               >
-                {columns.map((col) => (
-                  <td
-                    key={col.key}
-                    className="px-4 py-3 text-gray-200"
-                    style={{ textAlign: col.align ?? 'left' }}
-                  >
-                    {col.render
-                      ? col.render(row)
-                      : (row as Record<string, unknown>)[col.key] as React.ReactNode}
-                  </td>
-                ))}
+                {columns.map((col) => {
+                  const isClickable = onRowClick && !col.preventRowClick;
+                  return (
+                    <td
+                      key={col.key}
+                      className={`px-4 py-3 text-gray-200 ${isClickable ? 'cursor-pointer' : ''}`}
+                      style={{ textAlign: col.align ?? 'left' }}
+                      onClick={isClickable ? () => onRowClick(row) : undefined}
+                      role={isClickable ? 'button' : undefined}
+                    >
+                      {col.render
+                        ? col.render(row)
+                        : (row as Record<string, unknown>)[col.key] as React.ReactNode}
+                    </td>
+                  );
+                })}
               </tr>
             ))
           )}

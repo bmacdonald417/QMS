@@ -171,6 +171,7 @@ export function DocumentControl() {
       width: '220px',
       sortable: true,
       sortValue: (row) => row.tags?.join(', ') ?? '',
+      preventRowClick: true,
       render: (row) => {
         const isEditing = editingTagsForId === row.id;
         const currentTags = row.tags ?? [];
@@ -213,20 +214,10 @@ export function DocumentControl() {
           }
         };
 
-        const handleTagsCellClick = (e: React.MouseEvent) => {
-          e.stopPropagation();
-          e.preventDefault();
-        };
-
         return (
-          <div
-            data-prevent-row-click
-            className="flex flex-wrap items-center gap-1 min-h-[28px] w-full cursor-pointer"
-            onClick={handleTagsCellClick}
-            onMouseDown={handleTagsCellClick}
-          >
+          <div className="flex flex-wrap items-center gap-1 min-h-[28px] w-full">
             {isEditing ? (
-              <div data-prevent-row-click className="flex flex-col gap-1.5 w-full" onClick={handleTagsCellClick}>
+              <div className="flex flex-col gap-1.5 w-full">
                 <Input
                   value={editingTagsValue}
                   onChange={(e) => setEditingTagsValue(e.target.value)}
@@ -247,27 +238,19 @@ export function DocumentControl() {
               <>
                 {displayTags.length > 0 ? (
                   displayTags.map((tag, idx) => (
-                    <Badge
+                    <button
                       key={idx}
-                      variant="neutral"
-                      className="text-xs cursor-pointer hover:ring-1 hover:ring-mactech-blue/50 rounded"
-                      onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        startEditing(e);
-                      }}
+                      type="button"
+                      onClick={startEditing}
+                      className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-md bg-gray-600/20 text-gray-400 border border-gray-500/30 cursor-pointer hover:ring-1 hover:ring-mactech-blue/50 hover:text-gray-200"
                     >
                       {tag}
-                    </Badge>
+                    </button>
                   ))
                 ) : (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      startEditing(e);
-                    }}
+                    onClick={startEditing}
                     className="text-gray-500 text-xs hover:text-mactech-blue hover:underline cursor-pointer text-left"
                   >
                     — Add tag
@@ -281,11 +264,7 @@ export function DocumentControl() {
                 {currentTags.length > 0 && (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      startEditing(e);
-                    }}
+                    onClick={startEditing}
                     className="text-gray-400 hover:text-mactech-blue text-xs ml-0.5"
                     title="Add or edit tags"
                     aria-label="Add or edit tags"
