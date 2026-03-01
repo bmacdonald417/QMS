@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/lib/api';
 import { stripMarkdownFormatting } from '@/lib/format';
 import { useDocumentTypes } from '@/hooks/useDocumentTypes';
-import { Search, Filter, X } from 'lucide-react';
+import { Search, Filter, X, Tag } from 'lucide-react';
 
 interface DocumentListItem {
   id: string;
@@ -71,6 +71,10 @@ export function DocumentControl() {
   const [editingTagsForId, setEditingTagsForId] = useState<string | null>(null);
   const [editingTagsValue, setEditingTagsValue] = useState('');
   const [savingTags, setSavingTags] = useState(false);
+  const [showEditTagsModal, setShowEditTagsModal] = useState(false);
+  const [editTagsDocumentId, setEditTagsDocumentId] = useState<string>('');
+  const [editTagsValue, setEditTagsValue] = useState('');
+  const [savingEditTags, setSavingEditTags] = useState(false);
 
   const buildQueryParams = () => {
     const params = new URLSearchParams();
@@ -416,6 +420,22 @@ export function DocumentControl() {
       </Card>
       
       <Card padding="none">
+        <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-surface-border bg-surface-overlay">
+          <span className="text-sm text-gray-400">Documents</span>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setShowEditTagsModal(true);
+              setEditTagsDocumentId(sortedDocuments[0]?.id ?? '');
+              setEditTagsValue((sortedDocuments[0]?.tags ?? []).join(', '));
+            }}
+            className="flex items-center gap-1.5"
+          >
+            <Tag className="w-4 h-4" />
+            Edit tags
+          </Button>
+        </div>
         <Table
           columns={columns}
           data={sortedDocuments}
@@ -535,6 +555,91 @@ export function DocumentControl() {
               minHeight="240px"
               placeholder="Enter or paste content. Tables and formatting from Word/Excel are preserved."
             />
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showEditTagsModal}
+        onClose={() => setShowEditTagsModal(false)}
+        title="Edit document tags"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setShowEditTagsModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!editTagsDocumentId || savingEditTags}
+              onClick={async () => {
+                if (!token || !editTagsDocumentId) return;
+                setSavingEditTags(true);
+                setError('');
+                try {
+                  const newTags = editTagsValue
+                    .split(',')
+                    .map((t) => t.trim())
+                    .filter(Boolean);
+                  await apiRequest(`/api/documents/${editTagsDocumentId}/tags`, {
+                    token,
+                    method: 'PATCH',
+                    body: { tags: newTags },
+                  });
+                  await fetchDocuments();
+                  setShowEditTagsModal(false);
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : 'Failed to update tags');
+                } finally {
+                  setSavingEditTags(false);
+                }
+              }}
+            >
+              {savingEditTags ? 'Saving…' : 'Save'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="label-caps block mb-1.5">Document</label>
+            <select
+              value={editTagsDocumentId}
+              onChange={(e) => {
+                const id = e.target.value;
+                setEditTagsDocumentId(id);
+                const doc = sortedDocuments.find((d) => d.id === id);
+                setEditTagsValue((doc?.tags ?? []).join(', '));
+              }}
+              className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+            >
+              <option value="">Select a document</option>
+              {sortedDocuments.map((doc) => (
+                <option key={doc.id} value={doc.id}>
+                  {doc.documentId} — {stripMarkdownFormatting(doc.title)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label-caps block mb-1.5">Tags (comma-separated)</label>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                value={editTagsValue}
+                onChange={(e) => setEditTagsValue(e.target.value)}
+                placeholder="e.g. CMMC, Quality, Safety"
+                className="flex-1 min-w-[200px]"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  const tags = editTagsValue.split(',').map((t) => t.trim()).filter(Boolean);
+                  if (!tags.includes('CMMC')) setEditTagsValue([...tags, 'CMMC'].join(', '));
+                }}
+              >
+                Add CMMC
+              </Button>
+            </div>
           </div>
         </div>
       </Modal>
