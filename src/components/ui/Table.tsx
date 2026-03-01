@@ -79,7 +79,10 @@ export function Table<T>({
             data.map((row) => (
               <tr
                 key={keyExtractor(row)}
-                onClick={() => onRowClick?.(row)}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest?.('[data-prevent-row-click]')) return;
+                  onRowClick?.(row);
+                }}
                 className={
                   onRowClick
                     ? 'cursor-pointer bg-surface-elevated hover:bg-surface-overlay transition-colors duration-200'

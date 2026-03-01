@@ -213,10 +213,20 @@ export function DocumentControl() {
           }
         };
 
+        const handleTagsCellClick = (e: React.MouseEvent) => {
+          e.stopPropagation();
+          e.preventDefault();
+        };
+
         return (
-          <div className="flex flex-wrap items-center gap-1 min-h-[28px]" onClick={(e) => e.stopPropagation()}>
+          <div
+            data-prevent-row-click
+            className="flex flex-wrap items-center gap-1 min-h-[28px] w-full cursor-pointer"
+            onClick={handleTagsCellClick}
+            onMouseDown={handleTagsCellClick}
+          >
             {isEditing ? (
-              <div className="flex flex-col gap-1.5 w-full">
+              <div data-prevent-row-click className="flex flex-col gap-1.5 w-full" onClick={handleTagsCellClick}>
                 <Input
                   value={editingTagsValue}
                   onChange={(e) => setEditingTagsValue(e.target.value)}
@@ -237,14 +247,27 @@ export function DocumentControl() {
               <>
                 {displayTags.length > 0 ? (
                   displayTags.map((tag, idx) => (
-                    <Badge key={idx} variant="neutral" className="text-xs">
+                    <Badge
+                      key={idx}
+                      variant="neutral"
+                      className="text-xs cursor-pointer hover:ring-1 hover:ring-mactech-blue/50 rounded"
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        startEditing(e);
+                      }}
+                    >
                       {tag}
                     </Badge>
                   ))
                 ) : (
                   <button
                     type="button"
-                    onClick={startEditing}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      startEditing(e);
+                    }}
                     className="text-gray-500 text-xs hover:text-mactech-blue hover:underline cursor-pointer text-left"
                   >
                     — Add tag
@@ -258,7 +281,11 @@ export function DocumentControl() {
                 {currentTags.length > 0 && (
                   <button
                     type="button"
-                    onClick={startEditing}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      startEditing(e);
+                    }}
                     className="text-gray-400 hover:text-mactech-blue text-xs ml-0.5"
                     title="Add or edit tags"
                     aria-label="Add or edit tags"

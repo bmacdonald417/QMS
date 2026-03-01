@@ -173,6 +173,29 @@ router.post('/admin/remove-cmmc-tag', requireRoles('System Admin', 'Admin'), asy
   }
 });
 
+// POST /api/documents/admin/add-cmmc-tag — add "CMMC" tag to all documents that don't have it (System Admin / Admin only)
+router.post('/admin/add-cmmc-tag', requireRoles('System Admin', 'Admin'), async (req, res) => {
+  try {
+    const docs = await prisma.document.findMany({
+      select: { id: true, documentId: true, tags: true },
+    });
+    const toUpdate = docs.filter((doc) => !(doc.tags || []).includes('CMMC'));
+    let updated = 0;
+    for (const doc of toUpdate) {
+      const newTags = [...(doc.tags || []), 'CMMC'];
+      await prisma.document.update({
+        where: { id: doc.id },
+        data: { tags: newTags },
+      });
+      updated++;
+    }
+    res.json({ ok: true, addedTo: updated, message: `CMMC tag added to ${updated} document(s).` });
+  } catch (err) {
+    console.error('Add CMMC tag error:', err);
+    res.status(500).json({ error: 'Failed to add CMMC tag to documents' });
+  }
+});
+
 // GET /api/documents — list all (requires document:view). 
 // Query params: ?type=form-template, ?documentType=SOP|POLICY|..., ?status=DRAFT|EFFECTIVE|..., ?tags=tag1,tag2, ?search=query
 router.get('/', requirePermission('document:view'), async (req, res) => {
