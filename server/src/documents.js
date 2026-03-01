@@ -150,6 +150,29 @@ router.get('/templates/forms', requirePermission('document:view'), async (req, r
   }
 });
 
+// POST /api/documents/admin/remove-cmmc-tag — remove "CMMC" tag from all documents (System Admin / Admin only)
+router.post('/admin/remove-cmmc-tag', requireRoles('System Admin', 'Admin'), async (req, res) => {
+  try {
+    const docs = await prisma.document.findMany({
+      where: { tags: { has: 'CMMC' } },
+      select: { id: true, documentId: true, tags: true },
+    });
+    let updated = 0;
+    for (const doc of docs) {
+      const newTags = doc.tags.filter((t) => t !== 'CMMC');
+      await prisma.document.update({
+        where: { id: doc.id },
+        data: { tags: newTags },
+      });
+      updated++;
+    }
+    res.json({ ok: true, removedFrom: updated, message: `CMMC tag removed from ${updated} document(s).` });
+  } catch (err) {
+    console.error('Remove CMMC tag error:', err);
+    res.status(500).json({ error: 'Failed to remove CMMC tag from documents' });
+  }
+});
+
 // GET /api/documents — list all (requires document:view). 
 // Query params: ?type=form-template, ?documentType=SOP|POLICY|..., ?status=DRAFT|EFFECTIVE|..., ?tags=tag1,tag2, ?search=query
 router.get('/', requirePermission('document:view'), async (req, res) => {
@@ -686,6 +709,27 @@ router.post('/', requirePermission('document:create'), async (req, res) => {
   } catch (err) {
     console.error('Create document error:', err);
     res.status(500).json({ error: 'Failed to create draft document' });
+  }
+});
+
+// PATCH /api/documents/:id/tags — update only tags (any user with document:create, any status)
+router.patch('/:id/tags', requirePermission('document:create'), async (req, res) => {
+  try {
+    const { tags: tagsBody } = req.body;
+    const existing = await prisma.document.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: 'Document not found' });
+    if (!Array.isArray(tagsBody)) {
+      return res.status(400).json({ error: 'tags array is required' });
+    }
+    const tags = tagsBody.filter((t) => typeof t === 'string').map((t) => t.trim()).filter(Boolean);
+    const updated = await prisma.document.update({
+      where: { id: req.params.id },
+      data: { tags },
+    });
+    res.json({ document: updated });
+  } catch (err) {
+    console.error('Update document tags error:', err);
+    res.status(500).json({ error: 'Failed to update tags' });
   }
 });
 

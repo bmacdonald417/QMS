@@ -68,6 +68,9 @@ export function DocumentControl() {
   const [showFilters, setShowFilters] = useState(false);
   const [sortColumn, setSortColumn] = useState<string | null>('documentId');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [editingTagsForId, setEditingTagsForId] = useState<string | null>(null);
+  const [editingTagsValue, setEditingTagsValue] = useState('');
+  const [savingTags, setSavingTags] = useState(false);
 
   const buildQueryParams = () => {
     const params = new URLSearchParams();
@@ -165,27 +168,109 @@ export function DocumentControl() {
     {
       key: 'tags',
       header: 'Tags',
-      width: '200px',
+      width: '220px',
       sortable: true,
       sortValue: (row) => row.tags?.join(', ') ?? '',
-      render: (row) => (
-        <div className="flex flex-wrap gap-1">
-          {row.tags && row.tags.length > 0 ? (
-            row.tags.slice(0, 2).map((tag, idx) => (
-              <Badge key={idx} variant="neutral" className="text-xs">
-                {tag}
-              </Badge>
-            ))
-          ) : (
-            <span className="text-gray-500 text-xs">—</span>
-          )}
-          {row.tags && row.tags.length > 2 && (
-            <Badge variant="neutral" className="text-xs">
-              +{row.tags.length - 2}
-            </Badge>
-          )}
-        </div>
-      ),
+      render: (row) => {
+        const isEditing = editingTagsForId === row.id;
+        const currentTags = row.tags ?? [];
+        const displayTags = currentTags.slice(0, 2);
+
+        const startEditing = (e: React.MouseEvent) => {
+          e.stopPropagation();
+          setEditingTagsForId(row.id);
+          setEditingTagsValue(currentTags.join(', '));
+        };
+
+        const cancelEditing = (e: React.MouseEvent) => {
+          e.stopPropagation();
+          setEditingTagsForId(null);
+          setEditingTagsValue('');
+        };
+
+        const saveTags = async (e: React.MouseEvent) => {
+          e.stopPropagation();
+          if (!token) return;
+          setSavingTags(true);
+          setError('');
+          try {
+            const newTags = editingTagsValue
+              .split(',')
+              .map((t) => t.trim())
+              .filter(Boolean);
+            await apiRequest(`/api/documents/${row.id}/tags`, {
+              token,
+              method: 'PATCH',
+              body: { tags: newTags },
+            });
+            setEditingTagsForId(null);
+            setEditingTagsValue('');
+            await fetchDocuments();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to update tags');
+          } finally {
+            setSavingTags(false);
+          }
+        };
+
+        return (
+          <div className="flex flex-wrap items-center gap-1 min-h-[28px]" onClick={(e) => e.stopPropagation()}>
+            {isEditing ? (
+              <div className="flex flex-col gap-1.5 w-full">
+                <Input
+                  value={editingTagsValue}
+                  onChange={(e) => setEditingTagsValue(e.target.value)}
+                  placeholder="e.g. CMMC, Quality"
+                  className="text-xs py-1.5"
+                  autoFocus
+                />
+                <div className="flex gap-1">
+                  <Button variant="secondary" size="sm" onClick={cancelEditing} disabled={savingTags}>
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={saveTags} disabled={savingTags}>
+                    {savingTags ? 'Saving…' : 'Save'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {displayTags.length > 0 ? (
+                  displayTags.map((tag, idx) => (
+                    <Badge key={idx} variant="neutral" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))
+                ) : (
+                  <button
+                    type="button"
+                    onClick={startEditing}
+                    className="text-gray-500 text-xs hover:text-mactech-blue hover:underline cursor-pointer text-left"
+                  >
+                    — Add tag
+                  </button>
+                )}
+                {currentTags.length > 2 && (
+                  <Badge variant="neutral" className="text-xs">
+                    +{currentTags.length - 2}
+                  </Badge>
+                )}
+                {currentTags.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={startEditing}
+                    className="text-gray-400 hover:text-mactech-blue text-xs ml-0.5"
+                    title="Add or edit tags"
+                    aria-label="Add or edit tags"
+                  >
+                    +
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
