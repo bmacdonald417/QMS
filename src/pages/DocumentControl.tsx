@@ -315,6 +315,17 @@ export function DocumentControl() {
       title="Document Control"
       subtitle="Create, review, approve, and release controlled documents."
       primaryAction={{ label: 'New Document', onClick: () => setShowCreate(true) }}
+      secondaryActions={[
+        {
+          label: 'Edit tags',
+          icon: <Tag className="h-4 w-4" />,
+          onClick: () => {
+            setShowEditTagsModal(true);
+            setEditTagsDocumentId(sortedDocuments[0]?.id ?? '');
+            setEditTagsValue((sortedDocuments[0]?.tags ?? []).join(', '));
+          },
+        },
+      ]}
     >
       {error && <p className="mb-3 text-sm text-compliance-red">{error}</p>}
       
@@ -420,22 +431,6 @@ export function DocumentControl() {
       </Card>
       
       <Card padding="none">
-        <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-surface-border bg-surface-overlay">
-          <span className="text-sm text-gray-400">Documents</span>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              setShowEditTagsModal(true);
-              setEditTagsDocumentId(sortedDocuments[0]?.id ?? '');
-              setEditTagsValue((sortedDocuments[0]?.tags ?? []).join(', '));
-            }}
-            className="flex items-center gap-1.5"
-          >
-            <Tag className="w-4 h-4" />
-            Edit tags
-          </Button>
-        </div>
         <Table
           columns={columns}
           data={sortedDocuments}

@@ -7,6 +7,8 @@ export interface PageShellProps {
   title: string;
   subtitle?: string;
   primaryAction?: { label: string; onClick: () => void };
+  /** Additional buttons shown next to primary action (e.g. "Edit tags") */
+  secondaryActions?: Array<{ label: string; onClick: () => void; icon?: ReactNode }>;
   backLink?: { label: string; href: string };
   children: ReactNode;
   sidePanel?: ReactNode;
@@ -19,6 +21,7 @@ export function PageShell({
   title,
   subtitle,
   primaryAction,
+  secondaryActions,
   backLink,
   children,
   sidePanel,
@@ -40,14 +43,26 @@ export function PageShell({
             <h1>{title}</h1>
             {subtitle && <p className="text-gray-500 mt-1">{subtitle}</p>}
           </div>
-          {primaryAction && (
-            <Button
-              leftIcon={<Plus className="h-4 w-4" />}
-              onClick={primaryAction.onClick}
-            >
-              {primaryAction.label}
-            </Button>
-          )}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {secondaryActions?.map((action, i) => (
+              <Button
+                key={i}
+                variant="secondary"
+                leftIcon={action.icon}
+                onClick={action.onClick}
+              >
+                {action.label}
+              </Button>
+            ))}
+            {primaryAction && (
+              <Button
+                leftIcon={<Plus className="h-4 w-4" />}
+                onClick={primaryAction.onClick}
+              >
+                {primaryAction.label}
+              </Button>
+            )}
+          </div>
         </div>
         {children}
       </div>
