@@ -278,8 +278,10 @@ function linesToHtml(lines) {
 function buildHtml({ document, signatures, revisions, uncontrolled }) {
   const version = `${document.versionMajor}.${document.versionMinor}`;
   const raw = (document.content || '').trim();
-  const lines = contentToLines(raw);
-  const contentHtml = linesToHtml(lines);
+  const isHtml = raw.startsWith('<') && raw.includes('>');
+  const contentHtml = isHtml
+    ? sanitizeHtmlForPdf(raw)
+    : linesToHtml(contentToLines(raw));
   const effectiveDateText = document.effectiveDate
     ? new Date(document.effectiveDate).toLocaleDateString()
     : 'Pending Release';
@@ -302,8 +304,8 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       font-family: "Helvetica", "Arial", sans-serif;
       margin: 0;
       padding: 0;
-      padding-top: 16mm;
-      padding-bottom: 14mm;
+      padding-top: 18mm;
+      padding-bottom: 20mm;
       background-color: #ffffff;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -319,7 +321,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       height: 14mm;
       z-index: 100;
       background: #fff;
-      border-bottom: 1px solid #707070;
+      border-bottom: 0.5pt solid #ccc;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -339,6 +341,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       height: 12mm;
       z-index: 100;
       background: #fff;
+      border-top: none;
       font-size: 9pt;
       color: #555;
       display: flex;
