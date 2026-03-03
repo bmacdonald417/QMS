@@ -383,10 +383,20 @@ router.post('/export-bundle', requirePermission('document:view'), async (req, re
         include: { author: { select: { firstName: true, lastName: true } } },
         orderBy: [{ versionMajor: 'asc' }, { versionMinor: 'asc' }, { createdAt: 'asc' }],
       });
+      const referenceLinks = await prisma.documentLink.findMany({
+        where: { sourceDocumentId: document.id, linkType: 'references' },
+        include: {
+          targetDocument: {
+            select: { documentId: true, versionMajor: true, versionMinor: true, title: true },
+          },
+        },
+      });
+      const referenceDocuments = referenceLinks.map((l) => l.targetDocument);
       const pdf = await generateDocumentPdf({
         document,
         signatures: document.signatures,
         revisions,
+        referenceDocuments,
         uncontrolled: false,
       });
       const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
@@ -426,6 +436,16 @@ router.get('/:id/pdf', async (req, res) => {
       orderBy: [{ versionMajor: 'asc' }, { versionMinor: 'asc' }, { createdAt: 'asc' }],
     });
 
+    const referenceLinks = await prisma.documentLink.findMany({
+      where: { sourceDocumentId: document.id, linkType: 'references' },
+      include: {
+        targetDocument: {
+          select: { documentId: true, versionMajor: true, versionMinor: true, title: true },
+        },
+      },
+    });
+    const referenceDocuments = referenceLinks.map((l) => l.targetDocument);
+
     const uncontrolled =
       String(req.query.uncontrolled || '').toLowerCase() === 'true' ||
       String(req.query.mode || '').toLowerCase() === 'download';
@@ -434,6 +454,7 @@ router.get('/:id/pdf', async (req, res) => {
       document,
       signatures: document.signatures,
       revisions,
+      referenceDocuments,
       uncontrolled,
     });
     const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);

@@ -1017,6 +1017,58 @@ export function DocumentDetail() {
       </Card>
 
       <Card padding="md">
+        <h2 className="mb-4 text-lg text-white">Reference Documents</h2>
+        {(() => {
+          const referenceLinks = links.filter(
+            (l) => l.sourceDocumentId === doc.id && l.linkType === 'references'
+          );
+          if (referenceLinks.length === 0) {
+            return <p className="text-sm text-gray-500">No reference documents linked.</p>;
+          }
+          return (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-surface-border text-left text-gray-400">
+                    <th className="py-2">Document ID</th>
+                    <th className="py-2">Version</th>
+                    <th className="py-2">Title</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {referenceLinks.map((link) => (
+                    <tr key={link.id} className="border-b border-surface-border text-gray-200">
+                      <td className="py-2">
+                        <button
+                          type="button"
+                          className="text-mactech-blue hover:underline text-left"
+                          onClick={() => navigate(`/documents/${link.targetDocument.id}`)}
+                        >
+                          {link.targetDocument.documentId}
+                        </button>
+                      </td>
+                      <td className="py-2">
+                        {link.targetDocument.versionMajor}.{link.targetDocument.versionMinor}
+                      </td>
+                      <td className="py-2">
+                        <button
+                          type="button"
+                          className="text-mactech-blue hover:underline text-left"
+                          onClick={() => navigate(`/documents/${link.targetDocument.id}`)}
+                        >
+                          {stripMarkdownFormatting(link.targetDocument.title)}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
+      </Card>
+
+      <Card padding="md">
         <h2 className="mb-4 text-lg text-white">Audit Trail</h2>
         {doc.history.length === 0 ? (
           <p className="text-sm text-gray-500">No history entries yet.</p>

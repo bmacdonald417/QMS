@@ -81,6 +81,28 @@ function renderRevisionRows(revisions) {
     .join('');
 }
 
+/** referenceDocuments: array of { documentId, versionMajor, versionMinor, title } (target docs from linkType 'references') */
+function renderReferenceDocumentsRows(referenceDocuments) {
+  if (!referenceDocuments?.length) {
+    return `
+      <tr>
+        <td colspan="3">No reference documents linked.</td>
+      </tr>
+    `;
+  }
+  return referenceDocuments
+    .map(
+      (ref) => `
+      <tr>
+        <td>${esc(ref.documentId)}</td>
+        <td>${esc(ref.versionMajor)}.${esc(ref.versionMinor)}</td>
+        <td>${esc(stripMarkdownFormatting(ref.title))}</td>
+      </tr>
+    `
+    )
+    .join('');
+}
+
 function watermark(uncontrolled) {
   return uncontrolled
     ? `<div class="watermark">UNCONTROLLED COPY - FOR REFERENCE USE ONLY</div>`
@@ -315,7 +337,7 @@ function linesToHtml(lines) {
   return out.join('');
 }
 
-function buildHtml({ document, signatures, revisions, uncontrolled }) {
+function buildHtml({ document, signatures, revisions, referenceDocuments, uncontrolled }) {
   const version = `${document.versionMajor}.${document.versionMinor}`;
   const raw = (document.content || '').trim();
   const isHtml = raw.startsWith('<') && raw.includes('>');
@@ -647,6 +669,16 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
         </tr>
         ${renderRevisionRows(revisions)}
       </table>
+
+      <h1>REFERENCE DOCUMENTS</h1>
+      <table>
+        <tr>
+          <th>Document ID</th>
+          <th>Version</th>
+          <th>Title</th>
+        </tr>
+        ${renderReferenceDocumentsRows(referenceDocuments)}
+      </table>
     </div>
   </div>
 </body>
@@ -684,9 +716,9 @@ function buildPdfFooterTemplate() {
   `.trim();
 }
 
-export async function generateDocumentPdf({ document, signatures, revisions, uncontrolled }) {
+export async function generateDocumentPdf({ document, signatures, revisions, referenceDocuments, uncontrolled }) {
   const version = `${document.versionMajor}.${document.versionMinor}`;
-  const html = buildHtml({ document, signatures, revisions, uncontrolled });
+  const html = buildHtml({ document, signatures, revisions, referenceDocuments: referenceDocuments ?? [], uncontrolled });
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
