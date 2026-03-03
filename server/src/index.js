@@ -23,7 +23,7 @@ import { requestIdMiddleware } from './audit.js';
 import { startPeriodicReviewScheduler } from './periodicReviewScheduler.js';
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3001; // deploy trigger
+const PORT = Number(process.env.PORT) || 3001;
 
 app.use(cors({ origin: true, credentials: true }));
 // Increase JSON body limit for large document content (default 100kb causes 413)
