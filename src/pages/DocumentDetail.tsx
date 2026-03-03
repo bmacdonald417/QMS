@@ -378,6 +378,18 @@ export function DocumentDetail() {
               Initiate Periodic Review
             </Button>
           ) : null}
+          <Button
+            variant="primary"
+            onClick={() => {
+              setShowSignModal(true);
+              setSignMeaning('Prepared By');
+              setSignPassword('');
+              setSignComment('');
+              setSignError('');
+            }}
+          >
+            Sign document
+          </Button>
           <Button variant="secondary" onClick={() => openPdf(false)}>
             View PDF
           </Button>
