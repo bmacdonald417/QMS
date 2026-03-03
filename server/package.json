@@ -14,7 +14,9 @@
     "db:migrate-plain-text": "node scripts/migrate-plain-text-docs.js",
     "db:add-document-types": "node scripts/add-document-types-enum.js",
     "db:remove-cmmc-tag": "node scripts/remove-cmmc-tag.js",
-    "db:add-cmmc-tag": "node scripts/add-cmmc-tag.js"
+    "db:add-cmmc-tag": "node scripts/add-cmmc-tag.js",
+    "ingest:governance-zip": "node scripts/ingestGovernanceZip.js",
+    "db:wipe-documents": "node scripts/wipe-all-documents.js"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",

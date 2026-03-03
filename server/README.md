@@ -36,15 +36,15 @@
    npm run db:seed
    ```
 
-   This creates 5 roles and 5 users. All demo users use password: **`Password123!`**
+   This creates roles, permissions, and 4 demo users. All demo users use password: **`Password123!`**  
+   Any previous seed users (e.g. Admin User, Alex Admin) are removed so only these appear as reviewer/approver options:
 
-   | Role              | Email                     | Name            |
-   |-------------------|---------------------------|-----------------|
-   | System Administrator | alex.admin@qms.demo    | Alex Admin      |
-   | Quality           | brenda.quality@qms.demo  | Brenda Quality  |
-   | Manager           | charles.manager@qms.demo | Charles Manager |
-   | User              | david.user@qms.demo       | David User      |
-   | Read-Only         | evelyn.readonly@qms.demo  | Evelyn Readonly |
+   | Role           | Email                        | Name             |
+   |----------------|------------------------------|------------------|
+   | System Admin   | brian.macdonald@mactech.com  | Brian MacDonald  |
+   | Manager        | jon.milso@mactech.com        | Jon Milso        |
+   | Quality Manager | james.adams@mactech.com    | James Adams      |
+   | System Admin   | patrick.caruso@mactech.com   | Patrick Caruso   |
 
 ## Run
 

@@ -8,14 +8,21 @@ const DEMO_PASSWORD = 'Password123!';
 const SALT_ROUNDS = 10;
 
 const DEMO_USERS = [
-  { firstName: 'Admin', lastName: 'User', email: 'admin@mactech.com', roleName: 'System Admin' },
-  { firstName: 'Quality', lastName: 'Manager', email: 'quality@mactech.com', roleName: 'Quality Manager' },
-  { firstName: 'Department', lastName: 'Manager', email: 'manager@mactech.com', roleName: 'Manager' },
-  { firstName: 'General', lastName: 'User', email: 'user@mactech.com', roleName: 'User' },
-  { firstName: 'Alex', lastName: 'Admin', email: 'alex.admin@qms.demo', roleName: 'System Admin' },
-  { firstName: 'Brenda', lastName: 'Quality', email: 'brenda.quality@qms.demo', roleName: 'Quality Manager' },
-  { firstName: 'Charles', lastName: 'Manager', email: 'charles.manager@qms.demo', roleName: 'Manager' },
-  { firstName: 'David', lastName: 'User', email: 'david.user@qms.demo', roleName: 'User' },
+  { firstName: 'Brian', lastName: 'MacDonald', email: 'brian.macdonald@mactech.com', roleName: 'System Admin' },
+  { firstName: 'Jon', lastName: 'Milso', email: 'jon.milso@mactech.com', roleName: 'Manager' },
+  { firstName: 'James', lastName: 'Adams', email: 'james.adams@mactech.com', roleName: 'Quality Manager' },
+  { firstName: 'Patrick', lastName: 'Caruso', email: 'patrick.caruso@mactech.com', roleName: 'System Admin' },
+];
+
+const OLD_DEMO_EMAILS = [
+  'admin@mactech.com',
+  'quality@mactech.com',
+  'manager@mactech.com',
+  'user@mactech.com',
+  'alex.admin@qms.demo',
+  'brenda.quality@qms.demo',
+  'charles.manager@qms.demo',
+  'david.user@qms.demo',
 ];
 
 async function main() {
@@ -49,6 +56,17 @@ async function main() {
         });
       }
     }
+  }
+
+  const oldUsers = await prisma.user.findMany({
+    where: { email: { in: OLD_DEMO_EMAILS } },
+    select: { id: true },
+  });
+  const oldIds = oldUsers.map((u) => u.id);
+  if (oldIds.length > 0) {
+    await prisma.notification.deleteMany({ where: { userId: { in: oldIds } } });
+    await prisma.auditLog.deleteMany({ where: { userId: { in: oldIds } } });
+    await prisma.user.deleteMany({ where: { id: { in: oldIds } } });
   }
 
   const hashedPassword = await bcrypt.hash(DEMO_PASSWORD, SALT_ROUNDS);

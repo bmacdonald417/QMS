@@ -290,7 +290,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
 <head>
   <meta charset="UTF-8" />
   <style>
-    @page { size: A4; margin: 0.5in; }
+    @page { size: A4; margin: 0.65in 0.5in; }
     body {
       font-family: "Helvetica", "Arial", sans-serif;
       margin: 0;
@@ -323,9 +323,11 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     }
     .page.content-flow {
       page-break-after: auto;
+      overflow: visible;
     }
     .page.content-flow .content {
       flex-grow: 0;
+      padding-bottom: 6mm;
     }
     .header {
       display: table;
@@ -408,6 +410,8 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       word-break: break-word;
       max-width: 100%;
       width: 100%;
+      orphans: 2;
+      widows: 2;
     }
     .content * {
       white-space: normal !important;
@@ -419,7 +423,13 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       font-size: 12pt; font-weight: bold; margin-top: 8mm; margin-bottom: 3mm;
     }
     .content h4, .content h5, .content h6 { font-size: 11pt; margin-top: 6mm; margin-bottom: 2mm; }
-    .content p { margin: 0 0 2mm 0; text-align: left; overflow-wrap: break-word; word-wrap: break-word; }
+    .content p {
+      margin: 0 0 2mm 0;
+      text-align: left;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      page-break-inside: avoid;
+    }
     .content strong, .content b { font-weight: bold; }
     .content em, .content i { font-style: italic; }
     .content code {
@@ -454,7 +464,9 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       overflow-wrap: break-word;
       word-wrap: break-word;
       text-indent: 0;
+      page-break-inside: avoid;
     }
+    .content pre { page-break-inside: avoid; }
     table { width: 100%; border-collapse: collapse; margin-top: 5mm; table-layout: fixed; }
     th, td { border: 0.5pt solid #000; padding: 3mm; font-size: 9pt; text-align: left; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; }
     th { background-color: #f0f0f0; font-weight: bold; }
@@ -593,7 +605,7 @@ export async function generateDocumentPdf({ document, signatures, revisions, unc
       displayHeaderFooter: true,
       headerTemplate: buildPdfHeaderTemplate({ document, version }),
       footerTemplate: buildPdfFooterTemplate(),
-      margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' },
+      margin: { top: '0.65in', right: '0.5in', bottom: '0.65in', left: '0.5in' },
     });
     return pdf;
   } finally {
