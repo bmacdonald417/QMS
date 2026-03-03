@@ -125,6 +125,11 @@ export function DocumentDetail() {
   const [signaturePassword, setSignaturePassword] = useState('');
   const [signatureComment, setSignatureComment] = useState('');
   const [signatureError, setSignatureError] = useState('');
+  const [showSignModal, setShowSignModal] = useState(false);
+  const [signMeaning, setSignMeaning] = useState('Prepared By');
+  const [signPassword, setSignPassword] = useState('');
+  const [signComment, setSignComment] = useState('');
+  const [signError, setSignError] = useState('');
   const [showReviseModal, setShowReviseModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
@@ -834,7 +839,25 @@ export function DocumentDetail() {
       </Card>
 
       <Card padding="md">
-        <h2 className="mb-4 text-lg text-white">Approval & Signature History</h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg text-white">Approval & Signature History</h2>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setShowSignModal(true);
+              setSignMeaning('Prepared By');
+              setSignPassword('');
+              setSignComment('');
+              setSignError('');
+            }}
+          >
+            Sign document
+          </Button>
+        </div>
+        <p className="mb-4 text-xs text-gray-400">
+          Sign with your password to record a digital signature (Prepared By, Reviewed By, Approved By). Signature, date, user, and hashes are recorded in the audit log and appear in the PDF.
+        </p>
         {doc.signatures.length === 0 ? (
           <p className="text-sm text-gray-500">No signatures captured yet.</p>
         ) : (
@@ -1041,6 +1064,93 @@ export function DocumentDetail() {
             >
               {deleteSubmitting ? 'Deleting…' : 'Delete permanently'}
             </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showSignModal}
+        onClose={() => {
+          setShowSignModal(false);
+          setSignPassword('');
+          setSignComment('');
+          setSignError('');
+        }}
+        title="Sign document"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowSignModal(false);
+                setSignPassword('');
+                setSignComment('');
+                setSignError('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!token || !doc) return;
+                setSignError('');
+                if (!signPassword.trim()) {
+                  setSignError('Password is required');
+                  return;
+                }
+                try {
+                  await apiRequest(`/api/documents/${doc.id}/sign`, {
+                    token,
+                    method: 'POST',
+                    body: {
+                      signatureMeaning: signMeaning,
+                      password: signPassword,
+                      comments: signComment.trim() || undefined,
+                    },
+                  });
+                  setShowSignModal(false);
+                  setSignPassword('');
+                  setSignComment('');
+                  await fetchDocument();
+                } catch (err) {
+                  setSignError(err instanceof Error ? err.message : 'Failed to add signature');
+                }
+              }}
+            >
+              Sign & record
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {signError && <p className="text-sm text-compliance-red">{signError}</p>}
+          <div>
+            <label className="label-caps mb-1.5 block">Signature meaning</label>
+            <select
+              value={signMeaning}
+              onChange={(e) => setSignMeaning(e.target.value)}
+              className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+            >
+              <option value="Prepared By">Prepared By</option>
+              <option value="Reviewed By">Reviewed By</option>
+              <option value="Approved By">Approved By</option>
+            </select>
+          </div>
+          <Input
+            label="Password"
+            type="password"
+            value={signPassword}
+            onChange={(e) => setSignPassword(e.target.value)}
+            placeholder="Re-enter your password to sign"
+          />
+          <div>
+            <label className="label-caps mb-1.5 block">Comment (optional)</label>
+            <textarea
+              value={signComment}
+              onChange={(e) => setSignComment(e.target.value)}
+              rows={3}
+              className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+            />
           </div>
         </div>
       </Modal>
