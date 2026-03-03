@@ -1,9 +1,10 @@
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { Search, LogOut } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { NotificationBell } from './NotificationBell';
+import { apiUrl } from '@/lib/api';
 
 const pathToBreadcrumb: Record<string, string> = {
   '': 'Dashboard',
@@ -38,6 +39,13 @@ export function Header() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const [buildId, setBuildId] = useState<string | null>(null);
+  useEffect(() => {
+    fetch(apiUrl('/api/version'), { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d: { buildId?: string }) => setBuildId(d?.buildId ?? null))
+      .catch(() => {});
+  }, []);
 
   const segments = location.pathname.split('/').filter(Boolean);
   const breadcrumbs = [
@@ -81,6 +89,11 @@ export function Header() {
         <span className="text-xs text-gray-400 hidden sm:inline">
           {user ? `${user.firstName} ${user.lastName}` : ''}
         </span>
+        {buildId && buildId !== 'dev' && (
+          <span className="text-[10px] text-gray-500 hidden lg:inline" title={`Build: ${buildId}`}>
+            {buildId.slice(0, 12)}…
+          </span>
+        )}
         <NotificationBell />
         <Button
           variant="ghost"
