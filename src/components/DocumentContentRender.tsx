@@ -7,6 +7,40 @@ const ALLOWED_TAGS = [
   'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'a',
 ];
 
+/**
+ * Remove Related Documents and signature/document-control sections from content.
+ * These are shown via Where Used and PDF approval/signature blocks instead.
+ */
+function stripRelatedDocumentsAndSignatureSections(html: string): string {
+  if (!html?.trim()) return html;
+  let out = html;
+  out = out.replace(
+    /<h[1-6][^>]*>\s*(?:\d+\.\s*)?Related\s+Documents\s*<\/h[1-6]>[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    ''
+  );
+  out = out.replace(
+    /<h[1-6][^>]*>\s*(?:\d+\.\s*)?Document\s+control\s*<\/h[1-6]>[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    ''
+  );
+  out = out.replace(
+    /<h[1-6][^>]*>\s*(?:Signature\s*&?\s*evidence|Signature|Approval)[\s\S]*?<\/h[1-6]>[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    ''
+  );
+  out = out.replace(
+    /<h[1-6][^>]*>\s*Appendix\s+[A-Z]:\s*Related\s+Documents[\s\S]*?<\/h[1-6]>[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    ''
+  );
+  out = out.replace(
+    /<(p|div|table)[^>]*>[\s\S]*?Prepared\s+By[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    ''
+  );
+  out = out.replace(
+    /<(p|div)[^>]*>[\s\S]*?<strong>\s*Prepared\s+By\s*<\/strong>[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    ''
+  );
+  return out.replace(/\n{3,}/g, '\n\n').trim();
+}
+
 /** Convert HTML paragraphs with " - item" patterns into proper ul/li for correct alignment */
 function convertHtmlParagraphsToLists(html: string): string {
   return html.replace(/<p>([\s\S]*?) - ([\s\S]+?)((?: - [\s\S]+?)+)<\/p>/g, (_match, intro, first, rest) => {
@@ -30,7 +64,8 @@ export function DocumentContentRender({ content, className = '' }: DocumentConte
   const trimmed = content.trim();
   const looksLikeHtml = trimmed.startsWith('<') && trimmed.includes('>');
   if (looksLikeHtml) {
-    const withLists = convertHtmlParagraphsToLists(trimmed);
+    const stripped = stripRelatedDocumentsAndSignatureSections(trimmed);
+    const withLists = convertHtmlParagraphsToLists(stripped);
     const sanitized = DOMPurify.sanitize(withLists, { ALLOWED_TAGS });
     return (
       <>

@@ -135,6 +135,46 @@ function sanitizeHtmlForPdf(html) {
     .replace(/\bwhite-space\s*=\s*["'][^"']*["']/gi, '');
 }
 
+/**
+ * Remove "Related Documents" and signature/document-control sections from main body content.
+ * These are added by the PDF renderer (and Where Used) separately, so they should not appear in the content area.
+ */
+function stripRelatedDocumentsAndSignatureSections(html) {
+  if (!html || typeof html !== 'string') return html;
+  let out = html;
+  // Section: heading containing "Related Documents" and everything until next h1-h6
+  out = out.replace(
+    /<h[1-6][^>]*>\s*(?:\d+\.\s*)?Related\s+Documents\s*<\/h[1-6]>[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    ''
+  );
+  // Section: "Document control" (e.g. 7. Document control)
+  out = out.replace(
+    /<h[1-6][^>]*>\s*(?:\d+\.\s*)?Document\s+control\s*<\/h[1-6]>[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    ''
+  );
+  // Section: "Signature" or "Approval" or "Signature & evidence"
+  out = out.replace(
+    /<h[1-6][^>]*>\s*(?:Signature\s*&?\s*evidence|Signature|Approval)[\s\S]*?<\/h[1-6]>[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    ''
+  );
+  // Appendix A: Related Documents (alternate heading)
+  out = out.replace(
+    /<h[1-6][^>]*>\s*Appendix\s+[A-Z]:\s*Related\s+Documents[\s\S]*?<\/h[1-6]>[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    ''
+  );
+  // Block that is the signature block (Prepared By, Reviewed By, Approved By, Next Review) without a section heading - remove from that block to next heading
+  out = out.replace(
+    /<(p|div|table)[^>]*>[\s\S]*?Prepared\s+By[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    ''
+  );
+  // Same for **Prepared By** in markdown-style inside HTML
+  out = out.replace(
+    /<(p|div)[^>]*>[\s\S]*?<strong>\s*Prepared\s+By\s*<\/strong>[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    ''
+  );
+  return out.replace(/\n{3,}/g, '\n\n').trim();
+}
+
 /** Convert literal Markdown syntax (** and `) to proper HTML tags */
 function convertMarkdownSyntaxInHtml(html) {
   if (!html || typeof html !== 'string') return '';
@@ -279,9 +319,10 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
   const version = `${document.versionMajor}.${document.versionMinor}`;
   const raw = (document.content || '').trim();
   const isHtml = raw.startsWith('<') && raw.includes('>');
-  const contentHtml = isHtml
+  let contentHtml = isHtml
     ? sanitizeHtmlForPdf(raw)
     : linesToHtml(contentToLines(raw));
+  contentHtml = stripRelatedDocumentsAndSignatureSections(contentHtml);
   const effectiveDateText = document.effectiveDate
     ? new Date(document.effectiveDate).toLocaleDateString()
     : 'Pending Release';
