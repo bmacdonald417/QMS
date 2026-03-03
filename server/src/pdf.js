@@ -279,10 +279,17 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
   const version = `${document.versionMajor}.${document.versionMinor}`;
   const raw = (document.content || '').trim();
   const lines = contentToLines(raw);
-  const contentHtml = linesToHtml(lines);  
+  const contentHtml = linesToHtml(lines);
   const effectiveDateText = document.effectiveDate
     ? new Date(document.effectiveDate).toLocaleDateString()
     : 'Pending Release';
+
+  const runningTitle = esc(stripMarkdownFormatting(document.title));
+  const runningMeta = `${esc(document.documentId)}/${esc(version)}`;
+  const runningHeaderHtml = LOGO_DATA_URI
+    ? `<img src="${LOGO_DATA_URI}" class="pdf-runner-logo" alt="" />`
+    : '<span class="pdf-runner-text">MacTech SOLUTIONS</span>';
+  const runningFooterHtml = `${esc(document.documentId)} · Version ${esc(version)}`;
 
   return `
 <!DOCTYPE html>
@@ -290,17 +297,54 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
 <head>
   <meta charset="UTF-8" />
   <style>
-    @page { size: A4; margin: 0.65in 0.5in; }
+    @page { size: A4; margin: 0.5in; }
     body {
       font-family: "Helvetica", "Arial", sans-serif;
       margin: 0;
       padding: 0;
+      padding-top: 16mm;
+      padding-bottom: 14mm;
       background-color: #ffffff;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
       box-sizing: border-box;
       max-width: 210mm;
       overflow-x: hidden;
+    }
+    .pdf-runner-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 14mm;
+      z-index: 100;
+      background: #fff;
+      border-bottom: 1px solid #707070;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4mm;
+      box-sizing: border-box;
+    }
+    .pdf-runner-header .left { width: 20%; text-align: left; }
+    .pdf-runner-header .center { width: 60%; text-align: center; font-size: 11pt; font-weight: bold; color: #707070; }
+    .pdf-runner-header .right { width: 20%; text-align: right; font-size: 11pt; font-weight: bold; color: #707070; }
+    .pdf-runner-logo { height: 7mm; width: auto; display: block; }
+    .pdf-runner-text { font-weight: 700; font-size: 9pt; color: #707070; }
+    .pdf-runner-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 12mm;
+      z-index: 100;
+      background: #fff;
+      font-size: 9pt;
+      color: #555;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
     }
     .page {
       width: 210mm;
@@ -327,7 +371,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
     }
     .page.content-flow .content {
       flex-grow: 0;
-      padding-bottom: 6mm;
+      padding-bottom: 8mm;
     }
     .header {
       display: table;
@@ -506,6 +550,13 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
   </style>
 </head>
 <body>
+  <div class="pdf-runner-header">
+    <div class="left">${runningHeaderHtml}</div>
+    <div class="center">${runningTitle}</div>
+    <div class="right">${runningMeta}</div>
+  </div>
+  <div class="pdf-runner-footer">${runningFooterHtml}</div>
+
   <div class="page cover-page">
     ${watermark(uncontrolled)}
     <div class="cover-main">
@@ -602,10 +653,8 @@ export async function generateDocumentPdf({ document, signatures, revisions, unc
       format: 'A4',
       printBackground: true,
       preferCSSPageSize: true,
-      displayHeaderFooter: true,
-      headerTemplate: buildPdfHeaderTemplate({ document, version }),
-      footerTemplate: buildPdfFooterTemplate(),
-      margin: { top: '0.65in', right: '0.5in', bottom: '0.65in', left: '0.5in' },
+      displayHeaderFooter: false,
+      margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' },
     });
     return pdf;
   } finally {
