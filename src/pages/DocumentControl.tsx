@@ -5,10 +5,10 @@ import { RichTextEditor } from '@/components/RichTextEditor';
 import { PageShell } from './PageShell';
 import type { Column } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
-import { apiRequest } from '@/lib/api';
+import { apiRequest, apiUrl } from '@/lib/api';
 import { stripMarkdownFormatting } from '@/lib/format';
 import { useDocumentTypes } from '@/hooks/useDocumentTypes';
-import { Search, Filter, X, Tag } from 'lucide-react';
+import { Search, Filter, X, Tag, FileArchive } from 'lucide-react';
 
 interface DocumentListItem {
   id: string;
@@ -75,6 +75,13 @@ export function DocumentControl() {
   const [editTagsDocumentId, setEditTagsDocumentId] = useState<string>('');
   const [editTagsValue, setEditTagsValue] = useState('');
   const [savingEditTags, setSavingEditTags] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [exportingBundle, setExportingBundle] = useState(false);
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+  const isSelected = (id: string) => selectedIds.includes(id);
 
   const buildQueryParams = () => {
     const params = new URLSearchParams();
@@ -133,6 +140,23 @@ export function DocumentControl() {
   }, [showCreate, documentType]);
 
   const columns: Column<DocumentListItem>[] = [
+    {
+      key: 'select',
+      header: 'Select',
+      width: '56px',
+      align: 'center',
+      preventRowClick: true,
+      render: (row) => (
+        <input
+          type="checkbox"
+          checked={isSelected(row.id)}
+          onChange={() => toggleSelected(row.id)}
+          onClick={(e) => e.stopPropagation()}
+          className="rounded border-surface-border bg-surface-elevated text-mactech-blue focus:ring-mactech-blue"
+          aria-label={`Select ${row.documentId}`}
+        />
+      ),
+    },
     { key: 'documentId', header: 'Doc ID', width: '140px', sortable: true },
     { key: 'title', header: 'Title', sortable: true, render: (row) => stripMarkdownFormatting(row.title) },
     {
@@ -310,12 +334,46 @@ export function DocumentControl() {
     }
   };
 
+  const handleExportBundle = async () => {
+    if (!token || selectedIds.length === 0) return;
+    setExportingBundle(true);
+    setError('');
+    try {
+      const res = await fetch(apiUrl('/api/documents/export-bundle'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ documentIds: selectedIds }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? 'Export failed');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `documents-export-${new Date().toISOString().slice(0, 10)}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to export bundle');
+    } finally {
+      setExportingBundle(false);
+    }
+  };
+
   return (
     <PageShell
       title="Document Control"
       subtitle="Create, review, approve, and release controlled documents."
       primaryAction={{ label: 'New Document', onClick: () => setShowCreate(true) }}
       secondaryActions={[
+        {
+          label: selectedIds.length > 0 ? `Export selected (${selectedIds.length}) as ZIP` : 'Export selected as ZIP',
+          icon: <FileArchive className="h-4 w-4" />,
+          onClick: handleExportBundle,
+          disabled: selectedIds.length === 0 || exportingBundle,
+        },
         {
           label: 'Edit tags',
           icon: <Tag className="h-4 w-4" />,

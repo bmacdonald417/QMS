@@ -8,7 +8,7 @@ export interface PageShellProps {
   subtitle?: string;
   primaryAction?: { label: string; onClick: () => void };
   /** Additional buttons shown next to primary action (e.g. "Edit tags") */
-  secondaryActions?: Array<{ label: string; onClick: () => void; icon?: ReactNode }>;
+  secondaryActions?: Array<{ label: string; onClick: () => void; icon?: ReactNode; disabled?: boolean }>;
   backLink?: { label: string; href: string };
   children: ReactNode;
   sidePanel?: ReactNode;
@@ -50,6 +50,7 @@ export function PageShell({
                 variant="secondary"
                 leftIcon={action.icon}
                 onClick={action.onClick}
+                disabled={action.disabled}
               >
                 {action.label}
               </Button>

@@ -1,4 +1,5 @@
 import express from 'express';
+import AdmZip from 'adm-zip';
 import bcrypt from 'bcrypt';
 import { createHash } from 'node:crypto';
 import { prisma } from './db.js';
@@ -350,6 +351,57 @@ router.get('/completed-forms', requirePermission('document:view'), async (req, r
   } catch (err) {
     console.error('List completed forms error:', err);
     res.status(500).json({ error: 'Failed to list completed forms' });
+  }
+});
+
+// POST /api/documents/export-bundle — selected documents as PDFs in a zip
+router.post('/export-bundle', requirePermission('document:view'), async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body?.documentIds) ? req.body.documentIds : [];
+    const documentIds = ids.filter((id) => typeof id === 'string' && id.trim()).map((id) => id.trim());
+    if (!documentIds.length) {
+      return res.status(400).json({ error: 'documentIds array is required and must contain at least one document id' });
+    }
+    const zip = new AdmZip();
+    const seen = new Set();
+    for (const id of documentIds) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const document = await prisma.document.findUnique({
+        where: { id },
+        include: {
+          author: { select: { id: true, firstName: true, lastName: true } },
+          signatures: {
+            include: { signer: { select: { id: true, firstName: true, lastName: true } } },
+            orderBy: { signedAt: 'asc' },
+          },
+        },
+      });
+      if (!document) continue;
+      const revisions = await prisma.documentRevision.findMany({
+        where: { document: { documentId: document.documentId } },
+        include: { author: { select: { firstName: true, lastName: true } } },
+        orderBy: [{ versionMajor: 'asc' }, { versionMinor: 'asc' }, { createdAt: 'asc' }],
+      });
+      const pdf = await generateDocumentPdf({
+        document,
+        signatures: document.signatures,
+        revisions,
+        uncontrolled: false,
+      });
+      const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
+      const filename = `${document.documentId}-v${document.versionMajor}.${document.versionMinor}.pdf`;
+      zip.addFile(filename, pdfBuffer);
+    }
+    const zipBuffer = zip.toBuffer();
+    const exportFilename = `documents-export-${new Date().toISOString().slice(0, 10)}.zip`;
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${exportFilename}"`);
+    res.setHeader('Content-Length', String(zipBuffer.length));
+    res.send(zipBuffer);
+  } catch (err) {
+    console.error('Export bundle error:', err);
+    res.status(500).json({ error: 'Failed to export document bundle' });
   }
 });
 

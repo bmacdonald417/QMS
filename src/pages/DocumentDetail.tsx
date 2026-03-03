@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { apiRequest, apiUrl } from '@/lib/api';
 import { stripMarkdownFormatting } from '@/lib/format';
 import { useDocumentTypes } from '@/hooks/useDocumentTypes';
+import { PenLine } from 'lucide-react';
 
 interface UserRef {
   id: string;
@@ -335,6 +336,35 @@ export function DocumentDetail() {
 
   return (
     <div className="space-y-6">
+      <Card padding="md" className="border-mactech-blue/50 bg-mactech-blue/5 ring-1 ring-mactech-blue/30">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-mactech-blue/20 text-mactech-blue" aria-hidden>
+              <PenLine className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-base font-semibold text-white">Sign this document</h2>
+              <p className="mt-0.5 text-sm text-gray-400">
+                Record a digital signature (Prepared By, Reviewed By, or Approved By). It will appear in the PDF and in the audit log.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="primary"
+            leftIcon={<PenLine className="h-4 w-4" />}
+            onClick={() => {
+              setShowSignModal(true);
+              setSignMeaning('Prepared By');
+              setSignPassword('');
+              setSignComment('');
+              setSignError('');
+            }}
+          >
+            Sign document
+          </Button>
+        </div>
+      </Card>
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1>
@@ -358,6 +388,25 @@ export function DocumentDetail() {
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="primary"
+            leftIcon={<PenLine className="h-4 w-4" />}
+            onClick={() => {
+              setShowSignModal(true);
+              setSignMeaning('Prepared By');
+              setSignPassword('');
+              setSignComment('');
+              setSignError('');
+            }}
+          >
+            Sign document
+          </Button>
+          <Button variant="secondary" onClick={() => openPdf(false)}>
+            View PDF
+          </Button>
+          <Button variant="secondary" onClick={() => openPdf(true)}>
+            Download Uncontrolled Copy
+          </Button>
           {doc.status === 'EFFECTIVE' && doc.trainingModules?.length ? (
             <Button
               variant="secondary"
@@ -378,24 +427,6 @@ export function DocumentDetail() {
               Initiate Periodic Review
             </Button>
           ) : null}
-          <Button
-            variant="primary"
-            onClick={() => {
-              setShowSignModal(true);
-              setSignMeaning('Prepared By');
-              setSignPassword('');
-              setSignComment('');
-              setSignError('');
-            }}
-          >
-            Sign document
-          </Button>
-          <Button variant="secondary" onClick={() => openPdf(false)}>
-            View PDF
-          </Button>
-          <Button variant="secondary" onClick={() => openPdf(true)}>
-            Download Uncontrolled Copy
-          </Button>
           <Badge variant={doc.status === 'EFFECTIVE' ? 'success' : doc.status === 'AWAITING_APPROVAL' || doc.status === 'IN_REVIEW' ? 'warning' : doc.status === 'APPROVED' ? 'info' : 'neutral'}>
             {doc.status === 'AWAITING_APPROVAL' ? 'Awaiting Approval' : doc.status.replace(/_/g, ' ')}
           </Badge>
