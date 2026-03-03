@@ -842,7 +842,7 @@ export function DocumentDetail() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg text-white">Approval & Signature History</h2>
           <Button
-            variant="secondary"
+            variant="primary"
             size="sm"
             onClick={() => {
               setShowSignModal(true);
@@ -859,7 +859,21 @@ export function DocumentDetail() {
           Sign with your password to record a digital signature (Prepared By, Reviewed By, Approved By). Signature, date, user, and hashes are recorded in the audit log and appear in the PDF.
         </p>
         {doc.signatures.length === 0 ? (
-          <p className="text-sm text-gray-500">No signatures captured yet.</p>
+          <div className="rounded-lg border border-surface-border border-dashed bg-surface-overlay/50 p-6 text-center">
+            <p className="mb-3 text-sm text-gray-400">No signatures captured yet.</p>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setShowSignModal(true);
+                setSignMeaning('Prepared By');
+                setSignPassword('');
+                setSignComment('');
+                setSignError('');
+              }}
+            >
+              Add signature
+            </Button>
+          </div>
         ) : (
           <>
             <div className="overflow-x-auto">

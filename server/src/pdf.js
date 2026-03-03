@@ -590,7 +590,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
   <div class="page final-section">
     ${watermark(uncontrolled)}
     <div class="content">
-      <h1>7.0 APPROVAL & SIGNATURE HISTORY</h1>
+      <h1>APPROVAL & SIGNATURE HISTORY</h1>
       <table>
         <tr>
           <th>Role</th>
@@ -600,7 +600,7 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
         ${renderSignatureRows(signatures)}
       </table>
 
-      <h1>8.0 REVISION HISTORY</h1>
+      <h1>REVISION HISTORY</h1>
       <table>
         <tr>
           <th>Version</th>
