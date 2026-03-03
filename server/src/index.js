@@ -57,6 +57,23 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true });
 });
 
+// Build version: used by frontend to detect new deploys and force reload (avoids stale cache)
+app.get('/api/version', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  let buildId = 'dev';
+  if (distPath) {
+    try {
+      const buildIdPath = join(distPath, 'build-id.txt');
+      if (existsSync(buildIdPath)) {
+        buildId = readFileSync(buildIdPath, 'utf8').trim() || buildId;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  res.json({ buildId });
+});
+
 // Serve static frontend files if they exist (for Railway deployment)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
