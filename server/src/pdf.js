@@ -376,12 +376,6 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       flex-grow: 0;
       padding-bottom: 8mm;
     }
-    .pdf-page {
-      box-sizing: border-box;
-      page-break-after: always;
-      page-break-inside: avoid;
-    }
-    .pdf-page:last-child { page-break-after: auto; }
     .header {
       display: table;
       width: 100%;
@@ -501,8 +495,9 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       overflow-x: auto;
     }
     .content pre code { background: none; padding: 0; }
-    .content h1, .content h2, .content h3, .content h4, .content h5, .content h6 { page-break-after: avoid; }
-    .content table { page-break-inside: avoid; }
+    .content h1, .content h2, .content h3, .content h4, .content h5, .content h6 { page-break-after: avoid; break-after: avoid; }
+    .content p { page-break-inside: avoid; break-inside: avoid; }
+    .content table { page-break-inside: avoid; break-inside: avoid; }
     .content ul, .content ol {
       margin: 0.5em 0 0.5em 1.5em;
       padding-left: 2em;
@@ -518,8 +513,9 @@ function buildHtml({ document, signatures, revisions, uncontrolled }) {
       word-wrap: break-word;
       text-indent: 0;
       page-break-inside: avoid;
+      break-inside: avoid;
     }
-    .content pre { page-break-inside: avoid; }
+    .content pre { page-break-inside: avoid; break-inside: avoid; }
     table { width: 100%; border-collapse: collapse; margin-top: 5mm; table-layout: fixed; }
     th, td { border: 0.5pt solid #000; padding: 3mm; font-size: 9pt; text-align: left; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; }
     th { background-color: #f0f0f0; font-weight: bold; }
@@ -647,9 +643,6 @@ function buildPdfFooterTemplate() {
   `.trim();
 }
 
-/** A4 at 96dpi: 1123px. Minus 0.5in top+bottom (96px), minus body padding 18+20mm (~144px) = ~880px usable per page. */
-const PDF_CONTENT_HEIGHT_PX = 880;
-
 export async function generateDocumentPdf({ document, signatures, revisions, uncontrolled }) {
   const version = `${document.versionMajor}.${document.versionMinor}`;
   const html = buildHtml({ document, signatures, revisions, uncontrolled });
@@ -661,46 +654,6 @@ export async function generateDocumentPdf({ document, signatures, revisions, unc
     const page = await browser.newPage();
     await page.setViewport({ width: 794, height: 1123 }); // A4 at 96dpi for correct layout/wrapping
     await page.setContent(html, { waitUntil: 'networkidle0' });
-
-    await page.evaluate((pageHeightPx) => {
-      const content = document.getElementById('pdf-main-content');
-      if (!content || !content.parentNode) return;
-
-      const parent = content.parentNode;
-      const children = Array.from(content.children);
-      if (children.length === 0) return;
-
-      content.remove();
-
-      let currentPage = document.createElement('div');
-      currentPage.className = 'pdf-page';
-      currentPage.style.height = pageHeightPx + 'px';
-      currentPage.style.overflow = 'hidden';
-      currentPage.style.boxSizing = 'border-box';
-      parent.appendChild(currentPage);
-
-      for (const child of children) {
-        const clone = child.cloneNode(true);
-        currentPage.appendChild(clone);
-
-        while (currentPage.scrollHeight > pageHeightPx && currentPage.children.length > 1) {
-          const last = currentPage.lastChild;
-          currentPage.removeChild(last);
-          const newPage = document.createElement('div');
-          newPage.className = 'pdf-page';
-          newPage.style.height = pageHeightPx + 'px';
-          newPage.style.overflow = 'hidden';
-          newPage.style.boxSizing = 'border-box';
-          newPage.appendChild(last);
-          parent.appendChild(newPage);
-          currentPage = newPage;
-        }
-      }
-
-      if (currentPage.children.length === 1 && currentPage.scrollHeight > pageHeightPx) {
-        currentPage.style.overflow = 'visible';
-      }
-    }, PDF_CONTENT_HEIGHT_PX);
 
     const pdf = await page.pdf({
       format: 'A4',
