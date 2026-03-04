@@ -392,7 +392,7 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
     }
     .page.content-flow .content {
       flex-grow: 0;
-      padding: 0.5in;
+      padding: 0.25in 0.5in;
     }
     .header {
       display: table;
@@ -684,7 +684,7 @@ export async function generateDocumentPdf({ document, signatures, revisions, ref
       displayHeaderFooter: true,
       headerTemplate: buildPdfHeaderTemplate({ document, version }),
       footerTemplate: buildPdfFooterTemplate(),
-      margin: { top: '0.75in', right: '0.5in', bottom: '0.75in', left: '0.5in' },
+      margin: { top: '1in', right: '0.5in', bottom: '1in', left: '0.5in' },
     });
     return pdf;
   } finally {
