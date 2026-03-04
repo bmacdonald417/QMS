@@ -349,13 +349,6 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
     ? new Date(document.effectiveDate).toLocaleDateString()
     : 'Pending Release';
 
-  const runningTitle = esc(stripMarkdownFormatting(document.title));
-  const runningMeta = `${esc(document.documentId)}/${esc(version)}`;
-  const runningHeaderHtml = LOGO_DATA_URI
-    ? `<img src="${LOGO_DATA_URI}" class="pdf-runner-logo" alt="" />`
-    : '<span class="pdf-runner-text">MacTech SOLUTIONS</span>';
-  const runningFooterHtml = `${esc(document.documentId)} · Version ${esc(version)}`;
-
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -367,8 +360,6 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       font-family: "Helvetica", "Arial", sans-serif;
       margin: 0;
       padding: 0;
-      padding-top: 18mm;
-      padding-bottom: 20mm;
       background-color: #ffffff;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -376,49 +367,13 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       max-width: 210mm;
       overflow-x: hidden;
     }
-    .pdf-runner-header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 14mm;
-      z-index: 100;
-      background: #fff;
-      border-bottom: 0.5pt solid #ccc;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 4mm;
-      box-sizing: border-box;
-    }
-    .pdf-runner-header .left { width: 20%; text-align: left; }
-    .pdf-runner-header .center { width: 60%; text-align: center; font-size: 11pt; font-weight: bold; color: #707070; }
-    .pdf-runner-header .right { width: 20%; text-align: right; font-size: 11pt; font-weight: bold; color: #707070; }
-    .pdf-runner-logo { height: 7mm; width: auto; display: block; }
-    .pdf-runner-text { font-weight: 700; font-size: 9pt; color: #707070; }
-    .pdf-runner-footer {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 12mm;
-      z-index: 100;
-      background: #fff;
-      border-top: none;
-      font-size: 9pt;
-      color: #555;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-sizing: border-box;
-    }
     .page {
-      width: 210mm;
-      max-width: 210mm;
+      width: 100%;
+      max-width: 100%;
       min-width: 0;
       min-height: 0;
       height: auto;
-      padding: 0.5in;
+      padding: 0;
       box-sizing: border-box;
       position: relative;
       display: flex;
@@ -437,7 +392,7 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
     }
     .page.content-flow .content {
       flex-grow: 0;
-      padding-bottom: 8mm;
+      padding: 0.5in;
     }
     .header {
       display: table;
@@ -560,7 +515,8 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
     .content pre code { background: none; padding: 0; }
     .content h1, .content h2, .content h3, .content h4, .content h5, .content h6 { page-break-after: avoid; break-after: avoid; }
     .content p { page-break-inside: avoid; break-inside: avoid; }
-    .content table { page-break-inside: avoid; break-inside: avoid; }
+    .content table { page-break-inside: auto; break-inside: auto; }
+    .content tr { page-break-inside: avoid; break-inside: avoid; }
     .content ul, .content ol {
       margin: 0.5em 0 0.5em 1.5em;
       padding-left: 2em;
@@ -618,13 +574,6 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
   </style>
 </head>
 <body>
-  <div class="pdf-runner-header">
-    <div class="left">${runningHeaderHtml}</div>
-    <div class="center">${runningTitle}</div>
-    <div class="right">${runningMeta}</div>
-  </div>
-  <div class="pdf-runner-footer">${runningFooterHtml}</div>
-
   <div class="page cover-page">
     ${watermark(uncontrolled)}
     <div class="cover-main">
@@ -732,8 +681,10 @@ export async function generateDocumentPdf({ document, signatures, revisions, ref
       format: 'A4',
       printBackground: true,
       preferCSSPageSize: true,
-      displayHeaderFooter: false,
-      margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' },
+      displayHeaderFooter: true,
+      headerTemplate: buildPdfHeaderTemplate({ document, version }),
+      footerTemplate: buildPdfFooterTemplate(),
+      margin: { top: '0.75in', right: '0.5in', bottom: '0.75in', left: '0.5in' },
     });
     return pdf;
   } finally {
