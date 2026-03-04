@@ -644,7 +644,7 @@ function buildPdfHeaderTemplate({ document, version }) {
     : '<span style="font-weight: 700; font-size: 9pt; color: #707070;">MacTech SOLUTIONS</span>';
   const gray = 'color: #707070;';
   return `
-    <div id="header" style="background: #ffffff !important; width: 100%; margin: 0; padding: 2mm 4mm 2mm 4mm; border: none; border-bottom: 1px solid #707070; box-sizing: border-box; -webkit-print-color-adjust: exact;">
+    <div id="header" style="background: #ffffff !important; width: 100%; margin: 0; padding: 2mm 4mm; border: none; border-bottom: 1px solid #707070; box-sizing: border-box; -webkit-print-color-adjust: exact; max-height: 14mm; overflow: hidden;">
       <div style="width: 100%; font-size: 11pt; font-weight: bold; line-height: 1.2; display: table; color: #707070;">
         <div style="display: table-cell; width: 20%; text-align: left; vertical-align: middle;">${logoHtml}</div>
         <div style="display: table-cell; width: 60%; text-align: center; vertical-align: middle;"><span style="${gray}">${title}</span></div>
@@ -657,8 +657,8 @@ function buildPdfHeaderTemplate({ document, version }) {
 /** Build Puppeteer footer template – compact padding to avoid excess space and content cutoff */
 function buildPdfFooterTemplate() {
   return `
-    <div id="footer" style="background: #ffffff !important; width: 100%; margin: 0; padding: 2mm 4mm 2mm 4mm; box-sizing: border-box; font-size: 9pt; color: #555555; text-align: center; -webkit-print-color-adjust: exact;">
-      <div style="width: 100%; font-size: 9pt; color: #555555; text-align: center;">
+    <div id="footer" style="background: #ffffff !important; width: 100%; margin: 0; padding: 2mm 4mm; box-sizing: border-box; font-size: 9pt; color: #555555; text-align: center; -webkit-print-color-adjust: exact; max-height: 10mm; overflow: hidden;">
+      <div style="width: 100%; font-size: 9pt; color: #555555; text-align: center; line-height: 1.2;">
         Page <span class="pageNumber"></span> of <span class="totalPages"></span>
       </div>
     </div>
@@ -684,7 +684,7 @@ export async function generateDocumentPdf({ document, signatures, revisions, ref
       displayHeaderFooter: true,
       headerTemplate: buildPdfHeaderTemplate({ document, version }),
       footerTemplate: buildPdfFooterTemplate(),
-      margin: { top: '1in', right: '0.5in', bottom: '1in', left: '0.5in' },
+      margin: { top: '1.25in', right: '0.5in', bottom: '1.25in', left: '0.5in' },
     });
     return pdf;
   } finally {
