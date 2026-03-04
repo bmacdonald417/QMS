@@ -16,7 +16,8 @@
     "db:remove-cmmc-tag": "node scripts/remove-cmmc-tag.js",
     "db:add-cmmc-tag": "node scripts/add-cmmc-tag.js",
     "ingest:governance-zip": "node scripts/ingestGovernanceZip.js",
-    "db:wipe-documents": "node scripts/wipe-all-documents.js"
+    "db:wipe-documents": "node scripts/wipe-all-documents.js",
+    "test:training": "node src/training.test.js"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",

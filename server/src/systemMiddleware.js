@@ -51,6 +51,16 @@ export function requireAnySystemPermission(...permissionCodes) {
 }
 
 /**
+ * Rate limiter for Training API (integration key + JWT). Limits by IP.
+ */
+export const trainingApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200,
+  message: { error: 'Too many requests. Try again later.' },
+  standardHeaders: true,
+});
+
+/**
  * Rate limiter for sensitive system actions (invite, reset password, lock/unlock).
  */
 export const systemSensitiveLimiter = rateLimit({

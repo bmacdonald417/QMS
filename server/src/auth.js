@@ -1,9 +1,52 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { timingSafeEqual } from 'node:crypto';
 import { prisma } from './db.js';
 
 const router = express.Router();
+
+/** Constant-time comparison for integration key (prevents timing attacks). */
+function safeCompare(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  if (a.length !== b.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Training API auth: JWT Bearer OR X-INTEGRATION-KEY (read-only).
+ * For X-INTEGRATION-KEY: only GET allowed; 403 on POST/PUT/DELETE.
+ * Sets req.trainingActor = 'integration' | 'user' and req.auditUserId for audit.
+ */
+export async function trainingAuthMiddleware(req, res, next) {
+  const integrationKey = req.headers['x-integration-key'];
+  const envKey = process.env.INTEGRATION_KEY || '';
+  if (envKey && integrationKey && safeCompare(envKey, integrationKey)) {
+    if (req.method !== 'GET') {
+      return res.status(403).json({ error: 'Integration key is read-only. Use JWT for write operations.' });
+    }
+    req.trainingActor = 'integration';
+    let auditUserId = process.env.INTEGRATION_AUDIT_USER_ID;
+    if (!auditUserId) {
+      const sysUser = await prisma.user.findFirst({
+        where: { role: { name: 'System Admin' } },
+        select: { id: true },
+      });
+      auditUserId = sysUser?.id ?? null;
+    }
+    req.auditUserId = auditUserId;
+    return next();
+  }
+  return authMiddleware(req, res, () => {
+    req.trainingActor = 'user';
+    req.auditUserId = req.user?.id ?? null;
+    next();
+  });
+}
 const JWT_SECRET = process.env.JWT_SECRET || 'qms-dev-secret-change-in-production';
 
 /**
