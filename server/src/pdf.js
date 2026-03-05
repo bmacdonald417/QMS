@@ -157,6 +157,20 @@ function sanitizeHtmlForPdf(html) {
     .replace(/\bwhite-space\s*=\s*["'][^"']*["']/gi, '');
 }
 
+/** Replace check/X and similar Unicode symbols with PDF-safe text so they don't render as empty boxes. */
+function replaceUnicodeSymbolsForPdf(html) {
+  if (!html || typeof html !== 'string') return '';
+  let out = html;
+  // HTML entities first (decimal and hex)
+  const checkEntities = /&#x2713;|&#x2714;|&#x2611;|&#x2705;|&#10003;|&#10004;|&#9745;|&#9989;/gi;
+  const crossEntities = /&#x2717;|&#x2718;|&#x2612;|&#x274C;|&#10007;|&#10008;|&#9746;|&#10060;/gi;
+  out = out.replace(checkEntities, '[check]').replace(crossEntities, '[X]');
+  // Literal Unicode characters: checkmarks then crosses
+  out = out.replace(/\u2713|\u2714|\u2611|\u2705/g, '[check]');
+  out = out.replace(/\u2717|\u2718|\u2612|\u274C/g, '[X]');
+  return out;
+}
+
 /**
  * Remove "Related Documents" and signature/document-control sections from main body content.
  * These are added by the PDF renderer (and Where Used) separately, so they should not appear in the content area.
@@ -345,6 +359,7 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
     ? sanitizeHtmlForPdf(raw)
     : linesToHtml(contentToLines(raw));
   contentHtml = stripRelatedDocumentsAndSignatureSections(contentHtml);
+  contentHtml = replaceUnicodeSymbolsForPdf(contentHtml);
   const effectiveDateText = document.effectiveDate
     ? new Date(document.effectiveDate).toLocaleDateString()
     : 'Pending Release';
@@ -476,6 +491,7 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       word-break: break-word;
       max-width: 100%;
       width: 100%;
+      box-sizing: border-box;
       orphans: 2;
       widows: 2;
     }
@@ -483,6 +499,7 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       white-space: normal !important;
       overflow-wrap: break-word;
       word-wrap: break-word;
+      word-break: break-word;
     }
     .final-section { page-break-before: always; }
     .content h1, .content h2, .content h3, .content h4, .content h5, .content h6 {
@@ -516,7 +533,7 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
     .content pre code { background: none; padding: 0; }
     .content h1, .content h2, .content h3, .content h4, .content h5, .content h6 { page-break-after: avoid; break-after: avoid; }
     .content p { page-break-inside: avoid; break-inside: avoid; }
-    .content table { page-break-inside: auto; break-inside: auto; }
+    .content table { page-break-inside: auto; break-inside: auto; overflow: visible; }
     .content tr { page-break-inside: avoid; break-inside: avoid; }
     .content ul, .content ol {
       margin: 0.5em 0 0.5em 1.5em;
@@ -599,7 +616,16 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
     .pdf-content-table thead td { height: 1.25in; padding: 0; border: none; }
     .pdf-content-table tfoot { display: table-footer-group; }
     .pdf-content-table tfoot td { height: 1.25in; padding: 0; border: none; }
-    .pdf-content-table tbody tr td { border: none; padding: 0; }
+    .pdf-content-table tbody tr td {
+      border: none;
+      padding: 0;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-word;
+    }
   </style>
 </head>
 <body>
