@@ -1172,8 +1172,8 @@ router.post(
 
       const document = await prisma.document.findUnique({ where: { id: req.params.id } });
       if (!document) return res.status(404).json({ error: 'Document not found' });
-      if (document.status !== 'IN_REVIEW') {
-        return res.status(400).json({ error: 'Document is not in review' });
+      if (document.status !== 'AWAITING_APPROVAL') {
+        return res.status(400).json({ error: 'Document must be in Awaiting Approval status to approve' });
       }
 
       if (req.user.roleName === 'Manager' && document.authorId === req.user.id) {
