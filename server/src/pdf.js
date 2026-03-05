@@ -86,7 +86,7 @@ function renderReferenceDocumentsRows(referenceDocuments) {
   if (!referenceDocuments?.length) {
     return `
       <tr>
-        <td colspan="3">No reference documents linked.</td>
+        <td colspan="3">No related controlled documents.</td>
       </tr>
     `;
   }
@@ -105,7 +105,7 @@ function renderReferenceDocumentsRows(referenceDocuments) {
 
 function watermark(uncontrolled) {
   return uncontrolled
-    ? `<div class="watermark">UNCONTROLLED COPY - FOR REFERENCE USE ONLY</div>`
+    ? `<div class="watermark"><span class="watermark-line1">UNCONTROLLED COPY</span><span class="watermark-line2">REFERENCE USE ONLY</span></div>`
     : '';
 }
 
@@ -363,6 +363,9 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
   const effectiveDateText = document.effectiveDate
     ? new Date(document.effectiveDate).toLocaleDateString()
     : 'Pending Release';
+  const documentOwner = document.author
+    ? `${esc(document.author.firstName)} ${esc(document.author.lastName)}`
+    : 'Not Assigned';
 
   return `
 <!DOCTYPE html>
@@ -480,8 +483,9 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
     .sop-label { letter-spacing: 4pt; margin-bottom: 10mm; }
     .main-title { margin-bottom: 5mm; text-transform: uppercase; }
     .main-id { font-size: 22pt; margin-bottom: 2mm; color: #000; }
-    .main-version { font-size: 16pt; margin-bottom: 10mm; color: #000; }
-    .main-date { font-size: 14pt; font-weight: bold; color: #000; }
+    .main-version { font-size: 16pt; margin-bottom: 2mm; color: #000; }
+    .main-date { font-size: 14pt; font-weight: bold; margin-bottom: 4mm; color: #000; }
+    .main-owner { font-size: 11pt; color: #333; margin-bottom: 10mm; }
     .content {
       flex-grow: 1;
       font-size: 12pt;
@@ -556,6 +560,33 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       break-inside: avoid;
     }
     .content pre { page-break-inside: avoid; break-inside: avoid; }
+    .final-section .content h1 { margin-top: 10mm; margin-bottom: 5mm; }
+    .final-section .content h1:first-child { margin-top: 0; }
+    .final-section table {
+      width: 100%;
+      max-width: 100%;
+      border-collapse: collapse;
+      margin-top: 6mm;
+      margin-bottom: 2mm;
+      table-layout: fixed;
+      overflow: hidden;
+      border: 0.5pt solid #000;
+    }
+    .final-section th, .final-section td {
+      border: 0.5pt solid #000;
+      padding: 4mm;
+      font-size: 9pt;
+      text-align: left;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-word;
+      box-sizing: border-box;
+      max-width: 100%;
+    }
+    .final-section th {
+      background-color: #f5f5f5;
+      font-weight: bold;
+    }
     table {
       width: 100%;
       max-width: 100%;
@@ -575,7 +606,7 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       box-sizing: border-box;
       max-width: 100%;
     }
-    th { background-color: #f0f0f0; font-weight: bold; }
+    th { background-color: #f5f5f5; font-weight: bold; }
     .footer {
       height: 10mm;
       display: flex;
@@ -584,13 +615,15 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       font-size: 9pt;
       color: #555;
     }
-    .supersedes-container {
+    .controlled-notice {
       padding-top: 10mm;
-      font-size: 12pt;
-      font-style: italic;
+      font-size: 10pt;
+      line-height: 1.4;
       text-align: center;
       color: #333;
       width: 100%;
+      max-width: 160mm;
+      margin: 0 auto;
     }
     .watermark {
       position: absolute;
@@ -599,7 +632,7 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       transform: translate(-50%, -50%) rotate(-45deg);
       font-size: 56pt;
       font-weight: bold;
-      color: rgba(255, 0, 0, 0.2);
+      color: rgba(255, 0, 0, 0.1);
       text-transform: uppercase;
       width: 165mm;
       text-align: center;
@@ -608,7 +641,11 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       word-break: keep-all;
       pointer-events: none;
       z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 0.1em;
     }
+    .watermark-line1, .watermark-line2 { display: block; }
     .pdf-content-table {
       width: 100%;
       border-collapse: collapse;
@@ -640,9 +677,10 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       <div class="main-id">${esc(document.documentId)}</div>
       <div class="main-version">Version ${esc(version)}</div>
       <div class="main-date">Effective Date: ${esc(effectiveDateText)}</div>
+      <div class="main-owner">Document Owner: ${documentOwner}</div>
     </div>
-    <div class="supersedes-container">
-      This publication supersedes any and all directives that were authored prior to the approval and implementation of this document.
+    <div class="controlled-notice">
+      This document is a controlled document within the MacTech Quality Management System (QMS). Printed or exported copies are considered uncontrolled unless verified against the active version within the QMS.
     </div>
   </div>
 
