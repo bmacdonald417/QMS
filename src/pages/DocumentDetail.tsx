@@ -26,6 +26,7 @@ interface DocumentAssignment {
   status: 'PENDING' | 'COMPLETED' | 'REJECTED';
   comments?: string | null;
   completedAt?: string | null;
+  dueDate?: string | null;
   assignedTo: UserRef;
 }
 
@@ -142,6 +143,7 @@ export function DocumentDetail() {
   const [linkDropdownOpen, setLinkDropdownOpen] = useState(false);
   const [documentsForLink, setDocumentsForLink] = useState<{ id: string; documentId: string; title: string }[]>([]);
   const [linkSearchLoading, setLinkSearchLoading] = useState(false);
+  const [statusTooltipVisible, setStatusTooltipVisible] = useState(false);
   const linkDropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchDocument = async () => {
@@ -261,6 +263,51 @@ export function DocumentDetail() {
     (u) => ['Manager', 'Quality Manager', 'System Admin'].includes(u.roleName || '') && u.id !== user?.id
   );
 
+  const statusTooltipContent = useMemo(() => {
+    if (!doc) return '';
+    const roleLabel = (a: DocumentAssignment) =>
+      (a.assignedTo as { role?: { name: string } }).role?.name ?? (a.assignedTo as UserRef).roleName ?? '';
+    const nameOf = (a: DocumentAssignment) =>
+      `${a.assignedTo.firstName} ${a.assignedTo.lastName}`.trim();
+    const nameWithRole = (a: DocumentAssignment) => {
+      const r = roleLabel(a);
+      return r ? `${nameOf(a)}\n${r}` : nameOf(a);
+    };
+    switch (doc.status) {
+      case 'DRAFT':
+        return `Assigned to:\n${doc.author.firstName} ${doc.author.lastName}\nAuthor`;
+      case 'IN_REVIEW': {
+        const pending = doc.assignments.filter((a) => a.assignmentType === 'REVIEW' && a.status === 'PENDING');
+        if (!pending.length) return 'No active assignment';
+        return `Assigned to:\n${pending.map(nameWithRole).join('\n\n')}`;
+      }
+      case 'AWAITING_APPROVAL': {
+        const pending = doc.assignments.find((a) => a.assignmentType === 'APPROVAL' && a.status === 'PENDING');
+        if (!pending) return 'No active assignment';
+        return `Assigned to:\n${nameWithRole(pending)}`;
+      }
+      case 'APPROVED': {
+        const approverSig = doc.signatures?.find((s) => s.signatureMeaning === 'Approver');
+        const pending = doc.assignments.filter((a) => a.assignmentType === 'QUALITY_RELEASE' && a.status === 'PENDING');
+        if (approverSig) {
+          const by = `${approverSig.signer.firstName} ${approverSig.signer.lastName}`;
+          if (pending.length) {
+            const qm = pending.map((a) => nameWithRole(a)).join('\n\n');
+            return `Approved by: ${by}\n\nPending:\n${qm}`;
+          }
+          return `Approved by:\n${by}`;
+        }
+        if (pending.length) return `Assigned to:\n${pending.map(nameWithRole).join('\n\n')}`;
+        return 'No active assignment';
+      }
+      case 'EFFECTIVE':
+      case 'OBSOLETE':
+        return 'No active assignment';
+      default:
+        return 'No active assignment';
+    }
+  }, [doc]);
+
   const openPdf = async (uncontrolled: boolean) => {
     if (!token) return;
     const previewTab = uncontrolled ? null : window.open('', '_blank');
@@ -379,9 +426,28 @@ export function DocumentDetail() {
               Initiate Periodic Review
             </Button>
           ) : null}
-          <Badge variant={doc.status === 'EFFECTIVE' ? 'success' : doc.status === 'AWAITING_APPROVAL' || doc.status === 'IN_REVIEW' ? 'warning' : doc.status === 'APPROVED' ? 'info' : 'neutral'}>
-            {doc.status === 'AWAITING_APPROVAL' ? 'Awaiting Approval' : doc.status.replace(/_/g, ' ')}
-          </Badge>
+          <span
+            className="relative inline-flex"
+            onMouseEnter={() => setStatusTooltipVisible(true)}
+            onMouseLeave={() => setStatusTooltipVisible(false)}
+            onFocus={() => setStatusTooltipVisible(true)}
+            onBlur={() => setStatusTooltipVisible(false)}
+            tabIndex={0}
+            aria-describedby={statusTooltipVisible && statusTooltipContent ? 'status-assignment-tooltip' : undefined}
+          >
+            <Badge variant={doc.status === 'EFFECTIVE' ? 'success' : doc.status === 'AWAITING_APPROVAL' || doc.status === 'IN_REVIEW' ? 'warning' : doc.status === 'APPROVED' ? 'info' : 'neutral'}>
+              {doc.status === 'AWAITING_APPROVAL' ? 'Awaiting Approval' : doc.status.replace(/_/g, ' ')}
+            </Badge>
+            {statusTooltipVisible && statusTooltipContent && (
+              <span
+                id="status-assignment-tooltip"
+                role="tooltip"
+                className="absolute left-0 top-full z-50 mt-1.5 min-w-[140px] max-w-[220px] rounded-md bg-gray-900 px-3 py-2 text-xs font-normal text-gray-100 shadow-lg transition-opacity duration-150"
+              >
+                <span className="whitespace-pre-line">{statusTooltipContent}</span>
+              </span>
+            )}
+          </span>
           {doc.nextReviewDate && (
             <span className="text-sm text-gray-400">
               Next review: {new Date(doc.nextReviewDate).toLocaleDateString()}
