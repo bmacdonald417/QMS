@@ -43,7 +43,7 @@ export function SystemUsers() {
   const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
   const [assignableRoles, setAssignableRoles] = useState<{ id: number; name: string }[]>([]);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ACTIVE'); // Default: only active (deleted/inactive users "disappear")
   const [roleFilter, setRoleFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [actionModal, setActionModal] = useState<{ user: UserRow; action: string } | null>(null);
