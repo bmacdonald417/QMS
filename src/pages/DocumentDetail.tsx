@@ -9,7 +9,6 @@ import { useAuth } from '@/context/AuthContext';
 import { apiRequest, apiUrl } from '@/lib/api';
 import { stripMarkdownFormatting } from '@/lib/format';
 import { useDocumentTypes } from '@/hooks/useDocumentTypes';
-import { PenLine } from 'lucide-react';
 
 interface UserRef {
   id: string;
@@ -126,11 +125,6 @@ export function DocumentDetail() {
   const [signaturePassword, setSignaturePassword] = useState('');
   const [signatureComment, setSignatureComment] = useState('');
   const [signatureError, setSignatureError] = useState('');
-  const [showSignModal, setShowSignModal] = useState(false);
-  const [signMeaning, setSignMeaning] = useState('Prepared By');
-  const [signPassword, setSignPassword] = useState('');
-  const [signComment, setSignComment] = useState('');
-  const [signError, setSignError] = useState('');
   const [showReviseModal, setShowReviseModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
@@ -336,35 +330,6 @@ export function DocumentDetail() {
 
   return (
     <div className="space-y-6">
-      <Card padding="md" className="border-mactech-blue/50 bg-mactech-blue/5 ring-1 ring-mactech-blue/30">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-mactech-blue/20 text-mactech-blue" aria-hidden>
-              <PenLine className="h-5 w-5" />
-            </span>
-            <div>
-              <h2 className="text-base font-semibold text-white">Sign this document</h2>
-              <p className="mt-0.5 text-sm text-gray-400">
-                Record a digital signature (Prepared By, Reviewed By, or Approved By). It will appear in the PDF and in the audit log.
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="primary"
-            leftIcon={<PenLine className="h-4 w-4" />}
-            onClick={() => {
-              setShowSignModal(true);
-              setSignMeaning('Prepared By');
-              setSignPassword('');
-              setSignComment('');
-              setSignError('');
-            }}
-          >
-            Sign document
-          </Button>
-        </div>
-      </Card>
-
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1>
@@ -388,19 +353,6 @@ export function DocumentDetail() {
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="primary"
-            leftIcon={<PenLine className="h-4 w-4" />}
-            onClick={() => {
-              setShowSignModal(true);
-              setSignMeaning('Prepared By');
-              setSignPassword('');
-              setSignComment('');
-              setSignError('');
-            }}
-          >
-            Sign document
-          </Button>
           <Button variant="secondary" onClick={() => openPdf(false)}>
             View PDF
           </Button>
@@ -882,41 +834,9 @@ export function DocumentDetail() {
       </Card>
 
       <Card padding="md">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg text-white">Approval & Signature History</h2>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => {
-              setShowSignModal(true);
-              setSignMeaning('Prepared By');
-              setSignPassword('');
-              setSignComment('');
-              setSignError('');
-            }}
-          >
-            Sign document
-          </Button>
-        </div>
-        <p className="mb-4 text-xs text-gray-400">
-          Sign with your password to record a digital signature (Prepared By, Reviewed By, Approved By). Signature, date, user, and hashes are recorded in the audit log and appear in the PDF.
-        </p>
+        <h2 className="mb-4 text-lg text-white">Approval & Signature History</h2>
         {doc.signatures.length === 0 ? (
-          <div className="rounded-lg border border-surface-border border-dashed bg-surface-overlay/50 p-6 text-center">
-            <p className="mb-3 text-sm text-gray-400">No signatures captured yet.</p>
-            <Button
-              variant="primary"
-              onClick={() => {
-                setShowSignModal(true);
-                setSignMeaning('Prepared By');
-                setSignPassword('');
-                setSignComment('');
-                setSignError('');
-              }}
-            >
-              Add signature
-            </Button>
-          </div>
+          <p className="text-sm text-gray-500">No signatures captured yet.</p>
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -1173,93 +1093,6 @@ export function DocumentDetail() {
             >
               {deleteSubmitting ? 'Deleting…' : 'Delete permanently'}
             </Button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={showSignModal}
-        onClose={() => {
-          setShowSignModal(false);
-          setSignPassword('');
-          setSignComment('');
-          setSignError('');
-        }}
-        title="Sign document"
-        footer={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setShowSignModal(false);
-                setSignPassword('');
-                setSignComment('');
-                setSignError('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={async () => {
-                if (!token || !doc) return;
-                setSignError('');
-                if (!signPassword.trim()) {
-                  setSignError('Password is required');
-                  return;
-                }
-                try {
-                  await apiRequest(`/api/documents/${doc.id}/sign`, {
-                    token,
-                    method: 'POST',
-                    body: {
-                      signatureMeaning: signMeaning,
-                      password: signPassword,
-                      comments: signComment.trim() || undefined,
-                    },
-                  });
-                  setShowSignModal(false);
-                  setSignPassword('');
-                  setSignComment('');
-                  await fetchDocument();
-                } catch (err) {
-                  setSignError(err instanceof Error ? err.message : 'Failed to add signature');
-                }
-              }}
-            >
-              Sign & record
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          {signError && <p className="text-sm text-compliance-red">{signError}</p>}
-          <div>
-            <label className="label-caps mb-1.5 block">Signature meaning</label>
-            <select
-              value={signMeaning}
-              onChange={(e) => setSignMeaning(e.target.value)}
-              className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
-            >
-              <option value="Prepared By">Prepared By</option>
-              <option value="Reviewed By">Reviewed By</option>
-              <option value="Approved By">Approved By</option>
-            </select>
-          </div>
-          <Input
-            label="Password"
-            type="password"
-            value={signPassword}
-            onChange={(e) => setSignPassword(e.target.value)}
-            placeholder="Re-enter your password to sign"
-          />
-          <div>
-            <label className="label-caps mb-1.5 block">Comment (optional)</label>
-            <textarea
-              value={signComment}
-              onChange={(e) => setSignComment(e.target.value)}
-              rows={3}
-              className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
-            />
           </div>
         </div>
       </Modal>
