@@ -355,9 +355,10 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
 <head>
   <meta charset="UTF-8" />
   <style>
-    @page { size: A4; margin: 0.5in; }
+    @page { size: A4; margin: 0; }
     body {
       font-family: "Helvetica", "Arial", sans-serif;
+      width: 210mm;
       margin: 0;
       padding: 0;
       background-color: #ffffff;
@@ -571,6 +572,15 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       pointer-events: none;
       z-index: 1000;
     }
+    .pdf-content-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .pdf-content-table thead { display: table-header-group; }
+    .pdf-content-table thead td { height: 1.25in; padding: 0; border: none; }
+    .pdf-content-table tfoot { display: table-footer-group; }
+    .pdf-content-table tfoot td { height: 1.25in; padding: 0; border: none; }
   </style>
 </head>
 <body>
@@ -590,45 +600,57 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
 
   <div class="page content-flow">
     ${watermark(uncontrolled)}
-    <div id="pdf-main-content" class="content">
-      ${contentHtml}
-    </div>
+    <table class="pdf-content-table">
+      <thead><tr><td></td></tr></thead>
+      <tfoot><tr><td></td></tr></tfoot>
+      <tbody><tr><td>
+        <div id="pdf-main-content" class="content">
+          ${contentHtml}
+        </div>
+      </td></tr></tbody>
+    </table>
   </div>
 
   <div class="page final-section">
     ${watermark(uncontrolled)}
-    <div class="content">
-      <h1>APPROVAL & SIGNATURE HISTORY</h1>
-      <table>
-        <tr>
-          <th>Role</th>
-          <th>Name & Title</th>
-          <th>Signature & Date</th>
-        </tr>
-        ${renderSignatureRows(signatures)}
-      </table>
+    <table class="pdf-content-table">
+      <thead><tr><td></td></tr></thead>
+      <tfoot><tr><td></td></tr></tfoot>
+      <tbody><tr><td>
+        <div class="content">
+          <h1>APPROVAL & SIGNATURE HISTORY</h1>
+          <table>
+            <tr>
+              <th>Role</th>
+              <th>Name & Title</th>
+              <th>Signature & Date</th>
+            </tr>
+            ${renderSignatureRows(signatures)}
+          </table>
 
-      <h1>REVISION HISTORY</h1>
-      <table>
-        <tr>
-          <th>Version</th>
-          <th>Effective Date</th>
-          <th>Author</th>
-          <th>Summary of Changes</th>
-        </tr>
-        ${renderRevisionRows(revisions)}
-      </table>
+          <h1>REVISION HISTORY</h1>
+          <table>
+            <tr>
+              <th>Version</th>
+              <th>Effective Date</th>
+              <th>Author</th>
+              <th>Summary of Changes</th>
+            </tr>
+            ${renderRevisionRows(revisions)}
+          </table>
 
-      <h1>REFERENCE DOCUMENTS</h1>
-      <table>
-        <tr>
-          <th>Document ID</th>
-          <th>Version</th>
-          <th>Title</th>
-        </tr>
-        ${renderReferenceDocumentsRows(referenceDocuments)}
-      </table>
-    </div>
+          <h1>REFERENCE DOCUMENTS</h1>
+          <table>
+            <tr>
+              <th>Document ID</th>
+              <th>Version</th>
+              <th>Title</th>
+            </tr>
+            ${renderReferenceDocumentsRows(referenceDocuments)}
+          </table>
+        </div>
+      </td></tr></tbody>
+    </table>
   </div>
 </body>
 </html>
@@ -684,7 +706,7 @@ export async function generateDocumentPdf({ document, signatures, revisions, ref
       displayHeaderFooter: true,
       headerTemplate: buildPdfHeaderTemplate({ document, version }),
       footerTemplate: buildPdfFooterTemplate(),
-      margin: { top: '1.25in', right: '0.5in', bottom: '1.25in', left: '0.5in' },
+      margin: 0,
     });
     return pdf;
   } finally {
