@@ -536,8 +536,25 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       break-inside: avoid;
     }
     .content pre { page-break-inside: avoid; break-inside: avoid; }
-    table { width: 100%; border-collapse: collapse; margin-top: 5mm; table-layout: fixed; }
-    th, td { border: 0.5pt solid #000; padding: 3mm; font-size: 9pt; text-align: left; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; }
+    table {
+      width: 100%;
+      max-width: 100%;
+      border-collapse: collapse;
+      margin-top: 5mm;
+      table-layout: fixed;
+      overflow: hidden;
+    }
+    th, td {
+      border: 0.5pt solid #000;
+      padding: 3mm;
+      font-size: 9pt;
+      text-align: left;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-word;
+      box-sizing: border-box;
+      max-width: 100%;
+    }
     th { background-color: #f0f0f0; font-weight: bold; }
     .footer {
       height: 10mm;
@@ -576,11 +593,13 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
+      border: none;
     }
     .pdf-content-table thead { display: table-header-group; }
     .pdf-content-table thead td { height: 1.25in; padding: 0; border: none; }
     .pdf-content-table tfoot { display: table-footer-group; }
     .pdf-content-table tfoot td { height: 1.25in; padding: 0; border: none; }
+    .pdf-content-table tbody tr td { border: none; padding: 0; }
   </style>
 </head>
 <body>
