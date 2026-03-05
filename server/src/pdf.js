@@ -410,6 +410,9 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       flex-grow: 0;
       padding: 0.25in 0.5in;
     }
+    .page.final-section .content {
+      padding: 0.25in 0.5in;
+    }
     .header {
       display: table;
       width: 100%;
