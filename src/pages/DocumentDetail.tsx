@@ -7,8 +7,9 @@ import { RichTextEditor } from '@/components/RichTextEditor';
 import { GovernanceApprovalPanel } from '@/components/modules/compliance/GovernanceApprovalPanel';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest, apiUrl } from '@/lib/api';
-import { stripMarkdownFormatting } from '@/lib/format';
+import { stripMarkdownFormatting, formatRelativeTime } from '@/lib/format';
 import { useDocumentTypes } from '@/hooks/useDocumentTypes';
+import { Info, Check } from 'lucide-react';
 
 interface UserRef {
   id: string;
@@ -95,6 +96,8 @@ interface DocumentDetailModel {
   tags?: string[];
   nextReviewDate?: string | null;
   isUnderReview?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
   author: UserRef;
   assignments: DocumentAssignment[];
   history: DocumentHistoryItem[];
@@ -144,7 +147,20 @@ export function DocumentDetail() {
   const [documentsForLink, setDocumentsForLink] = useState<{ id: string; documentId: string; title: string }[]>([]);
   const [linkSearchLoading, setLinkSearchLoading] = useState(false);
   const [statusTooltipVisible, setStatusTooltipVisible] = useState(false);
+  const [workflowDetailsOpen, setWorkflowDetailsOpen] = useState(false);
+  const workflowDetailsRef = useRef<HTMLDivElement>(null);
   const linkDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!workflowDetailsOpen) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (workflowDetailsRef.current && !workflowDetailsRef.current.contains(e.target as Node)) {
+        setWorkflowDetailsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    return () => document.removeEventListener('mousedown', onMouseDown);
+  }, [workflowDetailsOpen]);
 
   const fetchDocument = async () => {
     if (!token || !id) return;
@@ -308,6 +324,58 @@ export function DocumentDetail() {
     }
   }, [doc]);
 
+  const workflowSummary = useMemo(() => {
+    if (!doc) return null;
+    const roleLabel = (a: DocumentAssignment) =>
+      (a.assignedTo as { role?: { name: string } }).role?.name ?? (a.assignedTo as UserRef).roleName ?? '';
+    const nameOf = (a: DocumentAssignment) => `${a.assignedTo.firstName} ${a.assignedTo.lastName}`.trim();
+    let assignedTo = 'Unassigned';
+    let dueDate: string | null = null;
+    if (doc.status === 'DRAFT') {
+      assignedTo = `${doc.author.firstName} ${doc.author.lastName} (Author)`;
+    } else {
+      const pending = doc.assignments.filter((a) => a.status === 'PENDING');
+      const first = pending[0];
+      if (first) {
+        const r = roleLabel(first);
+        assignedTo = r ? `${nameOf(first)} (${r})` : nameOf(first);
+        if (pending.length > 1) assignedTo += ` +${pending.length - 1}`;
+        const due = pending.find((a) => a.dueDate)?.dueDate;
+        if (due) dueDate = new Date(due).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+    }
+    const stageMap: Record<string, string> = {
+      DRAFT: 'Draft',
+      IN_REVIEW: 'Review',
+      AWAITING_APPROVAL: 'Approval',
+      APPROVED: 'Released',
+      EFFECTIVE: 'Released',
+      OBSOLETE: 'Released',
+    };
+    const stage = stageMap[doc.status] ?? doc.status.replace(/_/g, ' ');
+    const updatedAt = doc.updatedAt ? formatRelativeTime(doc.updatedAt) : '';
+    return { assignedTo, stage, dueDate, updatedAt };
+  }, [doc]);
+
+  const workflowSteps = useMemo(() => {
+    const steps = [
+      { key: 'draft', label: 'Draft', status: 'DRAFT' as const },
+      { key: 'review', label: 'Review', status: 'IN_REVIEW' as const },
+      { key: 'approval', label: 'Approval', status: 'AWAITING_APPROVAL' as const },
+      { key: 'released', label: 'Released', status: 'EFFECTIVE' as const },
+    ];
+    const statusOrder = ['DRAFT', 'IN_REVIEW', 'AWAITING_APPROVAL', 'APPROVED', 'EFFECTIVE', 'OBSOLETE'];
+    const currentIdx = statusOrder.indexOf(doc?.status ?? '');
+    const isReleased = doc && ['EFFECTIVE', 'OBSOLETE'].includes(doc.status);
+    const isApproved = doc?.status === 'APPROVED';
+    return steps.map((step, i) => {
+      const stepStatusIdx = statusOrder.indexOf(step.status);
+      const completed = isReleased ? i <= 3 : stepStatusIdx < currentIdx || (isApproved && step.key !== 'released');
+      const current = stepStatusIdx === currentIdx || (step.key === 'released' && (isApproved || isReleased));
+      return { ...step, completed, current };
+    });
+  }, [doc?.status]);
+
   const openPdf = async (uncontrolled: boolean) => {
     if (!token) return;
     const previewTab = uncontrolled ? null : window.open('', '_blank');
@@ -377,57 +445,67 @@ export function DocumentDetail() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1>
-            {doc.documentId} - {stripMarkdownFormatting(doc.title)}
-          </h1>
-          <p className="mt-1 text-gray-500">
-            {doc.documentType} • Version {doc.versionMajor}.{doc.versionMinor} • Author:{' '}
-            {doc.author.firstName} {doc.author.lastName}
-          </p>
-          {(doc.tags?.length ?? 0) > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {(doc.tags ?? []).map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded bg-surface-elevated px-2 py-0.5 text-xs text-gray-300"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1>
+              {doc.documentId} - {stripMarkdownFormatting(doc.title)}
+            </h1>
+            <p className="mt-1 text-gray-500">
+              {doc.documentType} • Version {doc.versionMajor}.{doc.versionMinor} • Author:{' '}
+              {doc.author.firstName} {doc.author.lastName}
+            </p>
+            {(doc.tags?.length ?? 0) > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {(doc.tags ?? []).map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded bg-surface-elevated px-2 py-0.5 text-xs text-gray-300"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" onClick={() => openPdf(false)}>
+              View PDF
+            </Button>
+            <Button variant="secondary" onClick={() => openPdf(true)}>
+              Download Uncontrolled Copy
+            </Button>
+            {doc.status === 'EFFECTIVE' && doc.trainingModules?.length ? (
+              <Button
+                variant="secondary"
+                onClick={() => navigate(`/training?module=${doc.trainingModules![0].id}`)}
+              >
+                View Training Module
+              </Button>
+            ) : null}
+            {doc.status === 'EFFECTIVE' && (isAuthor || user?.roleName === 'Quality Manager' || user?.roleName === 'Admin') ? (
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  if (!token) return;
+                  await apiRequest(`/api/documents/${doc.id}/initiate-periodic-review`, { token, method: 'POST' });
+                  await fetchDocument();
+                }}
+              >
+                Initiate Periodic Review
+              </Button>
+            ) : null}
+            {doc.nextReviewDate && (
+              <span className="text-sm text-gray-400">
+                Next review: {new Date(doc.nextReviewDate).toLocaleDateString()}
+              </span>
+            )}
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" onClick={() => openPdf(false)}>
-            View PDF
-          </Button>
-          <Button variant="secondary" onClick={() => openPdf(true)}>
-            Download Uncontrolled Copy
-          </Button>
-          {doc.status === 'EFFECTIVE' && doc.trainingModules?.length ? (
-            <Button
-              variant="secondary"
-              onClick={() => navigate(`/training?module=${doc.trainingModules![0].id}`)}
-            >
-              View Training Module
-            </Button>
-          ) : null}
-          {doc.status === 'EFFECTIVE' && (isAuthor || user?.roleName === 'Quality Manager' || user?.roleName === 'Admin') ? (
-            <Button
-              variant="secondary"
-              onClick={async () => {
-                if (!token) return;
-                await apiRequest(`/api/documents/${doc.id}/initiate-periodic-review`, { token, method: 'POST' });
-                await fetchDocument();
-              }}
-            >
-              Initiate Periodic Review
-            </Button>
-          ) : null}
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-surface-border bg-surface-elevated/50 px-3 py-2 text-sm">
           <span
-            className="relative inline-flex"
+            className="relative inline-flex shrink-0"
             onMouseEnter={() => setStatusTooltipVisible(true)}
             onMouseLeave={() => setStatusTooltipVisible(false)}
             onFocus={() => setStatusTooltipVisible(true)}
@@ -448,11 +526,116 @@ export function DocumentDetail() {
               </span>
             )}
           </span>
-          {doc.nextReviewDate && (
-            <span className="text-sm text-gray-400">
-              Next review: {new Date(doc.nextReviewDate).toLocaleDateString()}
-            </span>
+          {workflowSummary && (
+            <>
+              <span className="text-gray-400">
+                Assigned: <span className="text-gray-200">{workflowSummary.assignedTo}</span>
+              </span>
+              <span className="text-gray-500">•</span>
+              <span className="text-gray-400">
+                Stage: <span className="text-gray-200">{workflowSummary.stage}</span>
+              </span>
+              {workflowSummary.dueDate && (
+                <>
+                  <span className="text-gray-500">•</span>
+                  <span className="text-gray-400">
+                    Due: <span className="text-gray-200">{workflowSummary.dueDate}</span>
+                  </span>
+                </>
+              )}
+              {workflowSummary.updatedAt && (
+                <>
+                  <span className="text-gray-500">•</span>
+                  <span className="text-gray-400">Updated: {workflowSummary.updatedAt}</span>
+                </>
+              )}
+            </>
           )}
+          <div className="ml-auto flex items-center gap-1" role="progressbar" aria-label="Document workflow progress">
+            {workflowSteps.map((step, i) => (
+              <span key={step.key} className="flex items-center gap-1">
+                <span
+                  className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors duration-150 ${
+                    step.current
+                      ? 'bg-mactech-blue/20 text-mactech-blue ring-1 ring-mactech-blue/40'
+                      : step.completed
+                        ? 'bg-compliance-green/15 text-compliance-green'
+                        : 'text-gray-500'
+                  }`}
+                  aria-current={step.current ? 'step' : undefined}
+                >
+                  {step.completed ? <Check className="h-3 w-3" aria-hidden /> : null}
+                  {step.label}
+                </span>
+                {i < workflowSteps.length - 1 && (
+                  <span className="text-gray-600" aria-hidden>|</span>
+                )}
+              </span>
+            ))}
+          </div>
+          <div className="relative" ref={workflowDetailsRef}>
+            <button
+              type="button"
+              onClick={() => setWorkflowDetailsOpen((v) => !v)}
+              className="inline-flex items-center gap-1 rounded p-1.5 text-gray-400 transition-colors hover:bg-surface-border hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+              aria-label="Workflow details"
+              aria-expanded={workflowDetailsOpen}
+            >
+              <Info className="h-4 w-4" />
+              <span className="text-xs">Details</span>
+            </button>
+            {workflowDetailsOpen && (
+              <div
+                className="absolute right-0 top-full z-50 mt-1.5 w-80 rounded-lg border border-surface-border bg-surface-elevated p-4 shadow-lg transition-opacity duration-150"
+                role="dialog"
+                aria-label="Workflow details"
+              >
+                <h3 className="mb-3 text-sm font-semibold text-white">Workflow Details</h3>
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <span className="text-gray-500">Current assignment:</span>
+                    <p className="mt-0.5 text-gray-200">{workflowSummary?.assignedTo ?? 'Unassigned'}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Reviewers / Approvers:</span>
+                    {doc.assignments.length ? (
+                      <ul className="mt-1 space-y-1">
+                        {doc.assignments.map((a) => {
+                          const r = (a.assignedTo as { role?: { name: string } }).role?.name ?? (a.assignedTo as UserRef).roleName ?? '';
+                          const name = `${a.assignedTo.firstName} ${a.assignedTo.lastName}`;
+                          return (
+                            <li key={a.id} className="text-gray-300">
+                              {name} ({r}) — {a.assignmentType.replace(/_/g, ' ')}: {a.status}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="mt-0.5 text-gray-500">No reviewers assigned.</p>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Timeline:</span>
+                    {doc.history?.length ? (
+                      <ul className="mt-1 space-y-1">
+                        {doc.history.slice(0, 8).map((h) => (
+                          <li key={h.id} className="text-gray-300">
+                            {h.action} — {h.user.firstName} {h.user.lastName} • {formatRelativeTime(h.timestamp) || new Date(h.timestamp).toLocaleDateString()}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : doc.createdAt ? (
+                      <p className="mt-0.5 text-gray-300">
+                        Created by {doc.author.firstName} {doc.author.lastName} • {formatRelativeTime(doc.createdAt) || new Date(doc.createdAt).toLocaleDateString()}
+                      </p>
+                    ) : (
+                      <p className="mt-0.5 text-gray-500">No workflow history available yet.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
