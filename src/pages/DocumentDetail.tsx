@@ -242,21 +242,21 @@ export function DocumentDetail() {
 
   const pendingMyReview = useMemo(
     () =>
-      doc?.assignments.find(
+      doc?.assignments?.find(
         (a) => a.assignedToId === user?.id && a.assignmentType === 'REVIEW' && a.status === 'PENDING'
       ),
     [doc, user?.id]
   );
   const pendingMyApproval = useMemo(
     () =>
-      doc?.assignments.find(
+      doc?.assignments?.find(
         (a) => a.assignedToId === user?.id && a.assignmentType === 'APPROVAL' && a.status === 'PENDING'
       ),
     [doc, user?.id]
   );
   const pendingMyRelease = useMemo(
     () =>
-      doc?.assignments.find(
+      doc?.assignments?.find(
         (a) => a.assignedToId === user?.id && a.assignmentType === 'QUALITY_RELEASE' && a.status === 'PENDING'
       ),
     [doc, user?.id]

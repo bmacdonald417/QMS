@@ -540,7 +540,17 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
     .content pre code { background: none; padding: 0; }
     .content h1, .content h2, .content h3, .content h4, .content h5, .content h6 { page-break-after: avoid; break-after: avoid; }
     .content p { page-break-inside: avoid; break-inside: avoid; }
-    .content table { page-break-inside: auto; break-inside: auto; overflow: visible; }
+    .content table {
+      page-break-inside: auto;
+      break-inside: auto;
+      overflow: visible;
+      border: 1pt solid #000;
+    }
+    .content table th,
+    .content table td {
+      border: 0.5pt solid #000;
+      padding: 4mm 5mm;
+    }
     .content tr { page-break-inside: avoid; break-inside: avoid; }
     .content ul, .content ol {
       margin: 0.5em 0 0.5em 1.5em;
