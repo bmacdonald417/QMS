@@ -262,23 +262,7 @@ export function DocumentDetail() {
     [doc, user?.id]
   );
 
-  if (loading) return <p className="text-gray-400">Loading document...</p>;
-  if (error) return <p className="text-compliance-red">{error}</p>;
-  if (!doc) return <p className="text-gray-400">Document not found.</p>;
-
-  const isAuthor = user?.id === doc.authorId;
-  const canEdit = isAuthor && (doc.status === 'DRAFT' || doc.status === 'IN_REVIEW');
-  const canSubmitReview = isAuthor && doc.status === 'DRAFT';
-  const canApprove = !!pendingMyApproval && doc.status === 'AWAITING_APPROVAL';
-  const canRelease = (!!pendingMyRelease || user?.roleName === 'System Admin') && doc.status === 'APPROVED';
-  const canRevise = doc.status === 'EFFECTIVE';
-  const canDelete = user?.permissions?.includes('document:delete');
-
-  const reviewers = users.filter((u) => u.id !== user?.id);
-  const approvers = users.filter(
-    (u) => ['Manager', 'Quality Manager', 'System Admin'].includes(u.roleName || '') && u.id !== user?.id
-  );
-
+  // All hooks must run before any early return (React rules of hooks)
   const statusTooltipContent = useMemo(() => {
     if (!doc) return '';
     const roleLabel = (a: DocumentAssignment) =>
@@ -375,6 +359,23 @@ export function DocumentDetail() {
       return { ...step, completed, current };
     });
   }, [doc?.status]);
+
+  if (loading) return <p className="text-gray-400">Loading document...</p>;
+  if (error) return <p className="text-compliance-red">{error}</p>;
+  if (!doc) return <p className="text-gray-400">Document not found.</p>;
+
+  const isAuthor = user?.id === doc.authorId;
+  const canEdit = isAuthor && (doc.status === 'DRAFT' || doc.status === 'IN_REVIEW');
+  const canSubmitReview = isAuthor && doc.status === 'DRAFT';
+  const canApprove = !!pendingMyApproval && doc.status === 'AWAITING_APPROVAL';
+  const canRelease = (!!pendingMyRelease || user?.roleName === 'System Admin') && doc.status === 'APPROVED';
+  const canRevise = doc.status === 'EFFECTIVE';
+  const canDelete = user?.permissions?.includes('document:delete');
+
+  const reviewers = users.filter((u) => u.id !== user?.id);
+  const approvers = users.filter(
+    (u) => ['Manager', 'Quality Manager', 'System Admin'].includes(u.roleName || '') && u.id !== user?.id
+  );
 
   const openPdf = async (uncontrolled: boolean) => {
     if (!token) return;
