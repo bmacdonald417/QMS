@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { prisma } from './db.js';
 import { requirePermission, requireRoles } from './auth.js';
 import { createAuditLog, getAuditContext } from './audit.js';
+import { validateReviewResponses } from './lib/reviewQuestions.js';
 import { generateDocumentPdf } from './pdf.js';
 import { getNextChangeId } from './changeControls.js';
 import { computeQmsHash, getRecordVersion } from './governance.js';
@@ -1038,9 +1039,19 @@ router.post('/:id/submit', requirePermission('document:create'), submitForReview
 // POST /api/documents/:id/review
 router.post('/:id/review', requirePermission('document:review'), async (req, res) => {
   try {
-    const { decision, comments } = req.body;
+    const { decision, comments, reviewResponses } = req.body;
     const normalizedDecision = normalizeReviewDecision(decision);
     if (!normalizedDecision) return res.status(400).json({ error: 'Invalid review decision' });
+
+    const validation = validateReviewResponses(reviewResponses);
+    if (!validation.valid) {
+      return res.status(400).json({ error: validation.error });
+    }
+    if (validation.requiresRevision && normalizedDecision !== 'REQUIRES_REVISION') {
+      return res.status(400).json({
+        error: 'One or more questionnaire answers indicate corrections are needed. You must choose "Requires Revision" and send the document back to the author.',
+      });
+    }
 
     const document = await prisma.document.findUnique({ where: { id: req.params.id } });
     if (!document) return res.status(404).json({ error: 'Document not found' });
@@ -1055,11 +1066,29 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
     });
     if (!assignment) return res.status(403).json({ error: 'No pending review assignment found' });
 
+    const answersArray = [...validation.answersMap.entries()].map(([questionId, a]) => ({
+      questionId,
+      value: a.value,
+      comments: a.comments || undefined,
+    }));
+    const payloadToStore = {
+      answers: answersArray,
+      requiresRevision: validation.requiresRevision,
+    };
+
     if (normalizedDecision === 'REQUIRES_REVISION') {
+      const questionsWithYes = answersArray.filter((a) => a.value === 'yes').map((a) => a.questionId);
+      const nextDraftRound = (document.draftRound ?? 1) + 1;
+
       await prisma.$transaction(async (tx) => {
         await tx.documentAssignment.update({
           where: { id: assignment.id },
-          data: { status: 'REJECTED', completedAt: new Date(), comments: comments || null },
+          data: {
+            status: 'REJECTED',
+            completedAt: new Date(),
+            comments: comments || null,
+            reviewResponses: payloadToStore,
+          },
         });
         await tx.documentAssignment.updateMany({
           where: { documentId: document.id, status: 'PENDING' },
@@ -1067,14 +1096,19 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
         });
         await tx.document.update({
           where: { id: document.id },
-          data: { status: 'DRAFT' },
+          data: { status: 'DRAFT', draftRound: nextDraftRound },
         });
         await tx.documentHistory.create({
           data: {
             documentId: document.id,
             userId: req.user.id,
             action: 'Review Rejected',
-            details: { comments: comments || null },
+            details: {
+              comments: comments || null,
+              reviewResponses: payloadToStore,
+              questionsWithYes,
+              draftRound: nextDraftRound,
+            },
           },
         });
       });
@@ -1086,7 +1120,7 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
         entityType: DOCUMENT_ENTITY,
         entityId: document.id,
         beforeValue: { status: document.status },
-        afterValue: { status: 'DRAFT' },
+        afterValue: { status: 'DRAFT', draftRound: nextDraftRound },
         reason: req.body.reason || comments || null,
         ...auditCtx,
       });
@@ -1100,13 +1134,18 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
 
     await prisma.documentAssignment.update({
       where: { id: assignment.id },
-      data: { status: 'COMPLETED', completedAt: new Date(), comments: comments || null },
+      data: {
+        status: 'COMPLETED',
+        completedAt: new Date(),
+        comments: comments || null,
+        reviewResponses: payloadToStore,
+      },
     });
     await createHistory({
       documentId: document.id,
       userId: req.user.id,
       action: 'Review Completed',
-      details: { comments: comments || null },
+      details: { comments: comments || null, reviewResponses: payloadToStore },
     });
 
     const pendingReviewCount = await prisma.documentAssignment.count({

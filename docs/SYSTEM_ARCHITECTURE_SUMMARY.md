@@ -150,7 +150,7 @@ Other: InviteToken, PasswordResetToken, Notification, TrainingModule, UserTraini
 - **Stored and enforced:** Document status on **Document**; transitions in `server/src/documents.js`.
 - **Flow:**
   - **DRAFT** → Submit for review (reviewer + approver IDs) → **IN_REVIEW**. DocumentAssignment rows created (REVIEW, APPROVAL).
-  - **IN_REVIEW** → Reviewers POST review (APPROVED_WITH_COMMENTS / REQUIRES_REVISION). If REQUIRES_REVISION → back to DRAFT. When all reviews done, approver POSTs approve (password → e-sign) → **APPROVED** (DocumentSignature created). Manager cannot approve own document.
+  - **IN_REVIEW** → Reviewers complete a **reviewer questionnaire** (formatting, incomplete items, up to 5 other questions) and POST review with `reviewResponses`. If any answer indicates corrections needed, only REQUIRES_REVISION is allowed; document returns to DRAFT and **draft round** is incremented (author sees “Draft (Round N)” and which questions were flagged in history). Otherwise reviewers POST APPROVED_WITH_COMMENTS / REQUIRES_REVISION. If REQUIRES_REVISION → back to DRAFT. When all reviews done, approver POSTs approve (password → e-sign) → **APPROVED** (DocumentSignature created). Manager cannot approve own document.
   - **APPROVED** → Quality release (Quality Manager/System Admin) → **EFFECTIVE** (effectiveDate set).
   - **EFFECTIVE** → Revise (major/minor) → new Document row in **DRAFT** with next version, DocumentRevision record; optional Change Control.
 - **Effective version:** Single row with `status = EFFECTIVE` for that documentId (no separate “current” pointer).

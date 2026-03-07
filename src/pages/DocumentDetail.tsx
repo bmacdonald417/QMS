@@ -9,6 +9,11 @@ import { useAuth } from '@/context/AuthContext';
 import { apiRequest, apiUrl } from '@/lib/api';
 import { stripMarkdownFormatting, formatRelativeTime } from '@/lib/format';
 import { useDocumentTypes } from '@/hooks/useDocumentTypes';
+import {
+  REVIEW_QUESTIONS,
+  type ReviewAnswerValue,
+  type ReviewResponsesPayload,
+} from '@/lib/reviewQuestions';
 import { Info, Check } from 'lucide-react';
 
 interface UserRef {
@@ -28,6 +33,7 @@ interface DocumentAssignment {
   comments?: string | null;
   completedAt?: string | null;
   dueDate?: string | null;
+  reviewResponses?: ReviewResponsesPayload | null;
   assignedTo: UserRef;
 }
 
@@ -96,6 +102,7 @@ interface DocumentDetailModel {
   tags?: string[];
   nextReviewDate?: string | null;
   isUnderReview?: boolean;
+  draftRound?: number | null;
   createdAt?: string;
   updatedAt?: string;
   author: UserRef;
@@ -121,6 +128,9 @@ export function DocumentDetail() {
   const [documentType, setDocumentType] = useState('SOP');
   const [content, setContent] = useState('');
   const [reviewComment, setReviewComment] = useState('');
+  const [reviewAnswers, setReviewAnswers] = useState<Record<string, { value: ReviewAnswerValue; comments: string }>>(
+    () => Object.fromEntries(REVIEW_QUESTIONS.map((q) => [q.id, { value: 'no' as ReviewAnswerValue, comments: '' }]))
+  );
   const [submitComment, setSubmitComment] = useState('');
   const [reviewerIds, setReviewerIds] = useState<string[]>([]);
   const [approverId, setApproverId] = useState('');
@@ -517,6 +527,11 @@ export function DocumentDetail() {
             <Badge variant={doc.status === 'EFFECTIVE' ? 'success' : doc.status === 'AWAITING_APPROVAL' || doc.status === 'IN_REVIEW' ? 'warning' : doc.status === 'APPROVED' ? 'info' : 'neutral'}>
               {doc.status === 'AWAITING_APPROVAL' ? 'Awaiting Approval' : doc.status.replace(/_/g, ' ')}
             </Badge>
+            {doc.status === 'DRAFT' && doc.draftRound != null && doc.draftRound > 1 && (
+              <span className="ml-1.5 rounded bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400">
+                Draft (Round {doc.draftRound})
+              </span>
+            )}
             {statusTooltipVisible && statusTooltipContent && (
               <span
                 id="status-assignment-tooltip"
@@ -778,6 +793,60 @@ export function DocumentDetail() {
       {pendingMyReview && doc.status === 'IN_REVIEW' && (
         <Card padding="md">
           <h2 className="mb-2 text-lg text-white">Review Decision</h2>
+          <p className="mb-3 text-sm text-gray-400">
+            Answer all questions. If any answer is &quot;Yes&quot;, you must choose Requires Revision and send the document back to the author.
+          </p>
+          <div className="mb-4 space-y-4">
+            {REVIEW_QUESTIONS.map((q) => (
+              <div key={q.id} className="rounded-lg border border-surface-border bg-surface-elevated/50 p-3">
+                <p className="mb-2 text-sm font-medium text-gray-200">{q.label}</p>
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm text-gray-300">
+                    <input
+                      type="radio"
+                      name={`review-${q.id}`}
+                      checked={reviewAnswers[q.id]?.value === 'no'}
+                      onChange={() =>
+                        setReviewAnswers((prev) => ({
+                          ...prev,
+                          [q.id]: { ...prev[q.id], value: 'no', comments: prev[q.id]?.comments ?? '' },
+                        }))
+                      }
+                      className="rounded border-surface-border text-mactech-blue focus:ring-mactech-blue"
+                    />
+                    No
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-300">
+                    <input
+                      type="radio"
+                      name={`review-${q.id}`}
+                      checked={reviewAnswers[q.id]?.value === 'yes'}
+                      onChange={() =>
+                        setReviewAnswers((prev) => ({
+                          ...prev,
+                          [q.id]: { ...prev[q.id], value: 'yes', comments: prev[q.id]?.comments ?? '' },
+                        }))
+                      }
+                      className="rounded border-surface-border text-mactech-blue focus:ring-mactech-blue"
+                    />
+                    Yes
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Optional comment for this question"
+                  value={reviewAnswers[q.id]?.comments ?? ''}
+                  onChange={(e) =>
+                    setReviewAnswers((prev) => ({
+                      ...prev,
+                      [q.id]: { ...prev[q.id], value: prev[q.id]?.value ?? 'no', comments: e.target.value },
+                    }))
+                  }
+                  className="mt-2 w-full rounded border border-surface-border bg-surface-elevated px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+                />
+              </div>
+            ))}
+          </div>
           <textarea
             rows={4}
             value={reviewComment}
@@ -785,17 +854,35 @@ export function DocumentDetail() {
             className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
             placeholder="Add review comments..."
           />
+          {Object.values(reviewAnswers).some((a) => a?.value === 'yes') && (
+            <p className="mt-2 text-sm text-amber-400">
+              Corrections required: please use Requires Revision and add comments for the author.
+            </p>
+          )}
           <div className="mt-3 flex gap-2">
             <Button
               variant="secondary"
+              disabled={Object.values(reviewAnswers).some((a) => a?.value === 'yes')}
               onClick={async () => {
                 if (!token) return;
+                const reviewResponses: ReviewResponsesPayload = {
+                  answers: REVIEW_QUESTIONS.map((q) => ({
+                    questionId: q.id,
+                    value: reviewAnswers[q.id]?.value ?? 'no',
+                    comments: reviewAnswers[q.id]?.comments || undefined,
+                  })),
+                };
                 await apiRequest(`/api/documents/${doc.id}/review`, {
                   token,
                   method: 'POST',
-                  body: { decision: 'APPROVED_WITH_COMMENTS', comments: reviewComment },
+                  body: { decision: 'APPROVED_WITH_COMMENTS', comments: reviewComment, reviewResponses },
                 });
                 setReviewComment('');
+                setReviewAnswers(
+                  Object.fromEntries(
+                    REVIEW_QUESTIONS.map((q) => [q.id, { value: 'no' as ReviewAnswerValue, comments: '' }])
+                  )
+                );
                 await fetchDocument();
               }}
             >
@@ -805,12 +892,24 @@ export function DocumentDetail() {
               variant="danger"
               onClick={async () => {
                 if (!token) return;
+                const reviewResponses: ReviewResponsesPayload = {
+                  answers: REVIEW_QUESTIONS.map((q) => ({
+                    questionId: q.id,
+                    value: reviewAnswers[q.id]?.value ?? 'no',
+                    comments: reviewAnswers[q.id]?.comments || undefined,
+                  })),
+                };
                 await apiRequest(`/api/documents/${doc.id}/review`, {
                   token,
                   method: 'POST',
-                  body: { decision: 'REQUIRES_REVISION', comments: reviewComment },
+                  body: { decision: 'REQUIRES_REVISION', comments: reviewComment, reviewResponses },
                 });
                 setReviewComment('');
+                setReviewAnswers(
+                  Object.fromEntries(
+                    REVIEW_QUESTIONS.map((q) => [q.id, { value: 'no' as ReviewAnswerValue, comments: '' }])
+                  )
+                );
                 await fetchDocument();
               }}
             >
@@ -1244,21 +1343,40 @@ export function DocumentDetail() {
           <p className="text-sm text-gray-500">No history entries yet.</p>
         ) : (
           <ul className="space-y-3">
-            {doc.history.map((item) => (
-              <li key={item.id} className="rounded-lg border border-surface-border bg-surface-overlay p-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-200">
-                    {item.action} - {item.user.firstName} {item.user.lastName}
-                  </p>
-                  <p className="text-xs text-gray-500">{new Date(item.timestamp).toLocaleString()}</p>
-                </div>
-                {item.details && (
-                  <pre className="mt-2 whitespace-pre-wrap text-xs text-gray-400">
-                    {JSON.stringify(item.details, null, 2)}
-                  </pre>
-                )}
-              </li>
-            ))}
+            {doc.history.map((item) => {
+              const details = item.details as
+                | { comments?: string; reviewResponses?: ReviewResponsesPayload; questionsWithYes?: string[]; draftRound?: number }
+                | undefined
+                | null;
+              const isReviewRejected = item.action === 'Review Rejected' && details;
+              const questionsWithYes = isReviewRejected && Array.isArray(details.questionsWithYes) ? details.questionsWithYes : null;
+              return (
+                <li key={item.id} className="rounded-lg border border-surface-border bg-surface-overlay p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-200">
+                      {item.action} - {item.user.firstName} {item.user.lastName}
+                    </p>
+                    <p className="text-xs text-gray-500">{new Date(item.timestamp).toLocaleString()}</p>
+                  </div>
+                  {isReviewRejected && (questionsWithYes?.length ?? 0) > 0 && (
+                    <p className="mt-2 text-xs text-amber-400">
+                      Issues flagged: {questionsWithYes!.join(', ')}
+                    </p>
+                  )}
+                  {isReviewRejected && details.draftRound != null && (
+                    <p className="mt-0.5 text-xs text-gray-400">Draft round: {details.draftRound}</p>
+                  )}
+                  {isReviewRejected && details?.comments && (
+                    <p className="mt-1 text-xs text-gray-400">Comments: {details.comments}</p>
+                  )}
+                  {item.details && !isReviewRejected && (
+                    <pre className="mt-2 whitespace-pre-wrap text-xs text-gray-400">
+                      {JSON.stringify(item.details, null, 2)}
+                    </pre>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>

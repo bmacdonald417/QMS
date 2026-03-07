@@ -284,6 +284,7 @@ model Document {
   tags                 String[]       @default([])
   nextReviewDate       DateTime?      @map("next_review_date")
   isUnderReview        Boolean        @default(false) @map("is_under_review")
+  draftRound           Int?           @map("draft_round")
   createdAt            DateTime       @default(now()) @map("created_at")
   updatedAt            DateTime       @updatedAt @map("updated_at")
 
@@ -447,15 +448,16 @@ model DocumentSignature {
 }
 
 model DocumentAssignment {
-  id            String                  @id @default(uuid())
-  documentId    String                  @map("document_id")
-  assignedToId  String                  @map("assignee_id")
-  assignmentType AssignmentTaskType  @map("task_type")
-  status        AssignmentStatus     @default(PENDING)
-  dueDate       DateTime?               @map("due_date")
-  completedAt   DateTime?               @map("completed_at")
-  comments    String?            @db.Text
-  createdAt   DateTime           @default(now()) @map("created_at")
+  id              String                  @id @default(uuid())
+  documentId      String                  @map("document_id")
+  assignedToId    String                  @map("assignee_id")
+  assignmentType AssignmentTaskType      @map("task_type")
+  status         AssignmentStatus        @default(PENDING)
+  dueDate        DateTime?               @map("due_date")
+  completedAt    DateTime?               @map("completed_at")
+  comments       String?                 @db.Text
+  reviewResponses Json?                   @map("review_responses")
+  createdAt      DateTime                @default(now()) @map("created_at")
 
   document   Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
   assignedTo User     @relation("DocumentAssignee", fields: [assignedToId], references: [id], onDelete: Restrict)
