@@ -42,7 +42,7 @@ function renderSignatureRows(signatures) {
   if (!signatures.length) {
     return `
       <tr>
-        <td colspan="3">No signatures captured yet.</td>
+        <td colspan="4">No signatures captured yet.</td>
       </tr>
     `;
   }
@@ -53,6 +53,7 @@ function renderSignatureRows(signatures) {
         <td>${esc(sig.signatureMeaning)}</td>
         <td>${esc(sig.signer.firstName)} ${esc(sig.signer.lastName)}</td>
         <td>Electronically Signed: ${new Date(sig.signedAt).toLocaleString()}</td>
+        <td>${esc(sig.signatureHash || '')}</td>
       </tr>
     `
     )
@@ -572,18 +573,23 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
     .content pre { page-break-inside: avoid; break-inside: avoid; }
     .final-section .content h1 { margin-top: 10mm; margin-bottom: 5mm; }
     .final-section .content h1:first-child { margin-top: 0; }
-    .final-section table {
+    .final-section table,
+    .final-section .content table {
       width: 100%;
       max-width: 100%;
       border-collapse: collapse;
+      border-spacing: 0;
       margin-top: 6mm;
       margin-bottom: 2mm;
       table-layout: fixed;
       overflow: hidden;
-      border: 0.5pt solid #000;
+      border: 1pt solid #000;
     }
-    .final-section th, .final-section td {
-      border: 0.5pt solid #000;
+    .final-section table th,
+    .final-section table td,
+    .final-section .content table th,
+    .final-section .content table td {
+      border: 1pt solid #000;
       padding: 4mm;
       font-size: 9pt;
       text-align: left;
@@ -593,7 +599,8 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       box-sizing: border-box;
       max-width: 100%;
     }
-    .final-section th {
+    .final-section th,
+    .final-section .content table th {
       background-color: #f5f5f5;
       font-weight: bold;
     }
@@ -715,11 +722,12 @@ function buildHtml({ document, signatures, revisions, referenceDocuments, uncont
       <tbody><tr><td>
         <div class="content">
           <h1>APPROVAL & SIGNATURE HISTORY</h1>
-          <table>
+          <table class="signature-history-table">
             <tr>
               <th>Role</th>
               <th>Name & Title</th>
               <th>Signature & Date</th>
+              <th>Signature Hash</th>
             </tr>
             ${renderSignatureRows(signatures)}
           </table>
