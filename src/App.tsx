@@ -7,6 +7,7 @@ import {
   DocumentDetail,
   TrainingCompetency,
   AuditManagement,
+  AuditDetail,
   ChangeControl,
   ChangeControlNew,
   ChangeControlDetail,
@@ -30,6 +31,7 @@ import {
   SystemReference,
   SystemRetention,
   SystemESign,
+  SystemIntegrations,
 } from '@/pages/system';
 import {
   TeamTraining,
@@ -61,6 +63,7 @@ function AppRoutes() {
           <Route path="training" element={<TrainingCompetency />} />
           <Route path="periodic-reviews" element={<PeriodicReviewsPage />} />
           <Route path="audits" element={<AuditManagement />} />
+          <Route path="audits/:auditId" element={<AuditDetail />} />
           <Route path="capas" element={<CAPAList />} />
           <Route path="capas/new" element={<CAPANew />} />
           <Route path="capas/:id" element={<CAPADetail />} />
@@ -80,6 +83,7 @@ function AppRoutes() {
             <Route path="reference" element={<SystemReference />} />
             <Route path="retention" element={<SystemRetention />} />
             <Route path="esign" element={<SystemESign />} />
+            <Route path="integrations" element={<SystemIntegrations />} />
           </Route>
           <Route path="team-documents" element={<Navigate to="/documents" replace />} />
           <Route path="team-training" element={<TeamTraining />} />

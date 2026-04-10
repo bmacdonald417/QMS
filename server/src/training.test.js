@@ -1,7 +1,9 @@
 /**
- * Training API tests: X-INTEGRATION-KEY support (read-only).
+ * Training API tests: integration token and legacy X-INTEGRATION-KEY support (read-only).
  * Run: node src/training.test.js
- * Integration tests (requires server + INTEGRATION_KEY): RUN_API_TESTS=1 node src/training.test.js
+ * Integration tests: RUN_API_TESTS=1 node src/training.test.js
+ *   - With legacy key: set INTEGRATION_KEY and ALLOW_LEGACY_INTEGRATION_KEY=true
+ *   - With integration token: set INTEGRATION_JWT_SECRET, create client, obtain token
  */
 import { trainingAuthMiddleware } from './auth.js';
 
@@ -12,7 +14,9 @@ function assert(condition, message) {
 // --- Unit: trainingAuthMiddleware rejects non-GET when using integration key
 async function testIntegrationKeyRejectsNonGet() {
   const originalKey = process.env.INTEGRATION_KEY;
+  const originalLegacy = process.env.ALLOW_LEGACY_INTEGRATION_KEY;
   process.env.INTEGRATION_KEY = 'test-key';
+  process.env.ALLOW_LEGACY_INTEGRATION_KEY = 'true';
   try {
     const req = {
       method: 'POST',
@@ -38,6 +42,7 @@ async function testIntegrationKeyRejectsNonGet() {
     assert(res.body?.error?.includes('read-only'), 'Error should mention read-only');
   } finally {
     process.env.INTEGRATION_KEY = originalKey;
+    process.env.ALLOW_LEGACY_INTEGRATION_KEY = originalLegacy;
   }
   console.log('  integration key rejects non-GET: OK');
 }
@@ -56,13 +61,16 @@ async function testIntegrationKeyAllowsGet() {
   let nextCalled = false;
   const next = () => { nextCalled = true; };
   const originalKey = process.env.INTEGRATION_KEY;
+  const originalLegacy = process.env.ALLOW_LEGACY_INTEGRATION_KEY;
   process.env.INTEGRATION_KEY = 'test-key';
+  process.env.ALLOW_LEGACY_INTEGRATION_KEY = 'true';
   try {
     await trainingAuthMiddleware(req, res, next);
     assert(nextCalled, 'next should be called for GET with valid key');
     assert(req.trainingActor === 'integration', 'trainingActor should be integration');
   } finally {
     process.env.INTEGRATION_KEY = originalKey;
+    process.env.ALLOW_LEGACY_INTEGRATION_KEY = originalLegacy;
   }
   console.log('  integration key allows GET: OK');
 }
@@ -70,12 +78,19 @@ async function testIntegrationKeyAllowsGet() {
 // --- Integration: API tests (when RUN_API_TESTS=1 and server is running)
 async function runApiTests() {
   const baseUrl = process.env.API_BASE_URL || 'http://localhost:3001';
-  const key = process.env.INTEGRATION_KEY;
-  if (!key) {
-    console.log('  Skipping API tests: INTEGRATION_KEY not set');
+  const legacyKey = process.env.INTEGRATION_KEY;
+  const allowLegacy = process.env.ALLOW_LEGACY_INTEGRATION_KEY === 'true';
+  const token = process.env.INTEGRATION_TOKEN;
+
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  } else if (allowLegacy && legacyKey) {
+    headers['X-INTEGRATION-KEY'] = legacyKey;
+  } else {
+    console.log('  Skipping API tests: set INTEGRATION_TOKEN or (INTEGRATION_KEY + ALLOW_LEGACY_INTEGRATION_KEY=true)');
     return;
   }
-  const headers = { 'X-INTEGRATION-KEY': key };
 
   try {
     // GET /api/training/modules with integration key

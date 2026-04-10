@@ -1,33 +1,27 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { timingSafeEqual } from 'node:crypto';
 import { prisma } from './db.js';
+import {
+  checkLegacyIntegrationKey,
+  getIntegrationTokenFromRequest,
+  verifyIntegrationToken,
+} from './integrations/auth.js';
 
 const router = express.Router();
 
-/** Constant-time comparison for integration key (prevents timing attacks). */
-function safeCompare(a, b) {
-  if (typeof a !== 'string' || typeof b !== 'string') return false;
-  if (a.length !== b.length) return false;
-  try {
-    return timingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));
-  } catch {
-    return false;
-  }
-}
-
 /**
- * Training API auth: JWT Bearer OR X-INTEGRATION-KEY (read-only).
- * For X-INTEGRATION-KEY: only GET allowed; 403 on POST/PUT/DELETE.
+ * Training API auth: JWT Bearer OR integration token (training:read, GET only) OR legacy X-INTEGRATION-KEY.
+ * For integration: only GET allowed; 403 on POST/PUT/DELETE.
  * Sets req.trainingActor = 'integration' | 'user' and req.auditUserId for audit.
  */
 export async function trainingAuthMiddleware(req, res, next) {
-  const integrationKey = req.headers['x-integration-key'];
-  const envKey = process.env.INTEGRATION_KEY || '';
-  if (envKey && integrationKey && safeCompare(envKey, integrationKey)) {
+  const token = getIntegrationTokenFromRequest(req);
+  const legacyKey = process.env.INTEGRATION_KEY || '';
+
+  const allowIntegrationRead = async () => {
     if (req.method !== 'GET') {
-      return res.status(403).json({ error: 'Integration key is read-only. Use JWT for write operations.' });
+      return res.status(403).json({ error: 'Integration token is read-only. Use JWT for write operations.' });
     }
     req.trainingActor = 'integration';
     let auditUserId = process.env.INTEGRATION_AUDIT_USER_ID;
@@ -40,7 +34,23 @@ export async function trainingAuthMiddleware(req, res, next) {
     }
     req.auditUserId = auditUserId;
     return next();
+  };
+
+  if (token) {
+    const decoded = verifyIntegrationToken(token);
+    if (decoded && decoded.scp.includes('training:read')) {
+      req.integration = { clientId: decoded.cid, scopes: decoded.scp };
+      return allowIntegrationRead();
+    }
+    if (decoded) {
+      return res.status(403).json({ error: 'Integration token is read-only. Use JWT for write operations.' });
+    }
   }
+
+  if (checkLegacyIntegrationKey(req, legacyKey)) {
+    return allowIntegrationRead();
+  }
+
   return authMiddleware(req, res, () => {
     req.trainingActor = 'user';
     req.auditUserId = req.user?.id ?? null;

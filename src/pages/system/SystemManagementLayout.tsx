@@ -9,6 +9,7 @@ const navItems = [
   { to: '/system/reference', end: false, label: 'Reference Data' },
   { to: '/system/esign', end: false, label: 'E-Signature' },
   { to: '/system/retention', end: false, label: 'Retention' },
+  { to: '/system/integrations', end: false, label: 'Integrations' },
 ];
 
 export function SystemManagementLayout() {

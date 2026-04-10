@@ -9,7 +9,10 @@ import { prisma } from './db.js';
 import { requirePermission } from './auth.js';
 import { createAuditLog, getAuditContext } from './audit.js';
 import { computeQmsHash, getRecordVersion, getGovernanceApprovalStatus } from './governance.js';
+import { normalizeRcaJson, hasStructuredRcaContent } from './capaRca.js';
 import { z } from 'zod';
+
+const CAPA_SOURCE_TYPES = z.enum(['INTERNAL', 'AUDIT_FINDING', 'NONCONFORMANCE', 'COMPLAINT', 'DEVIATION', 'OTHER']);
 
 const router = express.Router();
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
@@ -165,6 +168,8 @@ const createBodySchema = z.object({
   siteId: z.string().uuid().optional().nullable(),
   departmentId: z.string().uuid().optional().nullable(),
   dueDate: z.string().datetime().optional().nullable().or(z.date()),
+  sourceType: CAPA_SOURCE_TYPES.optional().nullable(),
+  sourceReference: z.string().max(500).optional().nullable(),
 });
 
 router.post('/', requirePermission('capa:create'), async (req, res) => {
@@ -190,6 +195,8 @@ router.post('/', requirePermission('capa:create'), async (req, res) => {
           siteId: data.siteId ?? undefined,
           departmentId: data.departmentId ?? undefined,
           dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+          sourceType: data.sourceType ?? undefined,
+          sourceReference: data.sourceReference ?? undefined,
         },
         include: {
           initiator: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -388,6 +395,9 @@ const updateBodySchema = z.object({
   effectivenessPlan: z.string().optional().nullable(),
   effectivenessResult: z.string().optional().nullable(),
   dueDate: z.string().datetime().optional().nullable().or(z.date()).nullable(),
+  rcaJson: z.unknown().optional().nullable(),
+  sourceType: CAPA_SOURCE_TYPES.optional().nullable(),
+  sourceReference: z.string().max(500).optional().nullable(),
   reason: z.string().min(1),
 });
 
@@ -402,6 +412,19 @@ router.put('/:id', requirePermission('capa:update'), async (req, res) => {
     if (!capa) return res.status(404).json({ error: 'CAPA not found' });
     if (['CLOSED', 'CANCELLED', 'ARCHIVED'].includes(capa.status)) {
       return res.status(400).json({ error: 'Cannot update CAPA in current status' });
+    }
+
+    let normalizedRca = null;
+    if (updates.rcaJson !== undefined) {
+      if (updates.rcaJson === null) {
+        normalizedRca = null;
+      } else {
+        const rcaParsed = normalizeRcaJson(updates.rcaJson);
+        if (!rcaParsed.ok) {
+          return res.status(400).json({ error: 'Invalid rcaJson', details: rcaParsed.error });
+        }
+        normalizedRca = rcaParsed.data;
+      }
     }
 
     const before = { ...capa };
@@ -420,6 +443,9 @@ router.put('/:id', requirePermission('capa:update'), async (req, res) => {
     if (updates.effectivenessPlan !== undefined) data.effectivenessPlan = updates.effectivenessPlan ?? null;
     if (updates.effectivenessResult !== undefined) data.effectivenessResult = updates.effectivenessResult ?? null;
     if (updates.dueDate !== undefined) data.dueDate = updates.dueDate ? new Date(updates.dueDate) : null;
+    if (updates.rcaJson !== undefined) data.rcaJson = normalizedRca === null ? null : normalizedRca;
+    if (updates.sourceType !== undefined) data.sourceType = updates.sourceType ?? null;
+    if (updates.sourceReference !== undefined) data.sourceReference = updates.sourceReference ?? null;
 
     const updated = await prisma.$transaction(async (tx) => {
       const u = await tx.cAPA.update({
@@ -453,6 +479,19 @@ router.put('/:id', requirePermission('capa:update'), async (req, res) => {
       ...auditCtx,
     });
 
+    if (updates.rcaJson !== undefined) {
+      await createAuditLog({
+        userId: req.user.id,
+        action: 'CAPA_RCA_UPDATED',
+        entityType: CAPA_ENTITY,
+        entityId: capa.id,
+        beforeValue: { rcaJson: capa.rcaJson },
+        afterValue: { rcaJson: updated.rcaJson },
+        reason,
+        ...auditCtx,
+      });
+    }
+
     res.json({ capa: updated });
   } catch (err) {
     console.error('Update CAPA error:', err);
@@ -464,6 +503,7 @@ router.put('/:id', requirePermission('capa:update'), async (req, res) => {
 const transitionBodySchema = z.object({
   toStatus: z.string(),
   reason: z.string().min(1),
+  rcaWaiverReason: z.string().max(4000).optional().nullable(),
 });
 
 router.post('/:id/transition', requirePermission('capa:update'), async (req, res) => {
@@ -472,14 +512,26 @@ router.post('/:id/transition', requirePermission('capa:update'), async (req, res
     if (!parsed.success) {
       return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
     }
-    const { toStatus, reason } = parsed.data;
-    const capa = await prisma.cAPA.findUnique({ where: { id: req.params.id }, include: { owner: true } });
+    const { toStatus, reason, rcaWaiverReason } = parsed.data;
+    const capa = await prisma.cAPA.findUnique({ where: { id: req.params.id }, include: { owner: true, tasks: true } });
     if (!capa) return res.status(404).json({ error: 'CAPA not found' });
     if (!isAllowedTransition(capa.status, toStatus)) {
       return res.status(400).json({
         error: `Invalid transition from ${capa.status} to ${toStatus}`,
         allowed: VALID_TRANSITIONS[capa.status],
       });
+    }
+
+    if (capa.status === 'INVESTIGATION' && toStatus === 'RCA_COMPLETE') {
+      const waiver = (rcaWaiverReason && String(rcaWaiverReason).trim()) || '';
+      const structured = hasStructuredRcaContent(capa.rcaJson);
+      const rcaTaskDone = capa.tasks.some((t) => t.taskType === 'ROOT_CAUSE_ANALYSIS' && t.status === 'COMPLETED');
+      if (!waiver && (!structured || !rcaTaskDone)) {
+        return res.status(400).json({
+          error:
+            'To complete root cause analysis: complete a ROOT_CAUSE_ANALYSIS task and record structured RCA (5 Whys or fishbone), or provide rcaWaiverReason per procedure.',
+        });
+      }
     }
 
     const before = { status: capa.status };
@@ -500,7 +552,12 @@ router.post('/:id/transition', requirePermission('capa:update'), async (req, res
           capaId: capa.id,
           userId: req.user.id,
           action: 'STATUS_CHANGE',
-          details: { from: capa.status, to: toStatus, reason },
+          details: {
+            from: capa.status,
+            to: toStatus,
+            reason,
+            ...(rcaWaiverReason?.trim() ? { rcaWaiverReason: rcaWaiverReason.trim() } : {}),
+          },
         },
       });
       return u;
@@ -822,6 +879,7 @@ router.post('/:id/approve-plan', requirePermission('capa:approve_plan'), async (
             capaId: capa.id,
             signerId: req.user.id,
             signatureMeaning: 'PLAN_APPROVAL',
+            signatureReason: reason,
             signedAt: now,
             recordHash,
             signatureHash,
@@ -928,9 +986,19 @@ router.post('/:id/close', requirePermission('capa:close'), async (req, res) => {
     const signatureHash = sha256(JSON.stringify(signaturePayload));
 
     const updated = await prisma.$transaction(async (tx) => {
-      await tx.cAPA.update({
+      const u = await tx.cAPA.update({
         where: { id: capa.id },
-        data: { status: 'CLOSED', closedAt: now },
+        data: {
+          status: 'CLOSED',
+          closedAt: now,
+          effectivenessWaived: Boolean(effectivenessWaived),
+          effectivenessWaiverJustification:
+            effectivenessWaived && effectivenessJustification?.trim() ? effectivenessJustification.trim() : null,
+        },
+        include: {
+          initiator: { select: { id: true, firstName: true, lastName: true, email: true } },
+          owner: { select: { id: true, firstName: true, lastName: true, email: true } },
+        },
       });
       if (requireSign) {
         await tx.capaSignature.create({
@@ -938,6 +1006,7 @@ router.post('/:id/close', requirePermission('capa:close'), async (req, res) => {
             capaId: capa.id,
             signerId: req.user.id,
             signatureMeaning: 'CLOSURE',
+            signatureReason: reason,
             signedAt: now,
             recordHash,
             signatureHash,
@@ -953,13 +1022,7 @@ router.post('/:id/close', requirePermission('capa:close'), async (req, res) => {
           details: { reason, effectivenessWaived: effectivenessWaived ?? false, effectivenessJustification: effectivenessJustification ?? null },
         },
       });
-      return tx.cAPA.findUnique({
-        where: { id: capa.id },
-        include: {
-          initiator: { select: { id: true, firstName: true, lastName: true, email: true } },
-          owner: { select: { id: true, firstName: true, lastName: true, email: true } },
-        },
-      });
+      return u;
     });
 
     const auditCtx = getAuditContext(req);

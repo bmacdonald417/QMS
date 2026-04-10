@@ -14,6 +14,8 @@ export function CAPANew() {
   const [ownerId, setOwnerId] = useState('');
   const [severity, setSeverity] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [sourceType, setSourceType] = useState('');
+  const [sourceReference, setSourceReference] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -31,6 +33,8 @@ export function CAPANew() {
       if (ownerId.trim()) body.ownerId = ownerId.trim();
       if (severity.trim()) body.severity = severity.trim();
       if (dueDate.trim()) body.dueDate = new Date(dueDate).toISOString();
+      if (sourceType.trim()) body.sourceType = sourceType.trim();
+      if (sourceReference.trim()) body.sourceReference = sourceReference.trim();
       const data = await apiRequest<{ capa: { id: string } }>('/api/capas', {
         token,
         method: 'POST',
@@ -106,6 +110,30 @@ export function CAPANew() {
                 value={ownerId}
                 onChange={(e) => setOwnerId(e.target.value)}
                 placeholder="Optional: paste user UUID"
+              />
+            </div>
+            <div>
+              <label className="label-caps block mb-1">Source type</label>
+              <select
+                value={sourceType}
+                onChange={(e) => setSourceType(e.target.value)}
+                className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+              >
+                <option value="">—</option>
+                <option value="INTERNAL">Internal</option>
+                <option value="AUDIT_FINDING">Audit finding</option>
+                <option value="NONCONFORMANCE">Non-conformance</option>
+                <option value="COMPLAINT">Complaint</option>
+                <option value="DEVIATION">Deviation</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="label-caps block mb-1">Source reference</label>
+              <Input
+                value={sourceReference}
+                onChange={(e) => setSourceReference(e.target.value)}
+                placeholder="NC #, finding ID, complaint ref…"
               />
             </div>
           </div>

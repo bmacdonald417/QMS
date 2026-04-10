@@ -51,6 +51,16 @@ export function requireAnySystemPermission(...permissionCodes) {
 }
 
 /**
+ * Rate limiter for integration token issuance. Limits by IP.
+ */
+export const integrationTokenLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30,
+  message: { error: 'Too many token requests. Try again later.' },
+  standardHeaders: true,
+});
+
+/**
  * Rate limiter for Training API (integration key + JWT). Limits by IP.
  */
 export const trainingApiLimiter = rateLimit({

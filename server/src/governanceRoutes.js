@@ -1,11 +1,15 @@
 /**
  * Governance API: signable-items, signature-requests, signature-artifacts, verify.
- * Auth: JWT or X-INTEGRATION-KEY (same as form records).
+ * Auth: JWT or integration token (governance:read / governance:write) or legacy X-INTEGRATION-KEY.
  */
 
 import express from 'express';
 import { prisma } from './db.js';
 import { authMiddleware } from './auth.js';
+import {
+  requireIntegrationScope,
+  checkLegacyIntegrationKey,
+} from './integrations/auth.js';
 import {
   SIGNABLE_ENTITY_TYPES,
   computeQmsHash,
@@ -16,19 +20,45 @@ import {
 } from './governance.js';
 
 const router = express.Router();
-const INTEGRATION_KEY = process.env.INTEGRATION_KEY || '';
+const LEGACY_KEY = process.env.INTEGRATION_KEY || '';
 
-async function governanceAuth(req, res, next) {
-  const integrationKey = req.headers['x-integration-key'];
-  if (INTEGRATION_KEY && integrationKey === INTEGRATION_KEY) {
-    req.governanceActor = 'integration';
-    return next();
+async function resolveAuditUserId() {
+  let id = process.env.INTEGRATION_AUDIT_USER_ID;
+  if (!id) {
+    const sysUser = await prisma.user.findFirst({
+      where: { role: { name: 'System Admin' } },
+      select: { id: true },
+    });
+    id = sysUser?.id ?? null;
   }
-  authMiddleware(req, res, () => {
-    req.governanceActor = 'user';
-    next();
-  });
+  return id;
 }
+
+function governanceAuth(requiredScope) {
+  const scopeMw = requireIntegrationScope(requiredScope);
+  return async (req, res, next) => {
+    scopeMw(req, res, async (err) => {
+      if (err) return next(err);
+      if (req.integration) {
+        req.governanceActor = 'integration';
+        req.auditUserId = await resolveAuditUserId();
+        return next();
+      }
+      if (checkLegacyIntegrationKey(req, LEGACY_KEY)) {
+        req.governanceActor = 'integration';
+        req.auditUserId = await resolveAuditUserId();
+        return next();
+      }
+      authMiddleware(req, res, () => {
+        req.governanceActor = 'user';
+        next();
+      });
+    });
+  };
+}
+
+const governanceAuthRead = governanceAuth('governance:read');
+const governanceAuthWrite = governanceAuth('governance:write');
 
 function requireGovernanceAccess(req, res, next) {
   if (req.governanceActor === 'integration') return next();
@@ -112,7 +142,7 @@ async function getSignableChangeControls(limit = 100) {
 }
 
 // GET /api/governance/signable-items?entityType=&limit=
-router.get('/signable-items', governanceAuth, requireGovernanceAccess, async (req, res) => {
+router.get('/signable-items', governanceAuthRead, requireGovernanceAccess, async (req, res) => {
   try {
     const entityType = req.query.entityType;
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
@@ -130,7 +160,7 @@ router.get('/signable-items', governanceAuth, requireGovernanceAccess, async (re
 });
 
 // GET /api/governance/signature-requests?entityType=&entityId=&status=
-router.get('/signature-requests', governanceAuth, requireGovernanceAccess, async (req, res) => {
+router.get('/signature-requests', governanceAuthRead, requireGovernanceAccess, async (req, res) => {
   try {
     const { entityType, entityId, status } = req.query;
     const where = {};
@@ -151,7 +181,7 @@ router.get('/signature-requests', governanceAuth, requireGovernanceAccess, async
 });
 
 // POST /api/governance/signature-requests
-router.post('/signature-requests', governanceAuth, requireGovernanceAccess, async (req, res) => {
+router.post('/signature-requests', governanceAuthWrite, requireGovernanceAccess, async (req, res) => {
   try {
     const { entityType, entityId, recordVersion, qmsHash, governanceRequestId, notes } = req.body || {};
     if (!entityType || !entityId) {
@@ -192,7 +222,7 @@ router.post('/signature-requests', governanceAuth, requireGovernanceAccess, asyn
         qmsHash: finalHash,
         status: 'PENDING',
         governanceRequestId: governanceRequestId || null,
-        createdById: req.user?.id ?? null,
+        createdById: req.user?.id ?? req.auditUserId ?? null,
         notes: notes || null,
       },
       include: { createdBy: { select: { id: true, firstName: true, lastName: true } } },
@@ -224,7 +254,7 @@ router.get('/signature-artifacts', governanceAuth, requireGovernanceAccess, asyn
 });
 
 // POST /api/governance/signature-artifacts — Governance submits a signed artifact
-router.post('/signature-artifacts', governanceAuth, requireGovernanceAccess, async (req, res) => {
+router.post('/signature-artifacts', governanceAuthWrite, requireGovernanceAccess, async (req, res) => {
   try {
     const { entityType, entityId, recordVersion, qmsHash, signature, signedAt, signatureRequestId } = req.body || {};
     if (!entityType || !entityId || !recordVersion || !qmsHash || !signature) {
@@ -320,7 +350,7 @@ router.get('/verify/:entityType/:entityId', governanceAuth, requireGovernanceAcc
 });
 
 // GET /api/governance/canonical-payload/:entityType/:entityId — for Governance to get exact payload to sign (same as we verify)
-router.get('/canonical-payload/:entityType/:entityId', governanceAuth, requireGovernanceAccess, async (req, res) => {
+router.get('/canonical-payload/:entityType/:entityId', governanceAuthRead, requireGovernanceAccess, async (req, res) => {
   try {
     const { entityType, entityId } = req.params;
     if (!SIGNABLE_ENTITY_TYPES.includes(entityType)) {

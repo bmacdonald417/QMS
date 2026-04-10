@@ -56,6 +56,7 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
         { path: '/search', label: 'Search', icon: icons.search },
         { path: '/change-control', label: 'Change Control', icon: icons.changeControl },
         { path: '/capas', label: 'CAPA', icon: icons.capa },
+        { path: '/audits', label: 'Audits', icon: icons.audits },
         { path: '/system', label: 'System Management', icon: icons.system },
         { path: '/completed-forms', label: 'Completed Forms', icon: icons.completedForms },
       ];

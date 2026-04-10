@@ -22,7 +22,7 @@ const typeConfig: Record<
     basePath: '/audits',
     variant: 'warning',
   },
-  capa: { icon: <AlertTriangle className="h-4 w-4" />, basePath: '/capa', variant: 'default' },
+  capa: { icon: <AlertTriangle className="h-4 w-4" />, basePath: '/capas', variant: 'default' },
   deviation: { icon: <FileText className="h-4 w-4" />, basePath: '/documents', variant: 'danger' },
 };
 

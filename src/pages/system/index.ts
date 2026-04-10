@@ -7,3 +7,4 @@ export { SystemSecurityPolicies } from './SystemSecurityPolicies';
 export { SystemReference } from './SystemReference';
 export { SystemRetention } from './SystemRetention';
 export { SystemESign } from './SystemESign';
+export { SystemIntegrations } from './SystemIntegrations';

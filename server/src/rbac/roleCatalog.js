@@ -37,6 +37,7 @@ function getPermissionsForRole(roleName) {
       'users:read', 'users:create', 'users:update:compliance', 'users:assign_roles:basic', 'users:disable',
       'auditlog:view', 'system:reference:update', 'system:securitypolicy:update',
       'capa:view', 'capa:create', 'capa:update', 'capa:assign_tasks', 'capa:approve_plan', 'capa:close', 'capa:esign', 'capa:export',
+      'audit:view', 'audit:manage',
       'change:view', 'change:create', 'change:update', 'change:assign_tasks', 'change:approve', 'change:close', 'change:esign',
       'file:upload', 'file:download', 'file:delete',
       'form_records:view', 'form_records:create', 'form_records:update', 'form_records:finalize', 'form_records:export',

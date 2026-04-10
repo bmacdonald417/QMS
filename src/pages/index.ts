@@ -3,6 +3,7 @@ export { DocumentControl } from './DocumentControl';
 export { DocumentDetail } from './DocumentDetail';
 export { TrainingCompetency } from './TrainingCompetency';
 export { AuditManagement } from './AuditManagement';
+export { AuditDetail } from './AuditDetail';
 export { CAPA } from './CAPA';
 export { ChangeControl } from './ChangeControl';
 export { ChangeControlNew } from './ChangeControlNew';

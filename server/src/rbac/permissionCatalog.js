@@ -32,6 +32,8 @@ const PERMISSION_LIST = [
   { code: 'capa:close', description: 'Close CAPA' },
   { code: 'capa:esign', description: 'Apply e-signature on CAPA' },
   { code: 'capa:export', description: 'Export CAPA data' },
+  { code: 'audit:view', description: 'View quality audits and findings' },
+  { code: 'audit:manage', description: 'Create and update audits and findings' },
   { code: 'change:view', description: 'View change control records' },
   { code: 'change:create', description: 'Create change control' },
   { code: 'change:update', description: 'Update change control' },

@@ -7,14 +7,15 @@ import express from 'express';
 import path from 'node:path';
 import fs from 'node:fs';
 import { prisma } from './db.js';
-import { authMiddleware, requirePermission } from './auth.js';
-import { createAuditLog, getAuditContext } from './audit.js';
+import { authMiddleware } from './auth.js';
+import { createAuditLog, getAuditContext, getAuditActorFromRequest } from './audit.js';
 import { generateFormRecordPdf } from './pdf.js';
 import { computeQmsHash, getGovernanceApprovalStatus } from './governance.js';
+import { requireIntegrationScope, checkLegacyIntegrationKey } from './integrations/auth.js';
 
 const router = express.Router();
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
-const INTEGRATION_KEY = process.env.INTEGRATION_KEY || '';
+const LEGACY_KEY = process.env.INTEGRATION_KEY || '';
 const FORM_RECORDS_DIR = path.join(UPLOAD_DIR, 'form-records');
 
 const ENTITY = 'FormRecord';
@@ -85,28 +86,50 @@ async function generateRecordNumber(templateCode) {
   return `${prefix}-${year}-${seqStr}`;
 }
 
-/** Middleware: allow JWT or X-INTEGRATION-KEY; set req.formRecordActor and req.auditUserId */
-async function formRecordAuth(req, res, next) {
-  const integrationKey = req.headers['x-integration-key'];
-  if (INTEGRATION_KEY && integrationKey === INTEGRATION_KEY) {
-    req.formRecordActor = 'integration';
-    let auditUserId = process.env.INTEGRATION_AUDIT_USER_ID;
-    if (!auditUserId) {
-      const sysUser = await prisma.user.findFirst({
-        where: { role: { name: 'System Admin' } },
-        select: { id: true },
-      });
-      auditUserId = sysUser?.id ?? null;
-    }
-    req.auditUserId = auditUserId;
-    return next();
+async function resolveAuditUserId() {
+  let id = process.env.INTEGRATION_AUDIT_USER_ID;
+  if (!id) {
+    const sysUser = await prisma.user.findFirst({
+      where: { role: { name: 'System Admin' } },
+      select: { id: true },
+    });
+    id = sysUser?.id ?? null;
   }
-  authMiddleware(req, res, () => {
-    req.formRecordActor = 'user';
-    req.auditUserId = req.user?.id ?? null;
-    next();
-  });
+  return id;
 }
+
+/**
+ * Form record auth: JWT or integration token (with scope) or legacy key.
+ * Sets req.formRecordActor, req.auditUserId, req.integration.
+ */
+function formRecordAuth(requiredScope) {
+  const scopeMw = requireIntegrationScope(requiredScope);
+  return async (req, res, next) => {
+    scopeMw(req, res, async (err) => {
+      if (err) return next(err);
+      if (req.integration) {
+        req.formRecordActor = 'integration';
+        req.auditUserId = await resolveAuditUserId();
+        return next();
+      }
+      if (checkLegacyIntegrationKey(req, LEGACY_KEY)) {
+        req.formRecordActor = 'integration';
+        req.auditUserId = await resolveAuditUserId();
+        return next();
+      }
+      authMiddleware(req, res, () => {
+        req.formRecordActor = 'user';
+        req.auditUserId = req.user?.id ?? null;
+        next();
+      });
+    });
+  };
+}
+
+/** Auth for read operations (formrecords:read) */
+const formRecordAuthRead = formRecordAuth('formrecords:read');
+/** Auth for write operations (formrecords:write) */
+const formRecordAuthWrite = formRecordAuth('formrecords:write');
 
 function requireFormRecordPermission(permission) {
   return (req, res, next) => {
@@ -118,10 +141,6 @@ function requireFormRecordPermission(permission) {
     if (!perms.includes(permission)) return res.status(403).json({ error: `Missing permission: ${permission}` });
     next();
   };
-}
-
-function auditUserId(req) {
-  return req.auditUserId || req.user?.id;
 }
 
 /** Legacy list when DB lacks qms_hash/record_version — raw query without those columns */
@@ -226,7 +245,7 @@ async function listFormRecordsLegacy(filters, skip, limitNum) {
 }
 
 // GET /api/form-records — list with filters, paginated
-router.get('/', formRecordAuth, requireFormRecordPermission('form_records:view'), async (req, res) => {
+router.get('/', formRecordAuthRead, requireFormRecordPermission('form_records:view'), async (req, res) => {
   const { templateCode, relatedEntityType, relatedEntityId, status, q, page = '1', limit = '20', startDate, endDate } = req.query;
   const pageNum = Math.max(1, parseInt(page, 10) || 1);
   const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
@@ -302,11 +321,11 @@ router.get('/', formRecordAuth, requireFormRecordPermission('form_records:view')
   }
 
   try {
-    const auditUid = auditUserId(req);
-    if (auditUid) {
+    const actor = getAuditActorFromRequest(req);
+    if (actor.userId || actor.integration) {
       const auditCtx = getAuditContext(req);
       await createAuditLog({
-        userId: auditUid,
+        ...actor,
         action: 'FORM_RECORD_VIEWED',
         entityType: ENTITY,
         entityId: null,
@@ -327,7 +346,7 @@ router.get('/', formRecordAuth, requireFormRecordPermission('form_records:view')
 });
 
 // GET /api/form-records/:id/pdf — stream stored PDF or generate snapshot (export)
-router.get('/:id/pdf', formRecordAuth, requireFormRecordPermission('form_records:export'), async (req, res) => {
+router.get('/:id/pdf', formRecordAuthRead, requireFormRecordPermission('form_records:export'), async (req, res) => {
   try {
     const record = await prisma.formRecord.findUnique({
       where: { id: req.params.id },
@@ -335,11 +354,11 @@ router.get('/:id/pdf', formRecordAuth, requireFormRecordPermission('form_records
     });
     if (!record) return res.status(404).json({ error: 'Form record not found' });
 
-    const auditUid = auditUserId(req);
-    if (auditUid) {
+    const actor = getAuditActorFromRequest(req);
+    if (actor.userId || actor.integration) {
       const auditCtx = getAuditContext(req);
       await createAuditLog({
-        userId: auditUid,
+        ...actor,
         action: 'FORM_RECORD_EXPORTED',
         entityType: ENTITY,
         entityId: record.id,
@@ -372,7 +391,7 @@ router.get('/:id/pdf', formRecordAuth, requireFormRecordPermission('form_records
 });
 
 // GET /api/form-records/:id — full record including payload
-router.get('/:id', formRecordAuth, requireFormRecordPermission('form_records:view'), async (req, res) => {
+router.get('/:id', formRecordAuthRead, requireFormRecordPermission('form_records:view'), async (req, res) => {
   try {
     const record = await prisma.formRecord.findUnique({
       where: { id: req.params.id },
@@ -385,11 +404,11 @@ router.get('/:id', formRecordAuth, requireFormRecordPermission('form_records:vie
     });
     if (!record) return res.status(404).json({ error: 'Form record not found' });
 
-    const auditUid = auditUserId(req);
+    const actor = getAuditActorFromRequest(req);
     const auditCtx = getAuditContext(req);
-    if (auditUid) {
+    if (actor.userId || actor.integration) {
       await createAuditLog({
-        userId: auditUid,
+        ...actor,
         action: 'FORM_RECORD_VIEWED',
         entityType: ENTITY,
         entityId: record.id,
@@ -410,7 +429,7 @@ router.get('/:id', formRecordAuth, requireFormRecordPermission('form_records:vie
 });
 
 // GET /api/form-records/:id/governance-approval
-router.get('/:id/governance-approval', formRecordAuth, requireFormRecordPermission('form_records:view'), async (req, res) => {
+router.get('/:id/governance-approval', formRecordAuthRead, requireFormRecordPermission('form_records:view'), async (req, res) => {
   try {
     const result = await getGovernanceApprovalStatus('FormRecord', req.params.id);
     if (!result) return res.json({ hasArtifact: false, artifact: null, verification: null });
@@ -435,7 +454,7 @@ router.get('/:id/governance-approval', formRecordAuth, requireFormRecordPermissi
 });
 
 // POST /api/form-records — create DRAFT
-router.post('/', formRecordAuth, requireFormRecordPermission('form_records:create'), async (req, res) => {
+router.post('/', formRecordAuthWrite, requireFormRecordPermission('form_records:create'), async (req, res) => {
   try {
     const { templateDocumentId, templateCode, title, relatedEntityType, relatedEntityId, payload, governanceSource } = req.body || {};
     const validTypes = ['SOLICITATION', 'CONTRACT', 'CHANGE', 'CAPA', 'OTHER'];
@@ -484,7 +503,7 @@ router.post('/', formRecordAuth, requireFormRecordPermission('form_records:creat
         relatedEntityType: relType,
         relatedEntityId: relId,
         recordVersion: 1,
-        createdById: req.user?.id ?? undefined,
+        createdById: req.user?.id ?? req.auditUserId ?? undefined,
       },
       include: {
         templateDocument: { select: { documentId: true, title: true } },
@@ -497,11 +516,11 @@ router.post('/', formRecordAuth, requireFormRecordPermission('form_records:creat
     });
     record.qmsHash = qmsHashCreate;
 
-    const auditUid = auditUserId(req);
-    if (auditUid) {
+    const actor = getAuditActorFromRequest(req);
+    if (actor.userId || actor.integration) {
       const auditCtx = getAuditContext(req);
       await createAuditLog({
-        userId: auditUid,
+        ...actor,
         action: 'FORM_RECORD_CREATED',
         entityType: ENTITY,
         entityId: record.id,
@@ -519,7 +538,7 @@ router.post('/', formRecordAuth, requireFormRecordPermission('form_records:creat
 });
 
 // PUT /api/form-records/:id — update DRAFT only
-router.put('/:id', formRecordAuth, requireFormRecordPermission('form_records:update'), async (req, res) => {
+router.put('/:id', formRecordAuthWrite, requireFormRecordPermission('form_records:update'), async (req, res) => {
   try {
     const existing = await prisma.formRecord.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: 'Form record not found' });
@@ -531,7 +550,7 @@ router.put('/:id', formRecordAuth, requireFormRecordPermission('form_records:upd
     if (title !== undefined) data.title = String(title).trim();
     if (governanceSource !== undefined) data.governanceSource = governanceSource != null && typeof governanceSource === 'object' ? governanceSource : undefined;
     if (approvalTrail !== undefined) data.approvalTrail = approvalTrail != null && (typeof approvalTrail === 'object' || Array.isArray(approvalTrail)) ? approvalTrail : undefined;
-    data.updatedById = req.user?.id ?? undefined;
+    data.updatedById = req.user?.id ?? req.auditUserId ?? undefined;
     data.recordVersion = (existing.recordVersion ?? 1) + 1;
     const payloadForHash = data.payload !== undefined ? data.payload : existing.payload;
     const titleForHash = data.title !== undefined ? data.title : existing.title;
@@ -553,11 +572,11 @@ router.put('/:id', formRecordAuth, requireFormRecordPermission('form_records:upd
       },
     });
 
-    const auditUid = auditUserId(req);
-    if (auditUid) {
+    const actor = getAuditActorFromRequest(req);
+    if (actor.userId || actor.integration) {
       const auditCtx = getAuditContext(req);
       await createAuditLog({
-        userId: auditUid,
+        ...actor,
         action: 'FORM_RECORD_UPDATED',
         entityType: ENTITY,
         entityId: updated.id,
@@ -576,7 +595,7 @@ router.put('/:id', formRecordAuth, requireFormRecordPermission('form_records:upd
 });
 
 // POST /api/form-records/:id/finalize — lock as FINAL, store approvalTrail, optional PDF
-router.post('/:id/finalize', formRecordAuth, requireFormRecordPermission('form_records:finalize'), async (req, res) => {
+router.post('/:id/finalize', formRecordAuthWrite, requireFormRecordPermission('form_records:finalize'), async (req, res) => {
   try {
     const existing = await prisma.formRecord.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: 'Form record not found' });
@@ -633,7 +652,7 @@ router.post('/:id/finalize', formRecordAuth, requireFormRecordPermission('form_r
       status: 'FINAL',
       lockedAt: now,
       finalizedAt: now,
-      finalizedById: req.user?.id ?? undefined,
+      finalizedById: req.user?.id ?? req.auditUserId ?? undefined,
       approvalTrail,
       recordVersion: recordVersionFinal,
       qmsHash: qmsHashFinal,
@@ -650,11 +669,11 @@ router.post('/:id/finalize', formRecordAuth, requireFormRecordPermission('form_r
       },
     });
 
-    const auditUid = auditUserId(req);
-    if (auditUid) {
+    const actor = getAuditActorFromRequest(req);
+    if (actor.userId || actor.integration) {
       const auditCtx = getAuditContext(req);
       await createAuditLog({
-        userId: auditUid,
+        ...actor,
         action: 'FORM_RECORD_FINALIZED',
         entityType: ENTITY,
         entityId: updated.id,
@@ -673,7 +692,7 @@ router.post('/:id/finalize', formRecordAuth, requireFormRecordPermission('form_r
 });
 
 // DELETE /api/form-records/:id — any status (DRAFT, FINAL, VOID). Requires form_records:delete.
-router.delete('/:id', formRecordAuth, requireFormRecordPermission('form_records:delete'), async (req, res) => {
+router.delete('/:id', formRecordAuthWrite, requireFormRecordPermission('form_records:delete'), async (req, res) => {
   try {
     const record = await prisma.formRecord.findUnique({
       where: { id: req.params.id },
@@ -690,11 +709,11 @@ router.delete('/:id', formRecordAuth, requireFormRecordPermission('form_records:
       });
     }
 
-    const auditUid = auditUserId(req);
-    if (auditUid) {
+    const actor = getAuditActorFromRequest(req);
+    if (actor.userId || actor.integration) {
       const auditCtx = getAuditContext(req);
       await createAuditLog({
-        userId: auditUid,
+        ...actor,
         action: 'FORM_RECORD_DELETED',
         entityType: ENTITY,
         entityId: record.id,

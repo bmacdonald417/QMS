@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import { isIntegrationAuthEnabled } from './integrations/auth.js';
 import cors from 'cors';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -14,13 +15,15 @@ import periodicReviewsRoutes from './periodicReviews.js';
 import dashboardRoutes from './dashboard.js';
 import systemRoutes from './system/index.js';
 import capaRoutes from './capas.js';
+import auditRoutes from './audits.js';
 import changeControlRoutes from './changeControls.js';
 import fileRoutes from './files.js';
 import formRecordRoutes from './formRecords.js';
 import governanceRoutes from './governanceRoutes.js';
 import cmmcRoutes from './cmmc.js';
 import { requestIdMiddleware } from './audit.js';
-import { trainingApiLimiter } from './systemMiddleware.js';
+import { trainingApiLimiter, integrationTokenLimiter } from './systemMiddleware.js';
+import integrationTokenRoutes from './integrations/tokenRoute.js';
 import { startPeriodicReviewScheduler } from './periodicReviewScheduler.js';
 
 const app = express();
@@ -32,6 +35,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(requestIdMiddleware);
 
 app.use('/api/auth', authRoutes);
+app.use('/api/integrations', integrationTokenLimiter, integrationTokenRoutes);
 app.get('/api/auth/me', authMiddleware, (req, res) => {
   res.json({ user: req.user });
 });
@@ -47,6 +51,7 @@ app.use('/api/training', trainingApiLimiter, trainingAuthMiddleware, trainingRou
 app.use('/api/periodic-reviews', authMiddleware, periodicReviewsRoutes);
 app.use('/api/dashboard', authMiddleware, dashboardRoutes);
 app.use('/api/capas', authMiddleware, capaRoutes);
+app.use('/api/audits', authMiddleware, auditRoutes);
 app.use('/api/change-controls', authMiddleware, changeControlRoutes);
 app.use('/api/files', authMiddleware, fileRoutes);
 app.use('/api/form-records', formRecordRoutes);
@@ -124,6 +129,10 @@ if (distPath) {
 }
 
 startPeriodicReviewScheduler();
+
+if (!isIntegrationAuthEnabled()) {
+  console.warn('[INTEGRATION] Integration token auth disabled: INTEGRATION_JWT_SECRET not set. Set it to enable /api/integrations/token and scoped integration access.');
+}
 
 app.listen(PORT, () => {
   console.log(`QMS API listening on http://localhost:${PORT}`);

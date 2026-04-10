@@ -11,6 +11,7 @@ import {
   Database,
   FileSignature,
   Archive,
+  Plug,
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -27,6 +28,7 @@ const cardLinks = [
   { path: '/system/reference', label: 'Reference Data', icon: Database, description: 'Departments, sites, job titles' },
   { path: '/system/esign', label: 'E-Signature Settings', icon: FileSignature, description: 'Configure e-sign requirements' },
   { path: '/system/retention', label: 'Retention & Backups', icon: Archive, description: 'Retention policies and backup status' },
+  { path: '/system/integrations', label: 'Integrations', icon: Plug, description: 'API clients and integration tokens' },
 ];
 
 export function SystemDashboard() {

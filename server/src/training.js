@@ -1,17 +1,17 @@
 import express from 'express';
 import { prisma } from './db.js';
 import { requirePermission } from './auth.js';
-import { createAuditLog, getAuditContext } from './audit.js';
+import { createAuditLog, getAuditContext, getAuditActorFromRequest } from './audit.js';
 
 const router = express.Router();
 
-/** Helper: audit integration key usage. Requires req.auditUserId (from trainingAuthMiddleware). */
+/** Helper: audit integration training read. Uses req.integration when present. */
 async function auditIntegrationTrainingRead(req, { route, queryParams, recordCount }) {
-  const auditUserId = req.auditUserId;
-  if (!auditUserId) return; // No audit user configured
+  const actor = getAuditActorFromRequest(req);
+  if (!actor.userId && !actor.integration) return;
   const { ip, userAgent, requestId } = getAuditContext(req);
   await createAuditLog({
-    userId: auditUserId,
+    ...actor,
     action: 'QMS_INTEGRATION_TRAINING_READ',
     entityType: 'Integration',
     entityId: null,

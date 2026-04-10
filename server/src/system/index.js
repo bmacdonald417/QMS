@@ -9,6 +9,7 @@ import securityPoliciesRouter from './securityPolicies.js';
 import referenceRouter from './reference.js';
 import retentionRouter from './retention.js';
 import esignRouter from './esign.js';
+import integrationsRouter from './integrations.js';
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ router.use('/security-policies', securityPoliciesRouter);
 router.use('/reference', referenceRouter);
 router.use('/retention', retentionRouter);
 router.use('/esign', esignRouter);
+router.use('/integrations', integrationsRouter);
 
 // Dashboard summary for System Management landing
 router.get('/dashboard', requireSystemRole('System Admin', 'Quality Manager', 'Manager'), async (req, res) => {
