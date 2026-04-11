@@ -553,8 +553,9 @@ router.get('/:id', async (req, res) => {
           include: { signer: { select: { id: true, firstName: true, lastName: true } } },
           orderBy: { signedAt: 'desc' },
         },
+        // orderBy must use fields included in select (Prisma requirement)
         trainingModules: {
-          select: { id: true, title: true, dueDate: true },
+          select: { id: true, title: true, dueDate: true, createdAt: true },
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
@@ -569,7 +570,17 @@ router.get('/:id', async (req, res) => {
     res.json({ document });
   } catch (err) {
     console.error('Get document error:', err);
-    res.status(500).json({ error: 'Failed to fetch document' });
+    const code = err?.code;
+    let message = 'Failed to fetch document';
+    if (code === 'P2022') {
+      message =
+        'Database is missing a column the app expects. Run `npx prisma db push` or `prisma migrate deploy` on the server, then restart.';
+    }
+    const body = { error: message };
+    if (process.env.NODE_ENV !== 'production' && err?.message) {
+      body.details = String(err.message);
+    }
+    res.status(500).json(body);
   }
 });
 
