@@ -571,14 +571,20 @@ router.get('/:id', async (req, res) => {
   } catch (err) {
     console.error('Get document error:', err);
     const code = err?.code;
+    const meta = err?.meta;
     let message = 'Failed to fetch document';
     if (code === 'P2022') {
-      message =
-        'Database is missing a column the app expects. Run `npx prisma db push` or `prisma migrate deploy` on the server, then restart.';
+      const col = meta?.column ?? meta?.field_name;
+      message = col
+        ? `Database is missing column: ${col}. On the host running the API, run: npx prisma db push (or prisma migrate deploy), then restart. See server/prisma/sql/fix_common_column_drift.sql for manual SQL.`
+        : 'Database is missing a column the app expects. Run npx prisma db push (or prisma migrate deploy) on the server, then restart.';
     }
     const body = { error: message };
-    if (process.env.NODE_ENV !== 'production' && err?.message) {
+    if (err?.message) {
       body.details = String(err.message);
+    }
+    if (meta && typeof meta === 'object') {
+      body.prismaMeta = meta;
     }
     res.status(500).json(body);
   }
