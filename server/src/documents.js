@@ -66,9 +66,8 @@ function normalizeReviewDecision(value) {
   if (!value || typeof value !== 'string') return null;
   const normalized = value.trim().toUpperCase().replaceAll(' ', '_').replaceAll('-', '_');
   if (normalized === 'REQUIRES_REVISION') return 'REQUIRES_REVISION';
-  if (normalized === 'APPROVED_WITH_COMMENTS' || normalized === 'APPROVED') {
-    return 'APPROVED_WITH_COMMENTS';
-  }
+  if (normalized === 'APPROVED_WITH_COMMENTS') return 'APPROVED_WITH_COMMENTS';
+  if (normalized === 'APPROVED') return 'APPROVED';
   return null;
 }
 
@@ -1090,6 +1089,18 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
       });
     }
 
+    const trimmedComments = typeof comments === 'string' ? comments.trim() : '';
+    if (normalizedDecision === 'REQUIRES_REVISION' && !trimmedComments) {
+      return res.status(400).json({
+        error: 'Comments are required when sending the document back for revision. Use the review comments field.',
+      });
+    }
+    if (normalizedDecision === 'APPROVED_WITH_COMMENTS' && !trimmedComments) {
+      return res.status(400).json({
+        error: 'Comments are required when choosing Approve with comments.',
+      });
+    }
+
     const document = await prisma.document.findUnique({ where: { id: req.params.id } });
     if (!document) return res.status(404).json({ error: 'Document not found' });
 
@@ -1153,7 +1164,7 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
           data: {
             status: 'REJECTED',
             completedAt: now,
-            comments: comments || null,
+            comments: trimmedComments,
             reviewResponses: payloadToStore,
           },
         });
@@ -1171,7 +1182,7 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
             userId: req.user.id,
             action: 'Review Rejected',
             details: {
-              comments: comments || null,
+              comments: trimmedComments,
               reviewResponses: payloadToStore,
               questionsWithYes,
               draftRound: nextDraftRound,
@@ -1195,7 +1206,7 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
         entityId: document.id,
         beforeValue: { status: document.status },
         afterValue: { status: 'DRAFT', draftRound: nextDraftRound },
-        reason: req.body.reason || comments || null,
+        reason: req.body.reason || trimmedComments || null,
         ...auditCtx,
       });
       await createNotifications(
@@ -1224,7 +1235,7 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
         data: {
           status: 'COMPLETED',
           completedAt: now,
-          comments: comments || null,
+          comments: trimmedComments || null,
           reviewResponses: payloadToStore,
         },
       });
@@ -1244,7 +1255,11 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
           documentId: document.id,
           userId: req.user.id,
           action: 'Review Completed',
-          details: { comments: comments || null, reviewResponses: payloadToStore },
+          details: {
+            comments: trimmedComments || null,
+            reviewResponses: payloadToStore,
+            reviewDecision: normalizedDecision,
+          },
           digitalSignature: {
             signatureId: signature.id,
             signatureMeaning: 'Reviewer',
@@ -1294,7 +1309,7 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
       entityId: document.id,
       beforeValue: { status: document.status },
       afterValue: { status: newStatus },
-      reason: req.body.reason || req.body.comments || null,
+      reason: req.body.reason || trimmedComments || null,
       ...auditCtx,
     });
 
