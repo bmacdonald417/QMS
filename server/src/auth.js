@@ -195,7 +195,7 @@ export function requirePermission(permission) {
   return (req, res, next) => {
     const roleName = req.user?.roleName;
     const permissions = req.user?.permissions || [];
-    if (roleName === 'System Admin') return next();
+    if (roleName === 'System Admin' || roleName === 'Admin') return next();
     if (!permissions.includes(permission)) {
       return res.status(403).json({ error: `Missing permission: ${permission}` });
     }

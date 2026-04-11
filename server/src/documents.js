@@ -256,7 +256,24 @@ router.get('/', requirePermission('document:view'), async (req, res) => {
     res.json({ documents });
   } catch (err) {
     console.error('List documents error:', err);
-    res.status(500).json({ error: 'Failed to list documents' });
+    const code = err?.code;
+    const meta = err?.meta;
+    let message = 'Failed to list documents';
+    if (code === 'P2022') {
+      message =
+        'Database is missing a column the app expects. Run `npx prisma db push` or `prisma migrate deploy` on the server, then restart.';
+    } else if (code === 'P2010' || /column .* does not exist/i.test(String(err?.message || ''))) {
+      message =
+        'Database schema may be out of date. Apply the latest Prisma migrations (or `db push`) against this environment.';
+    }
+    const body = { error: message };
+    if (process.env.NODE_ENV !== 'production' && err?.message) {
+      body.details = String(err.message);
+    }
+    if (meta && process.env.NODE_ENV !== 'production') {
+      body.meta = meta;
+    }
+    res.status(500).json(body);
   }
 });
 
