@@ -164,6 +164,14 @@ export function DocumentDetail() {
   const [workflowDetailsOpen, setWorkflowDetailsOpen] = useState(false);
   const workflowDetailsRef = useRef<HTMLDivElement>(null);
   const linkDropdownRef = useRef<HTMLDivElement>(null);
+  const reviewCommentTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const focusReviewComments = () => {
+    requestAnimationFrame(() => {
+      reviewCommentTextareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      reviewCommentTextareaRef.current?.focus();
+    });
+  };
 
   useEffect(() => {
     if (!workflowDetailsOpen) return;
@@ -806,10 +814,10 @@ export function DocumentDetail() {
           <p className="mb-3 text-sm text-gray-400">
             Completing review records a digital signature (password required), same as approval and quality release.
             Use <strong className="font-medium text-gray-300">Approve</strong> when you have no general comments; use{' '}
-            <strong className="font-medium text-gray-300">Approve with comments</strong> when you need to add notes (the
-            review comments field is required). <strong className="font-medium text-gray-300">Requires revision</strong>{' '}
+            <strong className="font-medium text-gray-300">Approve with Comments</strong> when you need to add notes (the
+            review comments field is required). <strong className="font-medium text-gray-300">Requires Revision</strong>{' '}
             always requires review comments explaining what must change. If any checklist answer is &quot;Yes&quot;, you
-            must choose Requires revision.
+            must choose Requires Revision.
           </p>
           <div className="mb-4 space-y-4">
             {REVIEW_QUESTIONS.map((q) => (
@@ -862,25 +870,38 @@ export function DocumentDetail() {
               </div>
             ))}
           </div>
-          <label className="label-caps mb-1.5 block">Review comments</label>
+          <label className="label-caps mb-1.5 block" htmlFor="review-comments-field">
+            Review comments
+          </label>
           <textarea
+            id="review-comments-field"
+            ref={reviewCommentTextareaRef}
             rows={4}
             value={reviewComment}
             onChange={(e) => {
               setReviewComment(e.target.value);
               if (reviewFooterError) setReviewFooterError('');
             }}
-            className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
-            placeholder="Optional for Approve. Required for Approve with comments and Requires revision."
+            className={`w-full rounded-lg border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue ${
+              reviewFooterError
+                ? 'border-compliance-red ring-2 ring-compliance-red/40'
+                : 'border-surface-border'
+            }`}
+            placeholder="Optional for Approve. Required for Approve with Comments and Requires revision."
             aria-describedby={reviewFooterError ? 'review-footer-error' : undefined}
+            aria-invalid={!!reviewFooterError}
           />
           {Object.values(reviewAnswers).some((a) => a?.value === 'yes') && (
             <p className="mt-2 text-sm text-amber-400">
-              Corrections required: please use Requires revision and add comments for the author.
+              Corrections required: please use Requires Revision and add comments for the author.
             </p>
           )}
           {reviewFooterError && (
-            <p id="review-footer-error" className="mt-2 text-sm text-compliance-red" role="alert">
+            <p
+              id="review-footer-error"
+              className="mt-2 rounded-md border border-compliance-red/50 bg-compliance-red/10 px-3 py-2 text-sm text-red-200"
+              role="alert"
+            >
               {reviewFooterError}
             </p>
           )}
@@ -902,7 +923,10 @@ export function DocumentDetail() {
               disabled={Object.values(reviewAnswers).some((a) => a?.value === 'yes')}
               onClick={() => {
                 if (!reviewComment.trim()) {
-                  setReviewFooterError('Add review comments before approving with comments.');
+                  setReviewFooterError(
+                    'Add text to Review comments above before Approve with Comments (per-question notes are not enough).'
+                  );
+                  focusReviewComments();
                   return;
                 }
                 setReviewFooterError('');
@@ -912,13 +936,16 @@ export function DocumentDetail() {
                 setSignatureError('');
               }}
             >
-              Approve with comments
+              Approve with Comments
             </Button>
             <Button
               variant="danger"
               onClick={() => {
                 if (!reviewComment.trim()) {
-                  setReviewFooterError('Add review comments explaining what needs revision before continuing.');
+                  setReviewFooterError(
+                    'Add review comments explaining what needs revision before continuing.'
+                  );
+                  focusReviewComments();
                   return;
                 }
                 setReviewFooterError('');
@@ -928,7 +955,7 @@ export function DocumentDetail() {
                 setSignatureError('');
               }}
             >
-              Requires revision
+              Requires Revision
             </Button>
           </div>
         </Card>
@@ -1522,11 +1549,23 @@ export function DocumentDetail() {
                       return;
                     }
                     if (pendingReviewDecision === 'APPROVED_WITH_COMMENTS' && !reviewComment.trim()) {
-                      setSignatureError('Add review comments before signing.');
+                      setPasswordModal(null);
+                      setPendingReviewDecision(null);
+                      setSignaturePassword('');
+                      setSignatureError('');
+                      setReviewFooterError(
+                        'Add text to Review comments before Approve with Comments, then try again.'
+                      );
+                      focusReviewComments();
                       return;
                     }
                     if (pendingReviewDecision === 'REQUIRES_REVISION' && !reviewComment.trim()) {
-                      setSignatureError('Add review comments before signing.');
+                      setPasswordModal(null);
+                      setPendingReviewDecision(null);
+                      setSignaturePassword('');
+                      setSignatureError('');
+                      setReviewFooterError('Add review comments before Requires Revision, then try again.');
+                      focusReviewComments();
                       return;
                     }
                     const reviewResponses: ReviewResponsesPayload = {
