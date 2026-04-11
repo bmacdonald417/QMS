@@ -1073,7 +1073,10 @@ router.post('/:id/submit', requirePermission('document:create'), submitForReview
 // POST /api/documents/:id/review
 router.post('/:id/review', requirePermission('document:review'), async (req, res) => {
   try {
-    const { decision, comments, reviewResponses } = req.body;
+    const { decision, comments, reviewResponses, password } = req.body;
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Password is required for digital signature' });
+    }
     const normalizedDecision = normalizeReviewDecision(decision);
     if (!normalizedDecision) return res.status(400).json({ error: 'Invalid review decision' });
 
@@ -1100,6 +1103,13 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
     });
     if (!assignment) return res.status(403).json({ error: 'No pending review assignment found' });
 
+    const signer = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { password: true },
+    });
+    const passwordOk = signer ? await bcrypt.compare(password, signer.password) : false;
+    if (!passwordOk) return res.status(401).json({ error: 'Password verification failed' });
+
     const answersArray = [...validation.answersMap.entries()].map(([questionId, a]) => ({
       questionId,
       value: a.value,
@@ -1115,18 +1125,41 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
       const nextDraftRound = (document.draftRound ?? 1) + 1;
 
       await prisma.$transaction(async (tx) => {
+        const now = new Date();
+        const documentHash = sha256(document.content || '');
+        const passwordHash = await bcrypt.hash(password, 10);
+        const signaturePayload = {
+          documentId: document.id,
+          signerId: req.user.id,
+          signatureMeaning: 'Reviewer',
+          signedAt: now.toISOString(),
+          documentHash,
+        };
+        const signatureHash = sha256(JSON.stringify(signaturePayload));
+        const signature = await tx.documentSignature.create({
+          data: {
+            documentId: document.id,
+            signerId: req.user.id,
+            signatureMeaning: 'Reviewer',
+            signedAt: now,
+            documentHash,
+            signatureHash,
+            passwordHash,
+          },
+        });
+
         await tx.documentAssignment.update({
           where: { id: assignment.id },
           data: {
             status: 'REJECTED',
-            completedAt: new Date(),
+            completedAt: now,
             comments: comments || null,
             reviewResponses: payloadToStore,
           },
         });
         await tx.documentAssignment.updateMany({
           where: { documentId: document.id, status: 'PENDING' },
-          data: { status: 'REJECTED', completedAt: new Date() },
+          data: { status: 'REJECTED', completedAt: now },
         });
         await tx.document.update({
           where: { id: document.id },
@@ -1142,6 +1175,13 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
               reviewResponses: payloadToStore,
               questionsWithYes,
               draftRound: nextDraftRound,
+            },
+            digitalSignature: {
+              signatureId: signature.id,
+              signatureMeaning: 'Reviewer',
+              documentHash,
+              signatureHash,
+              signedAt: now.toISOString(),
             },
           },
         });
@@ -1166,20 +1206,54 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
       return res.json({ ok: true, status: 'DRAFT' });
     }
 
-    await prisma.documentAssignment.update({
-      where: { id: assignment.id },
-      data: {
-        status: 'COMPLETED',
-        completedAt: new Date(),
-        comments: comments || null,
-        reviewResponses: payloadToStore,
-      },
-    });
-    await createHistory({
+    const now = new Date();
+    const documentHash = sha256(document.content || '');
+    const passwordHash = await bcrypt.hash(password, 10);
+    const signaturePayload = {
       documentId: document.id,
-      userId: req.user.id,
-      action: 'Review Completed',
-      details: { comments: comments || null, reviewResponses: payloadToStore },
+      signerId: req.user.id,
+      signatureMeaning: 'Reviewer',
+      signedAt: now.toISOString(),
+      documentHash,
+    };
+    const signatureHash = sha256(JSON.stringify(signaturePayload));
+
+    await prisma.$transaction(async (tx) => {
+      await tx.documentAssignment.update({
+        where: { id: assignment.id },
+        data: {
+          status: 'COMPLETED',
+          completedAt: now,
+          comments: comments || null,
+          reviewResponses: payloadToStore,
+        },
+      });
+      const signature = await tx.documentSignature.create({
+        data: {
+          documentId: document.id,
+          signerId: req.user.id,
+          signatureMeaning: 'Reviewer',
+          signedAt: now,
+          documentHash,
+          signatureHash,
+          passwordHash,
+        },
+      });
+      await tx.documentHistory.create({
+        data: {
+          documentId: document.id,
+          userId: req.user.id,
+          action: 'Review Completed',
+          details: { comments: comments || null, reviewResponses: payloadToStore },
+          digitalSignature: {
+            signatureId: signature.id,
+            signatureMeaning: 'Reviewer',
+            documentHash,
+            signatureHash,
+            signedAt: now.toISOString(),
+          },
+        },
+      });
     });
 
     const pendingReviewCount = await prisma.documentAssignment.count({

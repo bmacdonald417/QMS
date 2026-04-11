@@ -135,7 +135,10 @@ export function DocumentDetail() {
   const [reviewerIds, setReviewerIds] = useState<string[]>([]);
   const [approverId, setApproverId] = useState('');
 
-  const [passwordModal, setPasswordModal] = useState<null | 'approve' | 'release'>(null);
+  const [passwordModal, setPasswordModal] = useState<null | 'approve' | 'release' | 'review'>(null);
+  const [pendingReviewDecision, setPendingReviewDecision] = useState<
+    null | 'APPROVED_WITH_COMMENTS' | 'REQUIRES_REVISION'
+  >(null);
   const [signaturePassword, setSignaturePassword] = useState('');
   const [signatureComment, setSignatureComment] = useState('');
   const [signatureError, setSignatureError] = useState('');
@@ -790,11 +793,19 @@ export function DocumentDetail() {
         </Card>
       )}
 
-      {pendingMyReview && doc.status === 'IN_REVIEW' && (
+      {pendingMyReview && (
         <Card padding="md">
           <h2 className="mb-2 text-lg text-white">Review Decision</h2>
+          {doc.status !== 'IN_REVIEW' && (
+            <p className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+              This document is not in &quot;In Review&quot; status, but you still have a pending review assignment.
+              You can complete your review below; contact a system administrator if the workflow looks incorrect.
+            </p>
+          )}
           <p className="mb-3 text-sm text-gray-400">
-            Answer all questions. If any answer is &quot;Yes&quot;, you must choose Requires Revision and send the document back to the author.
+            Completing review records a digital signature (password required), same as approval and quality release.
+            Answer all questions. If any answer is &quot;Yes&quot;, you must choose Requires Revision and send the document
+            back to the author.
           </p>
           <div className="mb-4 space-y-4">
             {REVIEW_QUESTIONS.map((q) => (
@@ -863,54 +874,22 @@ export function DocumentDetail() {
             <Button
               variant="secondary"
               disabled={Object.values(reviewAnswers).some((a) => a?.value === 'yes')}
-              onClick={async () => {
-                if (!token) return;
-                const reviewResponses: ReviewResponsesPayload = {
-                  answers: REVIEW_QUESTIONS.map((q) => ({
-                    questionId: q.id,
-                    value: reviewAnswers[q.id]?.value ?? 'no',
-                    comments: reviewAnswers[q.id]?.comments || undefined,
-                  })),
-                };
-                await apiRequest(`/api/documents/${doc.id}/review`, {
-                  token,
-                  method: 'POST',
-                  body: { decision: 'APPROVED_WITH_COMMENTS', comments: reviewComment, reviewResponses },
-                });
-                setReviewComment('');
-                setReviewAnswers(
-                  Object.fromEntries(
-                    REVIEW_QUESTIONS.map((q) => [q.id, { value: 'no' as ReviewAnswerValue, comments: '' }])
-                  )
-                );
-                await fetchDocument();
+              onClick={() => {
+                setPendingReviewDecision('APPROVED_WITH_COMMENTS');
+                setPasswordModal('review');
+                setSignaturePassword('');
+                setSignatureError('');
               }}
             >
               Approve with Comments
             </Button>
             <Button
               variant="danger"
-              onClick={async () => {
-                if (!token) return;
-                const reviewResponses: ReviewResponsesPayload = {
-                  answers: REVIEW_QUESTIONS.map((q) => ({
-                    questionId: q.id,
-                    value: reviewAnswers[q.id]?.value ?? 'no',
-                    comments: reviewAnswers[q.id]?.comments || undefined,
-                  })),
-                };
-                await apiRequest(`/api/documents/${doc.id}/review`, {
-                  token,
-                  method: 'POST',
-                  body: { decision: 'REQUIRES_REVISION', comments: reviewComment, reviewResponses },
-                });
-                setReviewComment('');
-                setReviewAnswers(
-                  Object.fromEntries(
-                    REVIEW_QUESTIONS.map((q) => [q.id, { value: 'no' as ReviewAnswerValue, comments: '' }])
-                  )
-                );
-                await fetchDocument();
+              onClick={() => {
+                setPendingReviewDecision('REQUIRES_REVISION');
+                setPasswordModal('review');
+                setSignaturePassword('');
+                setSignatureError('');
               }}
             >
               Requires Revision
@@ -1469,14 +1448,17 @@ export function DocumentDetail() {
         isOpen={passwordModal !== null}
         onClose={() => {
           setPasswordModal(null);
+          setPendingReviewDecision(null);
           setSignaturePassword('');
           setSignatureComment('');
           setSignatureError('');
         }}
         title={
-          passwordModal === 'approve'
-            ? 'Approve Document (Digital Signature)'
-            : 'Quality Release (Digital Signature)'
+          passwordModal === 'review'
+            ? 'Complete Review (Digital Signature)'
+            : passwordModal === 'approve'
+              ? 'Approve Document (Digital Signature)'
+              : 'Quality Release (Digital Signature)'
         }
         footer={
           <>
@@ -1484,6 +1466,7 @@ export function DocumentDetail() {
               variant="secondary"
               onClick={() => {
                 setPasswordModal(null);
+                setPendingReviewDecision(null);
                 setSignaturePassword('');
                 setSignatureComment('');
               }}
@@ -1495,17 +1478,48 @@ export function DocumentDetail() {
                 if (!token || !passwordModal) return;
                 setSignatureError('');
                 try {
-                  await apiRequest(
-                    passwordModal === 'approve'
-                      ? `/api/documents/${doc.id}/approve`
-                      : `/api/documents/${doc.id}/quality-release`,
-                    {
+                  if (passwordModal === 'review') {
+                    if (!pendingReviewDecision) {
+                      setSignatureError('No review action selected.');
+                      return;
+                    }
+                    const reviewResponses: ReviewResponsesPayload = {
+                      answers: REVIEW_QUESTIONS.map((q) => ({
+                        questionId: q.id,
+                        value: reviewAnswers[q.id]?.value ?? 'no',
+                        comments: reviewAnswers[q.id]?.comments || undefined,
+                      })),
+                    };
+                    await apiRequest(`/api/documents/${doc.id}/review`, {
                       token,
                       method: 'POST',
-                      body: { password: signaturePassword, comments: signatureComment },
-                    }
-                  );
+                      body: {
+                        password: signaturePassword,
+                        decision: pendingReviewDecision,
+                        comments: reviewComment,
+                        reviewResponses,
+                      },
+                    });
+                    setReviewComment('');
+                    setReviewAnswers(
+                      Object.fromEntries(
+                        REVIEW_QUESTIONS.map((q) => [q.id, { value: 'no' as ReviewAnswerValue, comments: '' }])
+                      )
+                    );
+                  } else {
+                    await apiRequest(
+                      passwordModal === 'approve'
+                        ? `/api/documents/${doc.id}/approve`
+                        : `/api/documents/${doc.id}/quality-release`,
+                      {
+                        token,
+                        method: 'POST',
+                        body: { password: signaturePassword, comments: signatureComment },
+                      }
+                    );
+                  }
                   setPasswordModal(null);
+                  setPendingReviewDecision(null);
                   setSignaturePassword('');
                   setSignatureComment('');
                   await fetchDocument();
@@ -1523,21 +1537,29 @@ export function DocumentDetail() {
           {signatureError && (
             <p className="text-sm text-compliance-red">{signatureError}</p>
           )}
+          {passwordModal === 'review' && (
+            <p className="text-sm text-gray-400">
+              Review comments from the section above will be stored with your signature. Use your account password to
+              sign.
+            </p>
+          )}
           <Input
             label="Password"
             type="password"
             value={signaturePassword}
             onChange={(e) => setSignaturePassword(e.target.value)}
           />
-          <div>
-            <label className="label-caps mb-1.5 block">Comment</label>
-            <textarea
-              value={signatureComment}
-              onChange={(e) => setSignatureComment(e.target.value)}
-              rows={4}
-              className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
-            />
-          </div>
+          {passwordModal !== 'review' && (
+            <div>
+              <label className="label-caps mb-1.5 block">Comment</label>
+              <textarea
+                value={signatureComment}
+                onChange={(e) => setSignatureComment(e.target.value)}
+                rows={4}
+                className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+              />
+            </div>
+          )}
         </div>
       </Modal>
     </div>
