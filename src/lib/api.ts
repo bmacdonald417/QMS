@@ -29,8 +29,10 @@ export async function apiRequest<T = unknown>(
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const error = (data as { error?: string }).error || `Request failed (${res.status})`;
-    throw new Error(error);
+    const payload = data as { error?: string; details?: string };
+    const error = payload.error || `Request failed (${res.status})`;
+    const details = typeof payload.details === 'string' && payload.details.trim() ? payload.details.trim() : '';
+    throw new Error(details ? `${error}: ${details}` : error);
   }
   return data as T;
 }

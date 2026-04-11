@@ -1133,7 +1133,19 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
 
     if (normalizedDecision === 'REQUIRES_REVISION') {
       const questionsWithYes = answersArray.filter((a) => a.value === 'yes').map((a) => a.questionId);
-      const nextDraftRound = (document.draftRound ?? 1) + 1;
+
+      // draftRound is not a Document column in Prisma; track revision cycle in history details only.
+      const lastRejection = await prisma.documentHistory.findFirst({
+        where: { documentId: document.id, action: 'Review Rejected' },
+        orderBy: { timestamp: 'desc' },
+        select: { details: true },
+      });
+      let lastRound = 1;
+      if (lastRejection?.details && typeof lastRejection.details === 'object' && lastRejection.details !== null) {
+        const dr = lastRejection.details.draftRound;
+        if (typeof dr === 'number' && Number.isFinite(dr)) lastRound = dr;
+      }
+      const nextDraftRound = lastRound + 1;
 
       await prisma.$transaction(async (tx) => {
         const now = new Date();
@@ -1174,7 +1186,7 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
         });
         await tx.document.update({
           where: { id: document.id },
-          data: { status: 'DRAFT', draftRound: nextDraftRound },
+          data: { status: 'DRAFT' },
         });
         await tx.documentHistory.create({
           data: {
@@ -1316,7 +1328,12 @@ router.post('/:id/review', requirePermission('document:review'), async (req, res
     res.json({ ok: true, status: newStatus });
   } catch (err) {
     console.error('Review document error:', err);
-    res.status(500).json({ error: 'Failed to complete review' });
+    const details = err?.message ? String(err.message) : '';
+    const body = { error: 'Failed to complete review' };
+    if (process.env.NODE_ENV !== 'production' && details) {
+      body.details = details;
+    }
+    res.status(500).json(body);
   }
 });
 
