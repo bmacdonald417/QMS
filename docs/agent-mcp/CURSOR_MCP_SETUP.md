@@ -6,12 +6,20 @@ This connects **Cursor’s MCP client** to your **production (or staging) QMS** 
 
 On the **QMS web service** (same service that runs `node src/index.js`):
 
-1. **Variables → New variable**
-   - **`AGENT_MCP_SECRET`** — long random string (32+ bytes), e.g.  
-     `openssl rand -base64 32`  
-   - Keep it **secret**; treat like a password.
+1. **Variables → + New Variable**
 
-2. Redeploy so the server starts with the variable set.
+2. **Variable name (exact spelling):** `AGENT_MCP_SECRET`  
+   - Three letters: **M C P** (Model Context Protocol style “MCP”), **not** `MPC`.  
+   - The app only reads `AGENT_MCP_SECRET`; any other name is ignored.
+
+3. **Value:** paste a **literal** long random secret. Example (run on your machine):  
+   `openssl rand -base64 32`  
+   Copy the output and paste it into the value field.
+
+4. **Ignore the `${{...}}` / reference dropdown for this variable**  
+   Railway’s dropdown lists **references** to other variables (`DATABASE_URL`, `JWT_SECRET`, Railway system vars, etc.). There is **no** built‑in “agent” option — that is normal. You are **not** wiring this secret from Railway’s menu; you **type the name yourself** and **paste your own random string** as the value. Do **not** pick `${{DATABASE_URL}}` or similar for `AGENT_MCP_SECRET`.
+
+5. Save, then **redeploy** the service so `process.env.AGENT_MCP_SECRET` is set at runtime.
 
 Without this, `GET /api/agent/mcp/open-requests` returns **503** and the log may mention missing configuration.
 
