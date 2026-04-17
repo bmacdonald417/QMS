@@ -19,6 +19,10 @@ This repository ships the **QMS Agent** as part of the **Express API** + **Vite/
 |----------|---------|
 | `AGENT_MCP_SECRET` | Shared secret for `GET /api/agent/mcp/open-requests` (`X-Agent-Mcp-Secret` header). |
 
+## Cursor MCP (connect the assistant to your site)
+
+Step-by-step: **[CURSOR_MCP_SETUP.md](./CURSOR_MCP_SETUP.md)** — Railway `AGENT_MCP_SECRET`, local `mcp/qms-agent` install, and Cursor `mcpServers` config.
+
 ## HTTP API (current)
 
 | Method | Path | Auth |
@@ -27,7 +31,7 @@ This repository ships the **QMS Agent** as part of the **Express API** + **Vite/
 | `GET` | `/api/agent/requests` | JWT Bearer, System Admin |
 | `GET` | `/api/agent/requests/:id` | JWT Bearer, System Admin |
 | `PATCH` | `/api/agent/requests/:id` | JWT Bearer, System Admin |
-| `GET` | `/api/agent/mcp/open-requests` | `X-Agent-Mcp-Secret: <AGENT_MCP_SECRET>` |
+| `GET` | `/api/agent/mcp/open-requests` | `X-Agent-Mcp-Secret: <AGENT_MCP_SECRET>`; optional query `take=1..200` (default 200) |
 | `GET` | `/api/agent/contracts` | JWT Bearer, System Admin |
 
 ## Next.js 14 porting checklist

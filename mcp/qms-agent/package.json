@@ -1,0 +1,17 @@
+{
+  "name": "qms-agent-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cursor MCP bridge to MacTech QMS Agent open-requests HTTP API",
+  "main": "index.mjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  }
+}

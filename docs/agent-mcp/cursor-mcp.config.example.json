@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "qms-agent": {
+      "command": "node",
+      "args": ["REPLACE_WITH_ABSOLUTE_PATH_TO_REPO/mcp/qms-agent/index.mjs"],
+      "env": {
+        "QMS_BASE_URL": "https://quality.mactechsolutionsllc.com",
+        "AGENT_MCP_SECRET": "REPLACE_WITH_RAILWAY_AGENT_MCP_SECRET"
+      }
+    }
+  }
+}

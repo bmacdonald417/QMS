@@ -16,9 +16,12 @@ function mcpSecretAuth(req, res, next) {
 /**
  * GET /api/agent/mcp/open-requests — no JWT; automation uses shared secret only.
  */
-router.get('/open-requests', mcpSecretAuth, async (_req, res) => {
+router.get('/open-requests', mcpSecretAuth, async (req, res) => {
   try {
-    const requests = await listOpenRequestsForMcp({ take: 200 });
+    const raw = req.query?.take;
+    const parsed = typeof raw === 'string' ? parseInt(raw, 10) : NaN;
+    const take = Number.isFinite(parsed) ? Math.min(200, Math.max(1, parsed)) : 200;
+    const requests = await listOpenRequestsForMcp({ take });
     res.set('Cache-Control', 'no-store');
     res.json({
       schemaVersion: 1,
