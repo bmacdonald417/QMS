@@ -1,5 +1,7 @@
 import { prisma } from '../db.js';
 import { createAuditLog, getAuditContext } from '../audit.js';
+import { createWorkflowGraphForRequest } from '../lib/qms-agent/workflow-graph-builder.js';
+import { inferModuleKeyFromRequest } from '../lib/qms-agent/intelligence-engine.js';
 
 const ENTITY = 'AgentRequest';
 const MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024; // 3 MB per file (base64 decoded)
@@ -32,56 +34,6 @@ async function appendRunLog(requestId, actorType, message, metadata = null) {
       metadata: metadata ?? undefined,
     },
   });
-}
-
-/**
- * Build normalized workflow graph from intake (explicit states/transitions for auditability).
- */
-async function createWorkflowGraph(tx, { agentRequestId, name, objective, triggerEvent, outputType, graphNotes }) {
-  const def = await tx.workflowDefinition.create({
-    data: {
-      agentRequestId,
-      name,
-      objective,
-      triggerEvent: triggerEvent ?? null,
-      outputType,
-      graphNotes: graphNotes ?? undefined,
-    },
-  });
-
-  const states = [
-    { stateKey: 'intake', label: 'Intake recorded', sortOrder: 0 },
-    { stateKey: 'design', label: 'Design / plan', sortOrder: 1 },
-    { stateKey: 'implementation', label: 'Implementation (human-controlled)', sortOrder: 2 },
-    { stateKey: 'verification', label: 'Verification & release readiness', sortOrder: 3 },
-    { stateKey: 'effective', label: 'Effective in QMS', sortOrder: 4 },
-  ];
-  await tx.workflowState.createMany({
-    data: states.map((s) => ({
-      definitionId: def.id,
-      stateKey: s.stateKey,
-      label: s.label,
-      sortOrder: s.sortOrder,
-    })),
-  });
-
-  const transitions = [
-    { from: 'intake', to: 'design', label: 'Approve design', rolesJson: [] },
-    { from: 'design', to: 'implementation', label: 'Approve build', rolesJson: [] },
-    { from: 'implementation', to: 'verification', label: 'Ready for verification', rolesJson: [] },
-    { from: 'verification', to: 'effective', label: 'Authorized release', rolesJson: [] },
-  ];
-  await tx.workflowTransition.createMany({
-    data: transitions.map((t) => ({
-      definitionId: def.id,
-      fromStateKey: t.from,
-      toStateKey: t.to,
-      label: t.label,
-      rolesJson: t.rolesJson,
-    })),
-  });
-
-  return def;
 }
 
 export async function createSuggestUpdateRequest({ userId, body, req }) {
@@ -135,6 +87,12 @@ export async function createSuggestUpdateRequest({ userId, body, req }) {
       title: r.title,
     });
     await appendRunLog(r.id, 'USER', 'Suggest update request submitted', { routePath: body.routePath });
+    const { inferredModuleKey, scores } = inferModuleKeyFromRequest(r);
+    await appendRunLog(r.id, 'SYSTEM', 'Module inference snapshot (read-only)', {
+      artifactType: 'MODULE_ANALYSIS',
+      inferredModuleKey,
+      scores,
+    });
     return r;
   });
 
@@ -195,7 +153,15 @@ export async function createBuildWorkflowRequest({ userId, body, req }) {
       },
     });
 
-    await createWorkflowGraph(tx, {
+    const intakeText = [
+      body.workflowName,
+      body.objective,
+      body.businessReason,
+      body.triggerEvent,
+      ...(body.approvalSteps || []),
+      ...(body.requiredRoles || []),
+    ].join(' ');
+    const { definition, templateUsed } = await createWorkflowGraphForRequest(tx, {
       agentRequestId: r.id,
       name: body.workflowName,
       objective: body.objective,
@@ -209,6 +175,26 @@ export async function createBuildWorkflowRequest({ userId, body, req }) {
         trainingLinkageRequired: body.trainingLinkageRequired,
         periodicReviewRequired: body.periodicReviewRequired,
       },
+      templateKeyHint: body.templateKey ?? null,
+      intakeText,
+    });
+    const { inferredModuleKey, scores } = inferModuleKeyFromRequest({
+      ...r,
+      title: body.workflowName,
+      description: body.objective,
+      businessReason: body.businessReason,
+      moduleName: 'Workflow',
+      routePath: null,
+      type: 'BUILD_WORKFLOW',
+      buildWorkflowJson,
+      suggestUpdateJson: null,
+    });
+    await appendRunLog(r.id, 'SYSTEM', 'Workflow graph generated with module/template intelligence (read-only)', {
+      artifactType: 'WORKFLOW_GRAPH_INTELLIGENCE',
+      inferredModuleKey,
+      scores,
+      templateKey: templateUsed?.templateKey ?? null,
+      definitionId: definition.id,
     });
 
     if (attachments.length) {
@@ -276,6 +262,7 @@ export async function listAgentRequests(filters) {
         routePath: true,
         createdAt: true,
         createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        executionPackage: { select: { id: true, status: true } },
       },
     }),
     prisma.agentRequest.count({ where }),
@@ -297,6 +284,9 @@ export async function getAgentRequestById(id) {
       },
       runLogs: { orderBy: { createdAt: 'desc' }, take: 100 },
       auditEvents: { orderBy: { createdAt: 'desc' }, take: 100, include: { user: { select: { firstName: true, lastName: true, email: true } } } },
+      executionPackage: {
+        select: { id: true, status: true, packageType: true, title: true, updatedAt: true },
+      },
     },
   });
 }

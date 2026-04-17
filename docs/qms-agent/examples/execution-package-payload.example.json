@@ -1,0 +1,51 @@
+{
+  "requestSummary": "Execution — Documents: update request: Add bulk export for audit evidence.",
+  "packageType": "MIXED",
+  "approvedScope": [
+    "Status: APPROVED_FOR_IMPLEMENTATION (approved for implementation)",
+    "Documents — update request",
+    "Route: /documents",
+    "Module: Document Control"
+  ],
+  "affectedAreas": ["Document Control", "Route /documents"],
+  "sourceArtifacts": {
+    "implementationPlan": {
+      "title": "Documents — update request",
+      "description": "Add bulk export for audit evidence.",
+      "businessReason": "Auditors requested a single ZIP export.",
+      "moduleName": "Document Control",
+      "routePath": "/documents"
+    },
+    "workflowSpec": {
+      "definition": {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "name": "Document release workflow",
+        "objective": "Ensure controlled release",
+        "outputType": "PLAN",
+        "states": [],
+        "transitions": []
+      }
+    },
+    "schemaPlan": {
+      "note": "Example schema plan artifact (additive migration preferred).",
+      "tables": ["document_export_jobs"]
+    }
+  },
+  "checklist": [
+    { "id": "chk-1", "category": "ui", "text": "Route / primary component reviewed for the requested change." }
+  ],
+  "tasks": [
+    {
+      "title": "Update UI for Document Control",
+      "description": "Review and implement UI changes for /documents.",
+      "taskType": "FRONTEND",
+      "orderIndex": 10,
+      "metadata": { "routePath": "/documents" }
+    }
+  ],
+  "risks": ["Higher priority: tighten review, testing, and rollback planning."],
+  "constraints": [
+    "Governed QMS: preserve audit trails and human authorization gates.",
+    "Do not execute agent outputs automatically in production."
+  ]
+}

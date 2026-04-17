@@ -1,0 +1,22 @@
+[
+  {
+    "id": "rt-frontend-1",
+    "title": "Smoke: primary route renders without console errors",
+    "type": "E2E",
+    "area": "frontend",
+    "description": "Load /capas as authenticated users with representative roles.",
+    "expectedOutcome": "Page renders; critical widgets visible; no unhandled promise rejections in console for happy path.",
+    "riskLevel": "MEDIUM",
+    "relatedAcceptanceCriteriaIds": ["ac-functional-1", "ac-auditability-2"]
+  },
+  {
+    "id": "rt-backend_api-2",
+    "title": "API contract tests for changed endpoints",
+    "type": "INTEGRATION",
+    "area": "backend_api",
+    "description": "Exercise new/changed Express routes with auth headers; assert status codes, error shapes, and side effects on audit logs.",
+    "expectedOutcome": "Responses match documented contracts; failures are structured; no silent 500s for valid input.",
+    "riskLevel": "HIGH",
+    "relatedAcceptanceCriteriaIds": ["ac-functional-1", "ac-auditability-2", "ac-workflow_behavior-3"]
+  }
+]

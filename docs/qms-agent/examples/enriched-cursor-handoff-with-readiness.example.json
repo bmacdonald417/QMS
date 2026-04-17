@@ -1,0 +1,36 @@
+{
+  "summary": "Cursor handoff for execution package (example)",
+  "prompt": "You are assisting with a governed QMS (quality management system) change.\n\n# Engineering brief — Execution — Example\n\n## What \"done\" looks like for this package\n- Satisfy the approved request scope and the structured acceptance criteria in the engineering brief (where present).\n",
+  "repoContext": {
+    "stack": "Vite/React frontend + Express/Prisma backend (MacTech QMS)",
+    "primaryServerPath": "server/src",
+    "primaryClientPath": "src"
+  },
+  "fileTargets": ["server/src/capas.js", "server/prisma/schema.prisma"],
+  "schemaContext": { "nonDestructiveDefault": true },
+  "workflowContext": { "workflowDefinition": null },
+  "deliverables": [
+    "Working implementation aligned to approved scope",
+    "Automated tests where practical",
+    "Done means: approved scope implemented, automated tests added/updated where practical, and audit-friendly logging verified."
+  ],
+  "warnings": ["Do not run autonomous agents against production from this payload."],
+  "intelligence": { "inferredModuleKey": "capa", "acceptanceCriteria": ["Audit logs remain coherent after changes."] },
+  "acceptanceCriteria": ["Audit logs remain coherent after changes."],
+  "implementationReadiness": {
+    "version": 1,
+    "generatedAt": "2026-04-16T12:00:00.000Z",
+    "acceptanceCriteria": [{ "id": "ac-functional-1", "category": "functional", "description": "Matches approved scope.", "rationale": "Governance.", "priority": "HIGH", "verificationType": "MANUAL", "source": "MODULE" }],
+    "regressionPlan": [{ "id": "rt-backend_api-1", "title": "API contract tests", "type": "INTEGRATION", "area": "backend_api", "description": "Exercise routes with auth.", "expectedOutcome": "Structured errors.", "riskLevel": "HIGH", "relatedAcceptanceCriteriaIds": ["ac-functional-1"] }],
+    "readinessScore": { "score": 72, "band": "HIGH", "dimensionScores": [], "strengths": [], "gaps": [], "recommendations": [] },
+    "migrationRiskSummary": null,
+    "fixtureSuggestions": [],
+    "completionGuidance": ["Preserve audit trails."],
+    "unresolvedGaps": [],
+    "gapsAcknowledged": null
+  },
+  "readinessScoreSummary": { "score": 72, "band": "HIGH", "dimensionScores": [], "strengths": [], "gaps": [], "recommendations": [] },
+  "unresolvedGaps": [],
+  "gapsAcknowledged": null,
+  "moduleAntiPatterns": ["Bypassing server-side authorization checks for privileged transitions."]
+}

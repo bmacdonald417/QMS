@@ -96,6 +96,21 @@ async function main() {
     await prisma.eSignConfig.create({ data: {} });
   }
 
+  const primaryOrg = await prisma.organization.upsert({
+    where: { slug: 'primary' },
+    create: { name: 'Primary Organization', slug: 'primary' },
+    update: { name: 'Primary Organization' },
+  });
+
+  const allUsers = await prisma.user.findMany({ select: { id: true } });
+  for (const u of allUsers) {
+    await prisma.organizationMembership.upsert({
+      where: { organizationId_userId: { organizationId: primaryOrg.id, userId: u.id } },
+      create: { organizationId: primaryOrg.id, userId: u.id },
+      update: {},
+    });
+  }
+
   const roleCount = getCanonicalRoleNames().length;
   const permCount = getPermissionList().length;
   console.log(

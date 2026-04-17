@@ -1,0 +1,31 @@
+{
+  "summary": "Cursor handoff for execution package 00000000-0000-0000-0000-0000000000aa (request 00000000-0000-0000-0000-0000000000bb)",
+  "prompt": "You are assisting with a governed QMS (quality management system) change.\n\n# Engineering brief — ...",
+  "repoContext": {
+    "stack": "Vite/React frontend + Express/Prisma backend (MacTech QMS)",
+    "inferredModuleKey": "capa",
+    "suggestedWorkflowTemplateKey": "capa-lifecycle"
+  },
+  "fileTargets": ["Likely UI surface: src/pages/capas", "Likely backend touchpoint: server/src/capas.js"],
+  "schemaContext": {
+    "schemaPlan": { "note": "Additive notification preference columns" },
+    "moduleSchemaPatterns": ["capas", "capa_tasks", "capa_history"],
+    "affectedSchemaAreas": ["capas", "capa_tasks", "capa_history"]
+  },
+  "workflowContext": {
+    "workflowDefinition": { "id": "def-1" },
+    "workflowSpec": {},
+    "suggestedTemplate": { "templateKey": "capa-lifecycle" },
+    "inferredModuleKey": "capa",
+    "suggestedTemplateKey": "capa-lifecycle"
+  },
+  "deliverables": ["Working implementation aligned to approved scope", "Cannot close without satisfying required signatures and task completion rules."],
+  "warnings": ["Do not run autonomous agents against production from this payload.", "Closing CAPA without effectiveness evidence (unless governed waiver is implemented)."],
+  "intelligence": {
+    "inferredModuleKey": "capa",
+    "suggestedTemplateKey": "capa-lifecycle",
+    "moduleSpecificRisks": ["Skipping RCA"]
+  },
+  "acceptanceCriteria": ["Audit logs / agent run logs remain coherent after changes."],
+  "moduleAntiPatterns": ["Closing CAPA without effectiveness evidence (unless governed waiver is implemented)."]
+}

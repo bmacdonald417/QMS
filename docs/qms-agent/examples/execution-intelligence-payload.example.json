@@ -1,0 +1,44 @@
+{
+  "module": {
+    "moduleKey": "capa",
+    "displayName": "CAPA",
+    "description": "Corrective and preventive actions, tasks, containment, RCA, effectiveness, closure.",
+    "commonEntities": ["CAPA", "CapaTask", "CapaHistory", "CapaSignature"],
+    "commonRoles": ["Owner", "Assignee", "Approver", "Quality"],
+    "commonStatuses": ["DRAFT", "OPEN", "CONTAINMENT", "INVESTIGATION", "PLAN_APPROVAL", "IMPLEMENTATION", "EFFECTIVENESS_CHECK", "PENDING_CLOSURE", "CLOSED"],
+    "commonWorkflowPatterns": ["RCA before plan", "Plan approval", "Effectiveness check", "Closure review"],
+    "commonAuditRequirements": ["History entries per state change", "Signature on closure", "Evidence attachments"],
+    "commonTrainingLinkageRules": ["Training if CAPA changes procedures", "Task-level competency when assigned"],
+    "commonNotificationPatterns": ["Task due", "Approval pending", "Effectiveness window"],
+    "commonUIAreas": ["src/pages/capas", "server/src/capas.js"],
+    "commonSchemaPatterns": ["capas", "capa_tasks", "capa_history"],
+    "commonRisks": ["Skipping RCA", "Weak effectiveness evidence", "Open actions without owners"],
+    "validationHints": ["Owner required for OPEN", "Effectiveness waiver requires justification", "Task ordering"]
+  },
+  "suggestedTemplate": {
+    "templateKey": "capa-lifecycle",
+    "templateName": "CAPA Lifecycle",
+    "requestContext": { "requestId": "00000000-0000-0000-0000-0000000000bb", "title": "CAPA-001 containment workflow" }
+  },
+  "inferredModuleKey": "capa",
+  "suggestedTemplateKey": "capa-lifecycle",
+  "effectiveModuleKey": "capa",
+  "effectiveTemplateKey": "capa-lifecycle",
+  "affectedEntities": ["CAPA", "CapaTask", "CapaHistory", "CapaSignature"],
+  "affectedUiAreas": ["src/pages/capas", "server/src/capas.js"],
+  "likelyBackendTouchpoints": ["server/src/audit.js", "server/src/auth.js", "server/src/capas.js", "server/src/agent/agentService.js"],
+  "affectedSchemaAreas": ["capas", "capa_tasks", "capa_history"],
+  "moduleSpecificRisks": ["Skipping RCA", "Weak effectiveness evidence", "Open actions without owners"],
+  "validationChecklistAdditions": ["[capa] Owner required for OPEN", "[template:capa-lifecycle] History entries per state change"],
+  "engineeringNotes": [
+    "Primary QMS module: CAPA — Corrective and preventive actions, tasks, containment, RCA, effectiveness, closure.",
+    "Suggested workflow template: CAPA Lifecycle (capa-lifecycle)",
+    "Package type: MIXED. Prefer additive, typed, audited changes."
+  ],
+  "acceptanceCriteria": [
+    "Role-sensitive flows respect: Owner, Assignee, Approver, Quality",
+    "Template states/transitions are reflected or explicitly diverged with rationale.",
+    "Audit logs / agent run logs remain coherent after changes."
+  ],
+  "inferenceScores": { "capa": 18, "document-control": 1 }
+}

@@ -1,0 +1,39 @@
+{
+  "summary": "Schema-impacting package: treat migrations as production-critical. Default to additive changes, staged nullability, and measurable backfills.",
+  "impactedTables": ["CAPA", "CapaTask", "NotificationPreference", "Prisma migrations under server/prisma/migrations"],
+  "backwardsCompatibility": [
+    "Prefer additive columns and nullable rollout phases before tightening NOT NULL constraints.",
+    "Avoid renaming columns without a compatibility view or dual-write period unless explicitly authorized."
+  ],
+  "nullabilityRisks": [
+    "Tightening nullability can fail on existing rows; plan staged backfills and validation queries.",
+    "New required foreign keys may orphan historical rows; assess retention and archival paths."
+  ],
+  "indexPerformance": [
+    "New filters/sorts may require composite indexes; verify explain plans for list endpoints.",
+    "Large backfills can lock tables; batch updates and consider off-hours maintenance windows."
+  ],
+  "seedBackfill": [
+    "Identify minimal seed rows required for dev/stage parity; avoid auto-seeding production business data from generators.",
+    "Document any required manual backfill scripts and verification queries."
+  ],
+  "auditRetention": [
+    "Do not rewrite immutable audit history; append-only patterns preserve traceability.",
+    "If migrating historical records, preserve original timestamps in dedicated columns where feasible."
+  ],
+  "trainingDocumentRisks": [
+    "Schema changes to document/training join tables can break effective-date logic; verify revision coupling.",
+    "If workflow states rename, ensure training assignments still map to correct operational states."
+  ],
+  "rolloutCautions": [
+    "Ship behind feature flags or staged rollout if workflow and schema change together.",
+    "Coordinate cache invalidation and API versioning if mobile/integrations consume the same endpoints."
+  ],
+  "destructiveWarnings": [
+    "DROP/TRUNCATE/CASCADE deletes are high risk; require explicit sign-off, backups, and restore drill.",
+    "Data migrations that reinterpret meaning (e.g., status remaps) must include reconciliation reports."
+  ],
+  "workflowNotes": [
+    "Workflow snapshot includes 6 states; align schema with transition persistence."
+  ]
+}

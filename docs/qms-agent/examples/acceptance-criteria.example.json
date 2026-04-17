@@ -1,0 +1,27 @@
+[
+  {
+    "id": "ac-functional-1",
+    "category": "functional",
+    "description": "Implementation matches approved scope for request type SUGGEST_UPDATE and title \"CAPA-001: Improve containment workflow notifications\".",
+    "rationale": "Governed execution packages must not expand scope beyond APPROVED_FOR_IMPLEMENTATION intake.",
+    "priority": "HIGH",
+    "verificationType": "MANUAL",
+    "source": "MODULE",
+    "moduleKey": "capa",
+    "effectiveModuleKey": "capa",
+    "effectiveTemplateKey": "capa-lifecycle",
+    "scopeTextStrength": 0.75
+  },
+  {
+    "id": "ac-auditability-2",
+    "category": "auditability",
+    "description": "Material state changes emit attributable audit records (who/when/what) consistent with existing audit helpers.",
+    "rationale": "Auditability is a non-negotiable control for regulated QMS operations.",
+    "priority": "HIGH",
+    "verificationType": "DB_REVIEW",
+    "source": "MODULE",
+    "moduleKey": "capa",
+    "effectiveModuleKey": "capa",
+    "effectiveTemplateKey": "capa-lifecycle"
+  }
+]

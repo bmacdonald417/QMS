@@ -7,7 +7,7 @@
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "db:generate": "prisma generate",
-    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:deploy": "prisma db push",
     "db:push": "prisma db push",
     "db:seed": "node src/seed.js",
     "db:studio": "prisma studio",

@@ -27,6 +27,7 @@ import integrationTokenRoutes from './integrations/tokenRoute.js';
 import { startPeriodicReviewScheduler } from './periodicReviewScheduler.js';
 import agentRoutes from './agent/agentRoutes.js';
 import agentMcpRoutes from './agent/agentMcpRoutes.js';
+import orgQmsAgentRoutes from './orgQmsAgentRoutes.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -61,6 +62,7 @@ app.use('/api/governance', governanceRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/agent/mcp', agentMcpRoutes);
 app.use('/api/agent', authMiddleware, agentRoutes);
+app.use('/api/org', authMiddleware, orgQmsAgentRoutes);
 app.use('/api/cmmc', authMiddleware, cmmcRoutes);
 
 app.get('/api/health', (req, res) => {

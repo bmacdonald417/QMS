@@ -1,0 +1,16 @@
+{
+  "moduleKey": "document-control",
+  "displayName": "Document Control",
+  "description": "Controlled documents, revisions, approvals, effective dating, and periodic review.",
+  "commonEntities": ["Document", "DocumentRevision", "DocumentAssignment", "DocumentSignature", "DocumentHistory"],
+  "commonRoles": ["Author", "Reviewer", "Approver", "Quality Release", "System Admin"],
+  "commonStatuses": ["DRAFT", "IN_REVIEW", "AWAITING_APPROVAL", "APPROVED", "EFFECTIVE", "OBSOLETE", "ARCHIVED"],
+  "commonWorkflowPatterns": ["Review then approve", "Quality release gate", "Periodic review cycle", "Supersedes linkage"],
+  "commonAuditRequirements": ["Immutable history", "Who/when/why on transitions", "Hash or fingerprint on sign"],
+  "commonTrainingLinkageRules": ["Training assignment on EFFECTIVE", "Read-and-understood for critical SOPs"],
+  "commonNotificationPatterns": ["Assignment due", "Approval pending", "Periodic review overdue"],
+  "commonUIAreas": ["src/pages/DocumentControl.tsx", "src/pages/DocumentDetail.tsx", "server/src/documents.js"],
+  "commonSchemaPatterns": ["documents table versioning", "document_history", "document_assignments"],
+  "commonRisks": ["Accidental overwrite of effective content", "Broken supersedes chain", "Missing signature meaning"],
+  "validationHints": ["Unique (documentId, version)", "Status machine enforced server-side", "E-sign before EFFECTIVE"]
+}

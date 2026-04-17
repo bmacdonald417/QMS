@@ -33,6 +33,8 @@ import {
   SystemESign,
   SystemIntegrations,
   SystemQmsAgent,
+  SystemExecutionPackages,
+  SystemExecutionPackageDetail,
 } from '@/pages/system';
 import {
   TeamTraining,
@@ -86,6 +88,8 @@ function AppRoutes() {
             <Route path="esign" element={<SystemESign />} />
             <Route path="integrations" element={<SystemIntegrations />} />
             <Route path="qms-agent" element={<SystemQmsAgent />} />
+            <Route path="qms-agent/execution-packages" element={<SystemExecutionPackages />} />
+            <Route path="qms-agent/execution-packages/:id" element={<SystemExecutionPackageDetail />} />
           </Route>
           <Route path="team-documents" element={<Navigate to="/documents" replace />} />
           <Route path="team-training" element={<TeamTraining />} />

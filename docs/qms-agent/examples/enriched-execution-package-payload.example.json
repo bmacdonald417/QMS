@@ -1,0 +1,48 @@
+{
+  "requestSummary": "Execution — CAPA-001: Improve containment workflow notifications",
+  "packageType": "MIXED",
+  "approvedScope": ["Status: APPROVED_FOR_IMPLEMENTATION (approved for implementation)", "CAPA-001: Improve containment workflow notifications"],
+  "affectedAreas": ["Workflow engine / approvals / notifications"],
+  "sourceArtifacts": {
+    "implementationPlan": { "title": "CAPA-001" },
+    "workflowSpec": { "definition": { "name": "CAPA lifecycle", "states": [] } },
+    "schemaPlan": { "note": "Additive notification preference columns" }
+  },
+  "checklist": [
+    { "id": "chk-1", "category": "workflow", "text": "Workflow states are explicit, named, and cover start/end conditions." },
+    { "id": "chk-int-1", "category": "intelligence", "text": "[capa] Owner required for OPEN" }
+  ],
+  "tasks": [
+    {
+      "title": "Verify root cause capture",
+      "description": "RCA fields are structured, retained, and immutable after closure where required.",
+      "taskType": "BACKEND",
+      "orderIndex": 40,
+      "metadata": { "generatedBy": "intelligence", "moduleKey": "capa" }
+    }
+  ],
+  "risks": ["Higher priority: tighten review, testing, and rollback planning.", "Skipping RCA"],
+  "constraints": ["Governed QMS: preserve audit trails and human authorization gates."],
+  "intelligence": {
+    "inferredModuleKey": "capa",
+    "suggestedTemplateKey": "capa-lifecycle",
+    "affectedEntities": ["CAPA", "CapaTask"],
+    "likelyBackendTouchpoints": ["server/src/capas.js"],
+    "moduleSpecificRisks": ["Skipping RCA"],
+    "validationChecklistAdditions": ["[capa] Owner required for OPEN"],
+    "engineeringNotes": ["Suggested workflow template: CAPA Lifecycle (capa-lifecycle)"],
+    "acceptanceCriteria": ["Audit logs / agent run logs remain coherent after changes."]
+  },
+  "implementationReadiness": {
+    "version": 1,
+    "generatedAt": "2026-04-16T12:00:00.000Z",
+    "acceptanceCriteria": [],
+    "regressionPlan": [],
+    "readinessScore": { "score": 0, "band": "LOW", "dimensionScores": [], "strengths": [], "gaps": [], "recommendations": [] },
+    "migrationRiskSummary": null,
+    "fixtureSuggestions": [],
+    "completionGuidance": [],
+    "unresolvedGaps": [],
+    "gapsAcknowledged": null
+  }
+}

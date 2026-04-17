@@ -1,0 +1,38 @@
+{
+  "summary": "Cursor handoff for execution package 00000000-0000-0000-0000-0000000000aa (request 00000000-0000-0000-0000-0000000000bb)",
+  "prompt": "You are assisting with a governed QMS (quality management system) change.\n\n# Engineering brief — Execution — Documents: update request\n...",
+  "repoContext": {
+    "stack": "Vite/React frontend + Express/Prisma backend (MacTech QMS)",
+    "primaryServerPath": "server/src",
+    "primaryClientPath": "src",
+    "module": "Document Control",
+    "routePath": "/documents",
+    "notes": "This handoff is a read-only engineering artifact."
+  },
+  "fileTargets": [
+    "Route context: /documents",
+    "Business module: Document Control",
+    "server/src/agent/agentService.js",
+    "server/prisma/schema.prisma"
+  ],
+  "schemaContext": {
+    "schemaPlan": { "note": "Example schema plan artifact." },
+    "nonDestructiveDefault": true,
+    "reminder": "Prefer additive Prisma migrations; avoid destructive changes unless explicitly authorized."
+  },
+  "workflowContext": {
+    "workflowDefinition": null,
+    "workflowSpec": null
+  },
+  "deliverables": [
+    "Working implementation aligned to approved scope",
+    "Automated tests where practical",
+    "Audit/event logging consistent with QMS expectations",
+    "Migration scripts that are additive by default"
+  ],
+  "warnings": [
+    "Do not run autonomous agents against production from this payload.",
+    "Do not make uncontrolled destructive changes.",
+    "Prefer additive, typed, production-safe updates."
+  ]
+}

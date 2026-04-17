@@ -1,0 +1,26 @@
+{
+  "requestId": "00000000-0000-0000-0000-0000000000bb",
+  "inferredModuleKey": "document-control",
+  "suggestedTemplateKey": "controlled-document-review",
+  "effectiveModuleKey": "document-control",
+  "effectiveTemplateKey": "controlled-document-review",
+  "module": {
+    "moduleKey": "document-control",
+    "displayName": "Document Control",
+    "description": "Controlled documents, revisions, approvals, effective dating, and periodic review."
+  },
+  "template": {
+    "templateKey": "controlled-document-review",
+    "templateName": "Controlled Document Review",
+    "targetModules": ["document-control"]
+  },
+  "rankedTemplates": [
+    { "templateKey": "controlled-document-review", "score": 12, "name": "Controlled Document Review" },
+    { "templateKey": "training-assignment-effective-date", "score": 2, "name": "Training Assignment on Effective Date" }
+  ],
+  "scores": {
+    "document-control": 15,
+    "training": 2,
+    "capa": 0
+  }
+}

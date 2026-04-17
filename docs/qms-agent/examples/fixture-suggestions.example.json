@@ -1,0 +1,16 @@
+[
+  {
+    "label": "CAPA with containment + effectiveness",
+    "module": "capa",
+    "purpose": "Exercise due dates, ownership, containment actions, and effectiveness checks.",
+    "suggestedFields": ["owner", "priority", "containment", "rootCause", "effectivenessReview", "closure evidence"],
+    "whenToUse": "CAPA workflow, notifications, or reporting changes."
+  },
+  {
+    "label": "Training assignments (overdue + completed)",
+    "module": "training",
+    "purpose": "Validate assignment states, reminders, completions, and read-and-understood evidence.",
+    "suggestedFields": ["assignee", "dueAt", "completedAt", "documentRevision link", "overdue flag"],
+    "whenToUse": "Training module UX, notifications, or linkage to document revisions."
+  }
+]

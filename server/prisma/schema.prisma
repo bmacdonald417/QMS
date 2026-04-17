@@ -173,6 +173,7 @@ model User {
   cmmcSignatures           CmmcSignature[]
   agentRequestsCreated     AgentRequest[]     @relation("AgentRequestCreator")
   agentAuditEvents         AgentAuditEvent[]
+  organizationMemberships OrganizationMembership[]
 
   @@map("users")
 }
@@ -1181,6 +1182,7 @@ model AgentRequest {
   attachments AgentAttachment[]
   runLogs     AgentRunLog[]
   auditEvents AgentAuditEvent[]
+  executionPackage ExecutionPackage?
 
   createdBy User @relation("AgentRequestCreator", fields: [createdById], references: [id], onDelete: Restrict)
 
@@ -1262,6 +1264,9 @@ model AgentRunLog {
   createdAt DateTime @default(now()) @map("created_at")
 
   request AgentRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  packagesAsPlanSource     ExecutionPackage[] @relation("SourcePlanRunLog")
+  packagesAsWorkflowSource ExecutionPackage[] @relation("SourceWorkflowRunLog")
+  packagesAsSchemaSource   ExecutionPackage[] @relation("SourceSchemaRunLog")
 
   @@index([requestId])
   @@map("agent_run_logs")
@@ -1282,4 +1287,156 @@ model AgentAuditEvent {
   @@index([requestId])
   @@index([createdAt])
   @@map("agent_audit_events")
+}
+
+// --- Multi-tenant org shell (used by QMS Agent execution packaging) ---
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  memberships         OrganizationMembership[]
+  executionPackages   ExecutionPackage[]
+
+  @@map("organizations")
+}
+
+model OrganizationMembership {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  userId         String   @map("user_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  packagesCreated   ExecutionPackage[] @relation("ExecutionPackageCreator")
+  packagesAssigned  ExecutionPackage[] @relation("ExecutionPackageAssignee")
+
+  @@unique([organizationId, userId], map: "organization_membership_unique")
+  @@index([userId])
+  @@map("organization_memberships")
+}
+
+enum ExecutionPackageType {
+  UI_CHANGE
+  WORKFLOW_BUILD
+  SCHEMA_CHANGE
+  MIXED
+}
+
+enum ExecutionPackageStatus {
+  DRAFT
+  READY
+  SENT_TO_DEV
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ExecutionTaskType {
+  FRONTEND
+  BACKEND
+  DATABASE
+  VALIDATION
+  TESTING
+  DOCS
+}
+
+enum ExecutionTaskStatus {
+  OPEN
+  BLOCKED
+  IN_PROGRESS
+  DONE
+}
+
+enum CursorHandoffStatus {
+  DRAFT
+  READY
+  EXPORTED
+  SENT
+}
+
+model ExecutionPackage {
+  id                       String                  @id @default(uuid())
+  organizationId           String                  @map("organization_id")
+  agentRequestId           String                  @unique @map("agent_request_id")
+  title                    String
+  summary                  String                  @db.Text
+  packageType              ExecutionPackageType    @map("package_type")
+  status                   ExecutionPackageStatus  @default(DRAFT)
+  sourcePlanRunLogId      String?                 @map("source_plan_run_log_id")
+  sourceWorkflowRunLogId   String?                 @map("source_workflow_run_log_id")
+  sourceSchemaRunLogId     String?                 @map("source_schema_run_log_id")
+  payloadJson              Json                    @map("payload_json")
+  checklistJson            Json                    @map("checklist_json")
+  /** Module / template intelligence (read-only suggestions; overrides stored separately). */
+  intelligenceJson         Json?                   @map("intelligence_json")
+  inferredModuleKey        String?                 @map("inferred_module_key")
+  moduleKeyOverride        String?                 @map("module_key_override")
+  suggestedTemplateKey     String?                 @map("suggested_template_key")
+  templateKeyOverride      String?                 @map("template_key_override")
+  createdByMembershipId    String                  @map("created_by_membership_id")
+  assignedToMembershipId   String?                 @map("assigned_to_membership_id")
+  createdAt                DateTime                @default(now()) @map("created_at")
+  updatedAt                DateTime                @updatedAt @map("updated_at")
+
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  agentRequest             AgentRequest            @relation(fields: [agentRequestId], references: [id], onDelete: Restrict)
+  createdByMembership      OrganizationMembership  @relation("ExecutionPackageCreator", fields: [createdByMembershipId], references: [id], onDelete: Restrict)
+  assignedToMembership     OrganizationMembership? @relation("ExecutionPackageAssignee", fields: [assignedToMembershipId], references: [id], onDelete: SetNull)
+  sourcePlanRunLog         AgentRunLog?            @relation("SourcePlanRunLog", fields: [sourcePlanRunLogId], references: [id], onDelete: SetNull)
+  sourceWorkflowRunLog     AgentRunLog?            @relation("SourceWorkflowRunLog", fields: [sourceWorkflowRunLogId], references: [id], onDelete: SetNull)
+  sourceSchemaRunLog       AgentRunLog?            @relation("SourceSchemaRunLog", fields: [sourceSchemaRunLogId], references: [id], onDelete: SetNull)
+  tasks                    ExecutionTask[]
+  cursorHandoffs           CursorHandoff[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([packageType])
+  @@index([inferredModuleKey])
+  @@index([suggestedTemplateKey])
+  @@map("execution_packages")
+}
+
+model ExecutionTask {
+  id                 String               @id @default(uuid())
+  executionPackageId String               @map("execution_package_id")
+  title              String
+  description        String               @db.Text
+  taskType           ExecutionTaskType    @map("task_type")
+  status             ExecutionTaskStatus  @default(OPEN)
+  orderIndex         Int                  @default(0) @map("order_index")
+  metadataJson       Json?                @map("metadata_json")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+
+  executionPackage ExecutionPackage @relation(fields: [executionPackageId], references: [id], onDelete: Cascade)
+
+  @@index([executionPackageId])
+  @@map("execution_tasks")
+}
+
+model CursorHandoff {
+  id                  String              @id @default(uuid())
+  executionPackageId  String              @map("execution_package_id")
+  handoffPrompt       String              @map("handoff_prompt") @db.Text
+  repoContextJson     Json                @map("repo_context_json")
+  fileTargetsJson     Json                @map("file_targets_json")
+  schemaContextJson   Json                @map("schema_context_json")
+  workflowContextJson Json                @map("workflow_context_json")
+  /** Full structured export (read-only artifact for engineering / Cursor). */
+  exportPayloadJson   Json?               @map("export_payload_json")
+  status              CursorHandoffStatus @default(DRAFT)
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+
+  executionPackage ExecutionPackage @relation(fields: [executionPackageId], references: [id], onDelete: Cascade)
+
+  @@index([executionPackageId])
+  @@map("cursor_handoffs")
 }

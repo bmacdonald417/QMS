@@ -35,6 +35,8 @@ export const buildWorkflowBodySchema = z.object({
   businessReason: z.string().min(1).max(50000),
   priority: agentPrioritySchema,
   attachments: z.array(attachmentInputSchema).max(5).optional(),
+  /** Optional: force a workflow template key from the QMS template library. */
+  templateKey: z.string().min(1).max(128).optional(),
 });
 
 export const createAgentRequestSchema = z.discriminatedUnion('type', [

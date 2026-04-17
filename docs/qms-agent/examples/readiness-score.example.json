@@ -1,0 +1,21 @@
+{
+  "score": 72,
+  "band": "HIGH",
+  "dimensionScores": [
+    { "key": "scope_clarity", "label": "Scope clarity", "score": 78, "notes": "Based on description depth and explicit route/module hints." },
+    { "key": "module_confidence", "label": "Module confidence", "score": 74, "notes": "Effective module key present." },
+    { "key": "template_confidence", "label": "Template confidence", "score": 78, "notes": "Template locked (override or suggestion)." },
+    { "key": "workflow_completeness", "label": "Workflow completeness", "score": 62, "notes": "Limited workflow model context." },
+    { "key": "schema_readiness", "label": "Schema readiness", "score": 70, "notes": "Schema plan artifact present." },
+    { "key": "task_completeness", "label": "Task completeness", "score": 68, "notes": "Tasks: 6; coverage types: FRONTEND, BACKEND, TESTING." },
+    { "key": "acceptance_criteria_completeness", "label": "Acceptance criteria completeness", "score": 76, "notes": "18 criteria across 9 categories." },
+    { "key": "risk_clarity", "label": "Risk clarity", "score": 80, "notes": "Migration risk summary generated." },
+    { "key": "handoff_completeness", "label": "Handoff readiness (artifacts)", "score": 71, "notes": "Proxy: counts of acceptance + regression artifacts (actual handoff is generated later)." }
+  ],
+  "strengths": ["Risk clarity is strong (80).", "Acceptance criteria completeness is strong (76)."],
+  "gaps": ["Workflow completeness is underspecified (62)."],
+  "recommendations": [
+    "Improve Workflow completeness: Limited workflow model context.",
+    "Attach or regenerate a workflow snapshot so transition testing can be targeted."
+  ]
+}

@@ -11,6 +11,7 @@ const navItems = [
   { to: '/system/retention', end: false, label: 'Retention' },
   { to: '/system/integrations', end: false, label: 'Integrations' },
   { to: '/system/qms-agent', end: false, label: 'QMS Agent' },
+  { to: '/system/qms-agent/execution-packages', end: false, label: 'Execution packages' },
 ];
 
 export function SystemManagementLayout() {

@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "generatedAt": "2026-04-16T12:00:00.000Z",
+  "acceptanceCriteria": [
+    {
+      "id": "ac-functional-1",
+      "category": "functional",
+      "description": "Implementation matches approved scope for the packaged request.",
+      "rationale": "Governed execution packages must not expand scope beyond APPROVED_FOR_IMPLEMENTATION intake.",
+      "priority": "HIGH",
+      "verificationType": "MANUAL",
+      "source": "MODULE",
+      "moduleKey": "capa",
+      "effectiveModuleKey": "capa",
+      "effectiveTemplateKey": "capa-lifecycle"
+    }
+  ],
+  "regressionPlan": [
+    {
+      "id": "rt-backend_api-1",
+      "title": "API contract tests for changed endpoints",
+      "type": "INTEGRATION",
+      "area": "backend_api",
+      "description": "Exercise new/changed Express routes with auth headers.",
+      "expectedOutcome": "Responses match documented contracts; failures are structured.",
+      "riskLevel": "HIGH",
+      "relatedAcceptanceCriteriaIds": ["ac-functional-1"]
+    }
+  ],
+  "readinessScore": {
+    "score": 72,
+    "band": "HIGH",
+    "dimensionScores": [
+      { "key": "scope_clarity", "label": "Scope clarity", "score": 78 },
+      { "key": "module_confidence", "label": "Module confidence", "score": 74 }
+    ],
+    "strengths": ["Risk clarity is strong (80)."],
+    "gaps": ["Workflow completeness is underspecified (62)."],
+    "recommendations": ["Attach or regenerate a workflow snapshot so transition testing can be targeted."]
+  },
+  "migrationRiskSummary": {
+    "summary": "Schema-impacting package: treat migrations as production-critical.",
+    "impactedTables": ["CAPA", "CapaTask"],
+    "backwardsCompatibility": ["Prefer additive columns and nullable rollout phases before tightening NOT NULL constraints."],
+    "nullabilityRisks": ["Tightening nullability can fail on existing rows; plan staged backfills and validation queries."],
+    "indexPerformance": ["New filters/sorts may require composite indexes; verify explain plans for list endpoints."],
+    "seedBackfill": ["Identify minimal seed rows required for dev/stage parity."],
+    "auditRetention": ["Do not rewrite immutable audit history; append-only patterns preserve traceability."],
+    "trainingDocumentRisks": ["Schema changes to document/training join tables can break effective-date logic."],
+    "rolloutCautions": ["Ship behind feature flags or staged rollout if workflow and schema change together."],
+    "destructiveWarnings": ["DROP/TRUNCATE/CASCADE deletes are high risk; require explicit sign-off, backups, and restore drill."],
+    "workflowNotes": ["Align schema with transition persistence."]
+  },
+  "fixtureSuggestions": [
+    {
+      "label": "CAPA with containment + effectiveness",
+      "module": "capa",
+      "purpose": "Exercise due dates, ownership, containment actions, and effectiveness checks.",
+      "suggestedFields": ["owner", "priority", "containment", "rootCause", "effectivenessReview", "closure evidence"],
+      "whenToUse": "CAPA workflow, notifications, or reporting changes."
+    }
+  ],
+  "completionGuidance": [
+    "Done means: approved scope implemented, automated tests added/updated where practical, and audit-friendly logging verified.",
+    "Preserve: historical audit rows, immutable timestamps, and human authorization gates for privileged transitions.",
+    "Test: permission matrix, workflow transitions, notifications (if any), and schema backfills on representative data.",
+    "Avoid: silent destructive migrations, client-only authorization, and undocumented template divergences."
+  ],
+  "unresolvedGaps": ["Workflow completeness is underspecified (62).", "Readiness band is not READY; review recommendations before marking package READY."],
+  "gapsAcknowledged": null
+}

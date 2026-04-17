@@ -9,3 +9,5 @@ export { SystemRetention } from './SystemRetention';
 export { SystemESign } from './SystemESign';
 export { SystemIntegrations } from './SystemIntegrations';
 export { SystemQmsAgent } from './SystemQmsAgent';
+export { SystemExecutionPackages } from './SystemExecutionPackages';
+export { SystemExecutionPackageDetail } from './SystemExecutionPackageDetail';
