@@ -14,10 +14,10 @@ import {
 
 const router = express.Router();
 
-const adminOnly = requireRoles('System Admin');
+const qmsAgentAccess = requireRoles('System Admin', 'Quality Manager');
 
 /** POST /api/agent/requests — create intake (no autonomous implementation). */
-router.post('/requests', adminOnly, express.json({ limit: '14mb' }), async (req, res) => {
+router.post('/requests', qmsAgentAccess, express.json({ limit: '14mb' }), async (req, res) => {
   try {
     const parsed = createAgentRequestSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -40,7 +40,7 @@ router.post('/requests', adminOnly, express.json({ limit: '14mb' }), async (req,
 });
 
 /** GET /api/agent/requests — admin list with filters. */
-router.get('/requests', adminOnly, async (req, res) => {
+router.get('/requests', qmsAgentAccess, async (req, res) => {
   try {
     const { type, status, priority, moduleName, from, to, limit, offset } = req.query;
     const take = Math.min(parseInt(String(limit || '50'), 10) || 50, 200);
@@ -63,7 +63,7 @@ router.get('/requests', adminOnly, async (req, res) => {
 });
 
 /** GET /api/agent/requests/:id */
-router.get('/requests/:id', adminOnly, async (req, res) => {
+router.get('/requests/:id', qmsAgentAccess, async (req, res) => {
   try {
     const row = await getAgentRequestById(req.params.id);
     if (!row) return res.status(404).json({ error: 'Not found' });
@@ -82,7 +82,7 @@ router.get('/requests/:id', adminOnly, async (req, res) => {
 });
 
 /** PATCH /api/agent/requests/:id — status transitions (audit logged). */
-router.patch('/requests/:id', adminOnly, express.json(), async (req, res) => {
+router.patch('/requests/:id', qmsAgentAccess, express.json(), async (req, res) => {
   try {
     const parsed = patchAgentRequestSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -105,13 +105,13 @@ router.patch('/requests/:id', adminOnly, express.json(), async (req, res) => {
 });
 
 /** GET /api/agent/contracts — static contract pointers for agent tooling (JWT). */
-router.get('/contracts', adminOnly, (_req, res) => {
+router.get('/contracts', qmsAgentAccess, (_req, res) => {
   res.json({
     schemaVersion: 1,
     note: 'See repository docs/agent-mcp/ for JSON samples and Next.js port notes.',
     endpoints: {
       openRequests: { method: 'GET', path: '/api/agent/mcp/open-requests', auth: 'X-Agent-Mcp-Secret' },
-      createRequest: { method: 'POST', path: '/api/agent/requests', auth: 'Bearer JWT (System Admin)' },
+      createRequest: { method: 'POST', path: '/api/agent/requests', auth: 'Bearer JWT (System Admin or Quality Manager)' },
     },
   });
 });

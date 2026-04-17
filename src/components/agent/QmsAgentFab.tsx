@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { X, Bot, Wrench, GitBranch } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/lib/api';
+import { canAccessQmsAgent } from '@/lib/qms-agent/agentAccess';
 import { Button, Card, Input } from '@/components/ui';
 
 type AgentMode = 'suggest' | 'workflow';
@@ -33,7 +34,7 @@ export function QmsAgentFab() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const isAdmin = user?.roleName === 'System Admin';
+  const canUseAgent = canAccessQmsAgent(user?.roleName);
 
   const routePath = useMemo(() => `${location.pathname}${location.search || ''}`, [location.pathname, location.search]);
 
@@ -99,7 +100,7 @@ export function QmsAgentFab() {
           attachments,
         },
       });
-      setSuccess('Request submitted. A System Admin can track it under System → QMS Agent.');
+      setSuccess('Request submitted. Track it under System → QMS Agent (Quality Manager or System Admin).');
       setSuggest((s) => ({
         ...s,
         description: '',
@@ -167,7 +168,7 @@ export function QmsAgentFab() {
     }
   };
 
-  if (!isAdmin) return null;
+  if (!canUseAgent) return null;
 
   return (
     <>

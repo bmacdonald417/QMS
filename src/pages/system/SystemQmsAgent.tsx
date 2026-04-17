@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/lib/api';
 import { PRIMARY_ORG_SLUG } from '@/lib/qms-agent/contracts';
+import { canAccessQmsAgent } from '@/lib/qms-agent/agentAccess';
 import { Badge, Button, Card, Input, Modal } from '@/components/ui';
 
 type AgentListItem = {
@@ -49,7 +50,7 @@ export function SystemQmsAgent() {
   const [statusReason, setStatusReason] = useState('');
   const [creatingPackage, setCreatingPackage] = useState(false);
 
-  const isAdmin = user?.roleName === 'System Admin';
+  const canUseAgent = canAccessQmsAgent(user?.roleName);
 
   const query = useMemo(() => {
     const p = new URLSearchParams();
@@ -64,7 +65,7 @@ export function SystemQmsAgent() {
   }, [typeFilter, statusFilter, priorityFilter, moduleFilter, from, to]);
 
   const load = useCallback(async () => {
-    if (!token || !isAdmin) return;
+    if (!token || !canUseAgent) return;
     setLoading(true);
     setError('');
     try {
@@ -78,7 +79,7 @@ export function SystemQmsAgent() {
     } finally {
       setLoading(false);
     }
-  }, [token, isAdmin, query]);
+  }, [token, canUseAgent, query]);
 
   useEffect(() => {
     void load();
@@ -143,8 +144,8 @@ export function SystemQmsAgent() {
     }
   };
 
-  if (!isAdmin) {
-    return <p className="text-gray-400">System Admin access required.</p>;
+  if (!canUseAgent) {
+    return <p className="text-gray-400">Quality Manager or System Admin access required.</p>;
   }
 
   return (

@@ -14,6 +14,7 @@ import type {
   RegressionTestSuggestion,
 } from '@/lib/qms-agent/contracts';
 import { PRIMARY_ORG_SLUG } from '@/lib/qms-agent/contracts';
+import { canAccessQmsAgent } from '@/lib/qms-agent/agentAccess';
 import { Badge, Button, Card, Input } from '@/components/ui';
 
 function MigrationRiskSummaryView({ summary }: { summary: MigrationRiskSummary }) {
@@ -108,7 +109,7 @@ export function SystemExecutionPackageDetail() {
   const [regenerateTasks, setRegenerateTasks] = useState(false);
   const [gapNote, setGapNote] = useState('');
 
-  const isAdmin = user?.roleName === 'System Admin';
+  const canUseAgent = canAccessQmsAgent(user?.roleName);
 
   const basePath = useMemo(() => `/api/org/${PRIMARY_ORG_SLUG}/qms-agent/execution-packages`, []);
   const orgAgentBase = useMemo(() => `/api/org/${PRIMARY_ORG_SLUG}/qms-agent`, []);
@@ -357,8 +358,8 @@ export function SystemExecutionPackageDetail() {
     URL.revokeObjectURL(url);
   };
 
-  if (!isAdmin) {
-    return <p className="text-gray-400">System Admin access required.</p>;
+  if (!canUseAgent) {
+    return <p className="text-gray-400">Quality Manager or System Admin access required.</p>;
   }
 
   if (loading) {

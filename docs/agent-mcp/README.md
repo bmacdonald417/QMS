@@ -27,12 +27,12 @@ Step-by-step: **[CURSOR_MCP_SETUP.md](./CURSOR_MCP_SETUP.md)** — Railway `AGEN
 
 | Method | Path | Auth |
 |--------|------|------|
-| `POST` | `/api/agent/requests` | JWT Bearer, role **System Admin** |
-| `GET` | `/api/agent/requests` | JWT Bearer, System Admin |
-| `GET` | `/api/agent/requests/:id` | JWT Bearer, System Admin |
-| `PATCH` | `/api/agent/requests/:id` | JWT Bearer, System Admin |
+| `POST` | `/api/agent/requests` | JWT Bearer, role **System Admin** or **Quality Manager** |
+| `GET` | `/api/agent/requests` | JWT Bearer, System Admin or Quality Manager |
+| `GET` | `/api/agent/requests/:id` | JWT Bearer, System Admin or Quality Manager |
+| `PATCH` | `/api/agent/requests/:id` | JWT Bearer, System Admin or Quality Manager |
 | `GET` | `/api/agent/mcp/open-requests` | `X-Agent-Mcp-Secret: <AGENT_MCP_SECRET>`; optional query `take=1..200` (default 200) |
-| `GET` | `/api/agent/contracts` | JWT Bearer, System Admin |
+| `GET` | `/api/agent/contracts` | JWT Bearer, System Admin or Quality Manager |
 
 ## Next.js 14 porting checklist
 

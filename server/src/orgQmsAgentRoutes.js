@@ -26,7 +26,7 @@ import { analyzeAgentRequest } from './lib/qms-agent/module-analysis-service.js'
 
 const router = express.Router();
 
-const adminOnly = requireRoles('System Admin');
+const qmsAgentAccess = requireRoles('System Admin', 'Quality Manager');
 
 const scoped = express.Router({ mergeParams: true });
 
@@ -490,6 +490,6 @@ scoped.get('/execution-packages/:packageId/handoff', async (req, res) => {
   }
 });
 
-router.use('/:slug/qms-agent', adminOnly, scoped);
+router.use('/:slug/qms-agent', qmsAgentAccess, scoped);
 
 export default router;
