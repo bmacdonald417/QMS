@@ -15,6 +15,21 @@ On the **QMS web service** (same service that runs `node src/index.js`):
 
 Without this, `GET /api/agent/mcp/open-requests` returns **503** and the log may mention missing configuration.
 
+### If “nothing works” or MCP returns errors — check the Railway value
+
+**`AGENT_MCP_SECRET` must be a real secret string**, not a broken reference.
+
+- **Wrong:** `${{AGENT_MPC_SECRET}}` — that references a variable named `AGENT_MPC_SECRET` (**MPC**). Your app reads **`AGENT_MCP_SECRET`** (**MCP**). If the referenced name does not exist, Railway will not inject a secret; the header check fails and automation sees **401** or empty behavior.
+- **Right:** Paste a generated value directly into **`AGENT_MCP_SECRET`**, e.g. run locally:
+  `openssl rand -base64 32`
+  and paste the output as the variable value (no `${{ }}` unless you intentionally use a **Shared** variable with the **exact** name you reference).
+
+Then set the **same literal value** in Cursor MCP `env.AGENT_MCP_SECRET` and redeploy Railway once after saving.
+
+### “Nothing generated” but the tool runs
+
+`qms_list_open_requests` returns JSON with a **`requests`** array. If it is **empty**, the API is working; there are simply **no open QMS Agent requests** in that database right now (statuses filtered to open pipeline only). Create a request from **System → QMS Agent** in the app, then run the tool again.
+
 ## 2. Base URL
 
 Use the **public origin** of your API (same host that serves `/api/health`):
