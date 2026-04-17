@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "qms-agent": {
+      "command": "node",
+      "args": ["C:/Users/bmacd/.cursor/QMS/mcp/qms-agent/index.mjs"],
+      "env": {
+        "QMS_BASE_URL": "https://your-qms-host.example.com",
+        "AGENT_MCP_SECRET": "paste-the-exact-value-from-railway-here"
+      }
+    }
+  }
+}

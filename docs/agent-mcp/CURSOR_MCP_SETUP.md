@@ -77,6 +77,8 @@ npm install
 
 **Cursor → Settings → MCP** (or edit your MCP config JSON).
 
+This repo can also use a **project-local** file **`.cursor/mcp.json`** (see **`.cursor/mcp.json.example`**). Copy it to `mcp.json` and fill in secrets; that file is **gitignored** so it is not committed.
+
 Add a server that runs the bridge **on your machine**, with env vars (do **not** commit real secrets into git):
 
 ```json

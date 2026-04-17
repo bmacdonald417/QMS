@@ -19,6 +19,9 @@ npm-debug.log*
 .vscode/
 .idea/
 
+# Cursor MCP (contains secrets; never commit)
+.cursor/mcp.json
+
 # OS
 .DS_Store
 Thumbs.db
