@@ -25,13 +25,15 @@ import { requestIdMiddleware } from './audit.js';
 import { trainingApiLimiter, integrationTokenLimiter } from './systemMiddleware.js';
 import integrationTokenRoutes from './integrations/tokenRoute.js';
 import { startPeriodicReviewScheduler } from './periodicReviewScheduler.js';
+import agentRoutes from './agent/agentRoutes.js';
+import agentMcpRoutes from './agent/agentMcpRoutes.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 
 app.use(cors({ origin: true, credentials: true }));
 // Increase JSON body limit for large document content (default 100kb causes 413)
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '15mb' }));
 app.use(requestIdMiddleware);
 
 app.use('/api/auth', authRoutes);
@@ -57,6 +59,8 @@ app.use('/api/files', authMiddleware, fileRoutes);
 app.use('/api/form-records', formRecordRoutes);
 app.use('/api/governance', governanceRoutes);
 app.use('/api/system', systemRoutes);
+app.use('/api/agent/mcp', agentMcpRoutes);
+app.use('/api/agent', authMiddleware, agentRoutes);
 app.use('/api/cmmc', authMiddleware, cmmcRoutes);
 
 app.get('/api/health', (req, res) => {

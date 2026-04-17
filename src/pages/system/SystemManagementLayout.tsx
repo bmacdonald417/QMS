@@ -10,6 +10,7 @@ const navItems = [
   { to: '/system/esign', end: false, label: 'E-Signature' },
   { to: '/system/retention', end: false, label: 'Retention' },
   { to: '/system/integrations', end: false, label: 'Integrations' },
+  { to: '/system/qms-agent', end: false, label: 'QMS Agent' },
 ];
 
 export function SystemManagementLayout() {

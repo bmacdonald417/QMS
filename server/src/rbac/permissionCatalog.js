@@ -50,6 +50,9 @@ const PERMISSION_LIST = [
   { code: 'form_records:finalize', description: 'Finalize (lock) form records' },
   { code: 'form_records:export', description: 'Export form record PDF' },
   { code: 'form_records:delete', description: 'Delete form records (any status)' },
+  { code: 'agent:submit', description: 'Submit QMS Agent intake requests (suggest update / build workflow)' },
+  { code: 'agent:manage', description: 'Manage QMS Agent requests, status, and MCP-facing exports' },
+  { code: 'agent:mcp:read', description: 'Read-only access for MCP / automation to pull open agent specs' },
 ];
 
 const VALID_CODES = new Set(PERMISSION_LIST.map((p) => p.code));

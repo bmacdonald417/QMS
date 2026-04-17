@@ -1,0 +1,16 @@
+{
+  "type": "BUILD_WORKFLOW",
+  "workflowName": "Supplier corrective action intake",
+  "objective": "Standardize SCAR routing from intake through QA disposition with explicit states.",
+  "triggerEvent": "Supplier sends formal SCAR response email to quality inbox",
+  "requiredRoles": ["Quality Manager", "Supplier Quality Engineer", "Document Owner"],
+  "approvalSteps": ["QE triage", "QM disposition", "Closure sign-off"],
+  "notificationNeeds": "Notify assignee on each transition; weekly digest for overdue.",
+  "auditTrailRequirements": "Immutable status history; link to CAPA when disposition is corrective action.",
+  "trainingLinkageRequired": true,
+  "periodicReviewRequired": true,
+  "outputType": "SCHEMA",
+  "businessReason": "Reduce cycle time while preserving ISO 13485 evidence.",
+  "priority": "MEDIUM",
+  "attachments": []
+}

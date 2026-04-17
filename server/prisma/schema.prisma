@@ -171,6 +171,8 @@ model User {
   formRecordsFinalized  FormRecord[]      @relation("FormRecordFinalizedBy")
   signatureRequestsCreated SignatureRequest[]
   cmmcSignatures           CmmcSignature[]
+  agentRequestsCreated     AgentRequest[]     @relation("AgentRequestCreator")
+  agentAuditEvents         AgentAuditEvent[]
 
   @@map("users")
 }
@@ -1122,4 +1124,162 @@ model IntegrationSecret {
 
   @@index([clientId])
   @@map("integration_secrets")
+}
+
+// --- QMS Agent (internal MCP-ready intake; no autonomous production edits) ---
+
+enum AgentRequestType {
+  SUGGEST_UPDATE
+  BUILD_WORKFLOW
+}
+
+enum AgentRequestStatus {
+  SUBMITTED
+  APPROVED_FOR_IMPLEMENTATION
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+enum AgentPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum WorkflowOutputType {
+  PLAN
+  SCHEMA
+  UI
+  FULL_SCAFFOLD
+}
+
+model AgentRequest {
+  id               String             @id @default(uuid())
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  createdById      String             @map("created_by_id")
+
+  type             AgentRequestType
+  status           AgentRequestStatus @default(SUBMITTED)
+  priority         AgentPriority      @default(MEDIUM)
+
+  title            String
+  routePath        String?            @map("route_path")
+  moduleName       String?            @map("module_name")
+  componentName    String?            @map("component_name")
+  description      String             @db.Text
+  businessReason   String             @map("business_reason") @db.Text
+
+  suggestUpdateJson  Json?            @map("suggest_update_json")
+  buildWorkflowJson  Json?            @map("build_workflow_json")
+
+  workflowDefinition WorkflowDefinition?
+
+  attachments AgentAttachment[]
+  runLogs     AgentRunLog[]
+  auditEvents AgentAuditEvent[]
+
+  createdBy User @relation("AgentRequestCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([type])
+  @@index([status])
+  @@index([priority])
+  @@index([moduleName])
+  @@index([routePath])
+  @@index([createdAt])
+  @@map("agent_requests")
+}
+
+model AgentAttachment {
+  id         String   @id @default(uuid())
+  requestId  String   @map("request_id")
+  fileName   String   @map("file_name")
+  mimeType   String   @map("mime_type")
+  sizeBytes  Int      @map("size_bytes")
+  dataBase64 String?  @map("data_base64") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  request AgentRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@map("agent_attachments")
+}
+
+model WorkflowDefinition {
+  id             String             @id @default(uuid())
+  agentRequestId String             @unique @map("agent_request_id")
+  name           String
+  objective      String             @db.Text
+  triggerEvent   String?            @map("trigger_event") @db.Text
+  outputType     WorkflowOutputType @map("output_type")
+  graphNotes     Json?              @map("graph_notes")
+  createdAt      DateTime           @default(now()) @map("created_at")
+
+  request      AgentRequest         @relation(fields: [agentRequestId], references: [id], onDelete: Cascade)
+  states       WorkflowState[]
+  transitions  WorkflowTransition[]
+
+  @@map("workflow_definitions")
+}
+
+model WorkflowState {
+  id           String   @id @default(uuid())
+  definitionId String   @map("definition_id")
+  stateKey     String   @map("state_key")
+  label        String
+  sortOrder    Int      @default(0) @map("sort_order")
+
+  definition WorkflowDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  @@unique([definitionId, stateKey], map: "workflow_state_key_unique")
+  @@index([definitionId])
+  @@map("workflow_states")
+}
+
+model WorkflowTransition {
+  id           String   @id @default(uuid())
+  definitionId String   @map("definition_id")
+  fromStateKey String   @map("from_state_key")
+  toStateKey   String   @map("to_state_key")
+  label        String?
+  rolesJson    Json?    @map("roles_json")
+
+  definition WorkflowDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  @@index([definitionId])
+  @@map("workflow_transitions")
+}
+
+model AgentRunLog {
+  id        String   @id @default(uuid())
+  requestId String   @map("request_id")
+  actorType String   @default("USER") @map("actor_type")
+  message   String   @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  request AgentRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@map("agent_run_logs")
+}
+
+model AgentAuditEvent {
+  id          String   @id @default(uuid())
+  requestId   String   @map("request_id")
+  userId      String?  @map("user_id")
+  action      String
+  beforeValue Json?    @map("before_value")
+  afterValue  Json?    @map("after_value")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  request AgentRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  user    User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([requestId])
+  @@index([createdAt])
+  @@map("agent_audit_events")
 }

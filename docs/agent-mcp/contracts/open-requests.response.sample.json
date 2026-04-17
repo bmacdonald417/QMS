@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-04-11T12:00:00.000Z",
+  "requests": [
+    {
+      "id": "c1d2e3f4-0000-4000-8000-000000000001",
+      "type": "BUILD_WORKFLOW",
+      "status": "SUBMITTED",
+      "priority": "MEDIUM",
+      "title": "Supplier corrective action intake",
+      "moduleName": "Workflow",
+      "routePath": null,
+      "description": "Standardize SCAR routing…",
+      "businessReason": "Reduce cycle time…",
+      "buildWorkflowJson": {
+        "triggerEvent": "Supplier sends formal SCAR…",
+        "requiredRoles": ["Quality Manager"],
+        "approvalSteps": ["QE triage"],
+        "notificationNeeds": "Notify assignee…",
+        "auditTrailRequirements": "Immutable status history…",
+        "trainingLinkageRequired": true,
+        "periodicReviewRequired": true,
+        "outputType": "SCHEMA",
+        "capturedAt": "2026-04-11T11:55:00.000Z"
+      },
+      "suggestUpdateJson": null,
+      "createdAt": "2026-04-11T11:55:00.000Z",
+      "workflowDefinition": {
+        "id": "wf-uuid",
+        "name": "Supplier corrective action intake",
+        "objective": "Standardize SCAR routing…",
+        "outputType": "SCHEMA",
+        "states": [
+          { "stateKey": "intake", "label": "Intake recorded", "sortOrder": 0 },
+          { "stateKey": "design", "label": "Design / plan", "sortOrder": 1 }
+        ],
+        "transitions": [
+          {
+            "fromStateKey": "intake",
+            "toStateKey": "design",
+            "label": "Approve design",
+            "rolesJson": []
+          }
+        ]
+      }
+    }
+  ]
+}

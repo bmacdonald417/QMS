@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { QmsAgentFab } from '@/components/agent/QmsAgentFab';
 
 /**
  * Main application layout: collapsible sidebar + breadcrumb header + search.
@@ -16,6 +17,7 @@ export function MainLayout() {
           <Outlet />
         </main>
       </div>
+      <QmsAgentFab />
     </div>
   );
 }

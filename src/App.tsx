@@ -32,6 +32,7 @@ import {
   SystemRetention,
   SystemESign,
   SystemIntegrations,
+  SystemQmsAgent,
 } from '@/pages/system';
 import {
   TeamTraining,
@@ -84,6 +85,7 @@ function AppRoutes() {
             <Route path="retention" element={<SystemRetention />} />
             <Route path="esign" element={<SystemESign />} />
             <Route path="integrations" element={<SystemIntegrations />} />
+            <Route path="qms-agent" element={<SystemQmsAgent />} />
           </Route>
           <Route path="team-documents" element={<Navigate to="/documents" replace />} />
           <Route path="team-training" element={<TeamTraining />} />

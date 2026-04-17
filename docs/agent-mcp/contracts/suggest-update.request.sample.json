@@ -1,0 +1,16 @@
+{
+  "type": "SUGGEST_UPDATE",
+  "routePath": "/documents/550e8400-e29b-41d4-a716-446655440000",
+  "moduleName": "Document Control",
+  "componentName": "DocumentDetail review panel",
+  "description": "Add reviewer signature reason field and align status badge with workflow.",
+  "businessReason": "Part 11 audit readiness and clearer reviewer accountability.",
+  "priority": "HIGH",
+  "attachments": [
+    {
+      "fileName": "screenshot.png",
+      "mimeType": "image/png",
+      "dataBase64": "<base64 payload omitted>"
+    }
+  ]
+}
