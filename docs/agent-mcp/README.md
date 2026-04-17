@@ -10,7 +10,7 @@ This repository ships the **QMS Agent** as part of the **Express API** + **Vite/
 
 - **Intake only**: requests are persisted, auditable, and reviewable. There is **no** autonomous apply-to-production path from this feature.
 - **Two surfaces**:
-  1. **Human UI**: floating **QMS Agent** panel (System Admin) + **System → QMS Agent** dashboard.
+  1. **Human UI**: floating **QMS Agent** panel (**System Admin** or **Quality Manager**) with **Assistant** (conversational coach) + **Form** (structured intake) + **System → QMS Agent** dashboard.
   2. **Automation / Cursor MCP**: read-only pull of open specs via secret header (see below).
 
 ## Environment
@@ -18,6 +18,8 @@ This repository ships the **QMS Agent** as part of the **Express API** + **Vite/
 | Variable | Purpose |
 |----------|---------|
 | `AGENT_MCP_SECRET` | Shared secret for `GET /api/agent/mcp/open-requests` (`X-Agent-Mcp-Secret` header). |
+| `OPENAI_API_KEY` | Optional. Enables the in-panel **Assistant** (`POST /api/agent/assistant/chat`). If unset, the server returns offline template suggestions. |
+| `OPENAI_AGENT_MODEL` | Optional. Chat model for the Assistant (default `gpt-4o-mini`). |
 
 ## Cursor MCP (connect the assistant to your site)
 
@@ -33,6 +35,7 @@ Step-by-step: **[CURSOR_MCP_SETUP.md](./CURSOR_MCP_SETUP.md)** — Railway `AGEN
 | `PATCH` | `/api/agent/requests/:id` | JWT Bearer, System Admin or Quality Manager |
 | `GET` | `/api/agent/mcp/open-requests` | `X-Agent-Mcp-Secret: <AGENT_MCP_SECRET>`; optional query `take=1..200` (default 200) |
 | `GET` | `/api/agent/contracts` | JWT Bearer, System Admin or Quality Manager |
+| `POST` | `/api/agent/assistant/chat` | JWT Bearer, System Admin or Quality Manager; JSON body `{ mode, routePath, messages[] }` (advisory chat; drafts can be applied to the form client-side) |
 
 ## Next.js 14 porting checklist
 

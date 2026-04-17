@@ -1,4 +1,5 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { requireRoles } from '../auth.js';
 import {
   createSuggestUpdateRequest,
@@ -10,11 +11,38 @@ import {
 import {
   createAgentRequestSchema,
   patchAgentRequestSchema,
+  agentChatBodySchema,
 } from './agentSchemas.js';
+import { runAgentAssistantChat } from './agentAssistantService.js';
 
 const router = express.Router();
 
 const qmsAgentAccess = requireRoles('System Admin', 'Quality Manager');
+
+const agentChatLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many assistant requests. Try again in a few minutes.' },
+});
+
+/** POST /api/agent/assistant/chat — conversational coaching; optional OpenAI when configured. */
+router.post('/assistant/chat', qmsAgentAccess, agentChatLimiter, express.json({ limit: '1mb' }), async (req, res) => {
+  try {
+    const parsed = agentChatBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Validation failed', issues: parsed.error.flatten() });
+    }
+    const { mode, routePath, messages } = parsed.data;
+    const out = await runAgentAssistantChat({ mode, routePath, messages });
+    res.set('Cache-Control', 'no-store');
+    res.json(out);
+  } catch (err) {
+    console.error('Agent assistant chat error:', err);
+    res.status(500).json({ error: 'Assistant chat failed' });
+  }
+});
 
 /** POST /api/agent/requests — create intake (no autonomous implementation). */
 router.post('/requests', qmsAgentAccess, express.json({ limit: '14mb' }), async (req, res) => {
@@ -111,6 +139,7 @@ router.get('/contracts', qmsAgentAccess, (_req, res) => {
     note: 'See repository docs/agent-mcp/ for JSON samples and Next.js port notes.',
     endpoints: {
       openRequests: { method: 'GET', path: '/api/agent/mcp/open-requests', auth: 'X-Agent-Mcp-Secret' },
+      assistantChat: { method: 'POST', path: '/api/agent/assistant/chat', auth: 'Bearer JWT (System Admin or Quality Manager)' },
       createRequest: { method: 'POST', path: '/api/agent/requests', auth: 'Bearer JWT (System Admin or Quality Manager)' },
     },
   });

@@ -57,3 +57,14 @@ export const patchAgentRequestSchema = z.object({
   status: agentRequestStatusSchema,
   reason: z.string().max(5000).optional().nullable(),
 });
+
+export const agentChatMessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string().min(1).max(50000),
+});
+
+export const agentChatBodySchema = z.object({
+  mode: z.enum(['suggest', 'workflow']),
+  routePath: z.string().min(1).max(2048),
+  messages: z.array(agentChatMessageSchema).min(1).max(40),
+});
