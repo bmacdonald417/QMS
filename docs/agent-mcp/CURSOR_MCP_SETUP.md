@@ -12,9 +12,28 @@ On the **QMS web service** (same service that runs `node src/index.js`):
    - Three letters: **M C P** (Model Context Protocol style “MCP”), **not** `MPC`.  
    - The app only reads `AGENT_MCP_SECRET`; any other name is ignored.
 
-3. **Value:** paste a **literal** long random secret. Example (run on your machine):  
-   `openssl rand -base64 32`  
-   Copy the output and paste it into the value field.
+3. **Value:** paste a **literal** long random secret. Generate it locally using **one** of these (pick what works on your PC):
+
+   - **Node** (if `node` works in a terminal — you already use it for this repo):
+     ```bash
+     node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+     ```
+   - **OpenSSL** (no `cd` in front — run exactly this line). Works if Git for Windows or OpenSSL is on your `PATH`:
+     ```bash
+     openssl rand -base64 32
+     ```
+   - **PowerShell** (open **Windows PowerShell** or “Terminal” with PowerShell — **not** classic `cmd.exe`, because `[Convert]::...` is PowerShell syntax):
+     ```powershell
+     $b = New-Object byte[] 32
+     [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b)
+     [Convert]::ToBase64String($b)
+     ```
+   - **From Command Prompt (`cmd`)** but run PowerShell once:
+     ```bat
+     powershell -NoProfile -Command "$b=New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b)"
+     ```
+
+   Copy the **one line of base64 text** and paste it into Railway (and the same into Cursor MCP `AGENT_MCP_SECRET`).
 
 4. **Ignore the `${{...}}` / reference dropdown for this variable**  
    Railway’s dropdown lists **references** to other variables (`DATABASE_URL`, `JWT_SECRET`, Railway system vars, etc.). There is **no** built‑in “agent” option — that is normal. You are **not** wiring this secret from Railway’s menu; you **type the name yourself** and **paste your own random string** as the value. Do **not** pick `${{DATABASE_URL}}` or similar for `AGENT_MCP_SECRET`.
