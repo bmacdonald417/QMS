@@ -13,7 +13,7 @@ export function generateMigrationRiskSummary(ctx) {
     ? (/** @type {any} */ (intel)).affectedSchemaAreas
     : [];
   const affectedEntities = Array.isArray((/** @type {any} */ (intel))?.affectedEntities)
-    ? (/** @type {any} */ (intel)).affectedEntities)
+    ? (/** @type {any} */ (intel)).affectedEntities
     : [];
 
   const hasSchema =
