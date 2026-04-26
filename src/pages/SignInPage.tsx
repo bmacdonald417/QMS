@@ -72,7 +72,7 @@ export function SignInPage() {
 
   return (
     <div className="min-h-screen flex bg-[#0A0A0A] text-gray-100">
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#04060a] via-[#0a1018] to-[#0a1422] relative overflow-hidden border-r border-[#1a2436]">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#0d1014] via-[#161c24] to-[#1f2832] relative overflow-hidden border-r border-[#28323e]">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(0,122,255,.09)_1px,transparent_1px),linear-gradient(90deg,rgba(0,122,255,.09)_1px,transparent_1px)] bg-[size:48px_48px]" />
         <div className="absolute -top-32 -left-32 w-[420px] h-[420px] rounded-full bg-[#007AFF]/15 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-40 -right-32 w-[480px] h-[480px] rounded-full bg-[#007AFF]/10 blur-3xl pointer-events-none" />
@@ -121,7 +121,7 @@ export function SignInPage() {
 
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
         <div className="w-full max-w-md">
-          <div className="lg:hidden mb-8 -mx-4 sm:-mx-6 -mt-2 px-4 sm:px-6 pt-6 pb-8 rounded-b-xl bg-gradient-to-br from-[#050505] to-[#101010] border-b border-[#2A2A2A]">
+          <div className="lg:hidden mb-8 -mx-4 sm:-mx-6 -mt-2 px-4 sm:px-6 pt-6 pb-8 rounded-b-xl bg-gradient-to-br from-[#0d1014] to-[#1f2832] border-b border-[#28323e]">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#007AFF] mb-2">
               MacTech Solutions · Quality Management System
             </p>
