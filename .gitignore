@@ -1,12 +1,10 @@
 # Dependencies
 node_modules/
 
-# Build artifacts — Railway rebuilds via nixpacks `npm run build`, so the
-# bundled JS lives only as a build output, never in git. Committing dist/
-# leaks build-time env vars (e.g. VITE_CLERK_PUBLISHABLE_KEY) into the repo
-# and lets stale local builds beat the freshly-built ones in production.
-dist/
-server/dist/
+# Build artifacts — nixpacks doesn't carry the rebuilt dist into the runtime
+# image, so we commit the bundled output. Always run `npm run build` with
+# the production VITE_CLERK_PUBLISHABLE_KEY before committing or the
+# placeholder will leak into prod.
 *.local
 *.tsbuildinfo
 
