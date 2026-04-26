@@ -1,4 +1,5 @@
-import { SignUp } from '@clerk/clerk-react';
+import { SignUp, useAuth as useClerkAuth } from '@clerk/clerk-react';
+import { Navigate } from 'react-router-dom';
 import { ShieldCheck, ClipboardList, GitBranch } from 'lucide-react';
 
 const clerkAppearance = {
@@ -54,6 +55,9 @@ const trustCues = [
 ];
 
 export function SignUpPage() {
+  const { isLoaded, isSignedIn } = useClerkAuth();
+  if (isLoaded && isSignedIn) return <Navigate to="/" replace />;
+
   return (
     <div className="min-h-screen flex bg-[#0A0A0A] text-gray-100">
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#050505] via-[#0a0a0a] to-[#101010] relative overflow-hidden border-r border-[#2A2A2A]">
