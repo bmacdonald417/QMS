@@ -107,7 +107,7 @@ export function SignUpPage() {
           </div>
 
           <p className="text-xs text-gray-500">
-            mactechsolutionsllc.com · Veteran-owned · SDVOSB pending
+            mactechsolutionsllc.com · Veteran-owned · SDVOSB-certified
           </p>
         </div>
       </div>
