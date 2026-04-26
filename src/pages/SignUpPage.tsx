@@ -106,7 +106,13 @@ export function SignUpPage() {
               The quality system auditors trust.
             </h1>
           </div>
-          <SignUp appearance={clerkAppearance} signInUrl="/sign-in" />
+          <SignUp
+            routing="path"
+            path="/sign-up"
+            signInUrl="/sign-in"
+            forceRedirectUrl="/"
+            appearance={clerkAppearance}
+          />
         </div>
       </div>
     </div>
