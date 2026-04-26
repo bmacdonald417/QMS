@@ -42,20 +42,17 @@ import {
   MyTasks,
   MyTraining,
 } from '@/pages/placeholders';
-import { LoginScreen } from '@/pages/LoginScreen';
+import { SignInPage } from '@/pages/SignInPage';
+import { SignUpPage } from '@/pages/SignUpPage';
 import { AppProvider } from '@/context/AppContext';
-import { AuthProvider, useAuth } from '@/context/AuthContext';
-
-function LoginOrRedirect() {
-  const { isAuthenticated } = useAuth();
-  if (isAuthenticated) return <Navigate to="/" replace />;
-  return <LoginScreen />;
-}
+import { AuthProvider } from '@/context/AuthContext';
 
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginOrRedirect />} />
+      <Route path="/sign-in/*" element={<SignInPage />} />
+      <Route path="/sign-up/*" element={<SignUpPage />} />
+      <Route path="/login" element={<Navigate to="/sign-in" replace />} />
       <Route path="/" element={<ProtectedLayout />}>
         <Route element={<MainLayout />}>
           <Route index element={<ExecutiveDashboard />} />

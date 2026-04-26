@@ -1,6 +1,5 @@
 import express from 'express';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import { createClerkClient, verifyToken } from '@clerk/backend';
 import { prisma } from './db.js';
 import {
   checkLegacyIntegrationKey,
@@ -10,18 +9,166 @@ import {
 
 const router = express.Router();
 
+const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY || '';
+
+// Lazy because we need a secret key. Throws when first invoked without one.
+let _clerk = null;
+function clerk() {
+  if (!_clerk) {
+    if (!CLERK_SECRET_KEY) {
+      throw new Error('CLERK_SECRET_KEY not set on the QMS server.');
+    }
+    _clerk = createClerkClient({ secretKey: CLERK_SECRET_KEY });
+  }
+  return _clerk;
+}
+
 /**
- * Training API auth: JWT Bearer OR integration token (training:read, GET only) OR legacy X-INTEGRATION-KEY.
- * For integration: only GET allowed; 403 on POST/PUT/DELETE.
- * Sets req.trainingActor = 'integration' | 'user' and req.auditUserId for audit.
+ * POST /api/auth/login
+ * Legacy email+password endpoint. Identity now comes from Clerk; the
+ * frontend signs in at /sign-in and attaches a Clerk session token to API
+ * requests. Returning 410 makes any straggler client surface a clear error.
+ */
+router.post('/login', (_req, res) => {
+  res.status(410).json({
+    error:
+      'This endpoint has been retired. Sign in at /sign-in (Clerk SSO); the dashboard now sends a Clerk session token on every request.',
+  });
+});
+
+export default router;
+
+async function loadUserById(userId) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      status: true,
+      lockedAt: true,
+      role: {
+        select: {
+          name: true,
+          permissions: true,
+          rolePermissions: { select: { permission: { select: { code: true } } } },
+        },
+      },
+    },
+  });
+}
+
+async function resolveLocalUserFromClerk(clerkUserId) {
+  // 1) Already linked.
+  let row = await prisma.user.findUnique({
+    where: { clerkUserId },
+    select: {
+      id: true, firstName: true, lastName: true, email: true,
+      status: true, lockedAt: true,
+      role: {
+        select: {
+          name: true,
+          permissions: true,
+          rolePermissions: { select: { permission: { select: { code: true } } } },
+        },
+      },
+    },
+  });
+  if (row) return row;
+
+  // 2) Adopt by email — Clerk Backend lookup of the verified primary email.
+  let cu;
+  try {
+    cu = await clerk().users.getUser(clerkUserId);
+  } catch (err) {
+    console.warn('[auth] clerk.users.getUser failed:', err?.message ?? err);
+    return null;
+  }
+  const email = cu?.emailAddresses?.find((e) => e.id === cu.primaryEmailAddressId)?.emailAddress
+    ?? cu?.emailAddresses?.[0]?.emailAddress
+    ?? null;
+  if (!email) return null;
+
+  const byEmail = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+  if (!byEmail) return null;
+
+  await prisma.user.update({
+    where: { id: byEmail.id },
+    data: { clerkUserId },
+  });
+  return loadUserById(byEmail.id);
+}
+
+function flattenPermissions(role) {
+  const fromJoin = role?.rolePermissions?.map((rp) => rp.permission?.code).filter(Boolean) ?? [];
+  if (fromJoin.length) return fromJoin;
+  return role?.permissions ?? [];
+}
+
+/**
+ * Express middleware: verify a Clerk session token off the Authorization
+ * header, resolve (or adopt) the local user row, and attach req.user.
+ */
+export async function authMiddleware(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or invalid authorization' });
+  }
+  const token = auth.slice(7);
+
+  let payload;
+  try {
+    payload = await verifyToken(token, { secretKey: CLERK_SECRET_KEY });
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+
+  const clerkUserId = payload?.sub;
+  if (!clerkUserId) {
+    return res.status(401).json({ error: 'Token missing sub claim' });
+  }
+
+  const user = await resolveLocalUserFromClerk(clerkUserId);
+  if (!user) {
+    return res.status(403).json({
+      error:
+        'Your Clerk account is not linked to a QMS user. Ask an administrator to invite you (the email on the QMS user row must match your Clerk email).',
+    });
+  }
+  if (user.status && user.status !== 'ACTIVE') {
+    return res.status(401).json({ error: 'Account is not active' });
+  }
+  if (user.lockedAt) {
+    return res.status(401).json({ error: 'Account is locked' });
+  }
+
+  req.clerkPayload = payload;
+  req.user = {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    roleName: user.role?.name,
+    permissions: flattenPermissions(user.role),
+  };
+  return next();
+}
+
+/**
+ * Training API auth: integration token (training:read, GET-only) OR legacy
+ * X-INTEGRATION-KEY OR Clerk-backed user JWT. Sets req.trainingActor.
  */
 export async function trainingAuthMiddleware(req, res, next) {
-  const token = getIntegrationTokenFromRequest(req);
+  const intToken = getIntegrationTokenFromRequest(req);
   const legacyKey = process.env.INTEGRATION_KEY || '';
 
   const allowIntegrationRead = async () => {
     if (req.method !== 'GET') {
-      return res.status(403).json({ error: 'Integration token is read-only. Use JWT for write operations.' });
+      return res.status(403).json({ error: 'Integration token is read-only. Use a Clerk session token for write operations.' });
     }
     req.trainingActor = 'integration';
     let auditUserId = process.env.INTEGRATION_AUDIT_USER_ID;
@@ -36,14 +183,14 @@ export async function trainingAuthMiddleware(req, res, next) {
     return next();
   };
 
-  if (token) {
-    const decoded = verifyIntegrationToken(token);
+  if (intToken) {
+    const decoded = verifyIntegrationToken(intToken);
     if (decoded && decoded.scp.includes('training:read')) {
       req.integration = { clientId: decoded.cid, scopes: decoded.scp };
       return allowIntegrationRead();
     }
     if (decoded) {
-      return res.status(403).json({ error: 'Integration token is read-only. Use JWT for write operations.' });
+      return res.status(403).json({ error: 'Integration token is read-only. Use a Clerk session token for write operations.' });
     }
   }
 
@@ -56,129 +203,6 @@ export async function trainingAuthMiddleware(req, res, next) {
     req.auditUserId = req.user?.id ?? null;
     next();
   });
-}
-const JWT_SECRET = process.env.JWT_SECRET || 'qms-dev-secret-change-in-production';
-
-/**
- * POST /api/auth/login
- * Body: { email, password }
- * Returns: { token, user: { id, firstName, lastName, email, roleName } }
- */
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: email.trim() },
-      include: { role: { include: { rolePermissions: { include: { permission: true } } } } },
-    });
-
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    if (user.status && user.status !== 'ACTIVE') {
-      return res.status(401).json({ error: 'Account is not active' });
-    }
-    if (user.lockedAt) {
-      return res.status(401).json({ error: 'Account is locked. Contact an administrator.' });
-    }
-
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    const now = new Date();
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: now },
-    });
-
-    const payload = { userId: user.id, roleName: user.role.name, tokenVersion: user.tokenVersion ?? 0 };
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
-
-    const permissions = (user.role.rolePermissions?.map((rp) => rp.permission?.code).filter(Boolean)) ?? user.role.permissions ?? [];
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        roleName: user.role.name,
-        permissions,
-      },
-    });
-  } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ error: 'Login failed' });
-  }
-});
-
-export default router;
-
-/**
- * Middleware: verify JWT and attach user (without password) to req.user
- */
-export async function authMiddleware(req, res, next) {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Missing or invalid authorization' });
-  }
-  const token = auth.slice(7);
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        status: true,
-        lockedAt: true,
-        tokenVersion: true,
-        role: {
-          select: {
-            name: true,
-            permissions: true,
-            rolePermissions: { select: { permission: { select: { code: true } } } },
-          },
-        },
-      },
-    });
-    if (!user) {
-      return res.status(401).json({ error: 'User not found' });
-    }
-    if (user.status && user.status !== 'ACTIVE') {
-      return res.status(401).json({ error: 'Account is not active' });
-    }
-    if (user.lockedAt) {
-      return res.status(401).json({ error: 'Account is locked' });
-    }
-    const expectedVersion = user.tokenVersion ?? 0;
-    if ((decoded.tokenVersion ?? 0) !== expectedVersion) {
-      return res.status(401).json({ error: 'Session revoked. Please sign in again.' });
-    }
-    const fromJoin = user.role.rolePermissions?.map((rp) => rp.permission?.code).filter(Boolean) ?? [];
-    const permissions = fromJoin.length ? fromJoin : (user.role.permissions || []);
-    req.jwtPayload = decoded;
-    req.user = {
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      roleName: user.role.name,
-      permissions,
-    };
-    return next();
-  } catch (err) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
-  }
 }
 
 export function requireRoles(...allowedRoles) {

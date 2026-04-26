@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { ClerkProvider } from '@clerk/clerk-react';
 import App from './App';
 import './index.css';
 import { apiUrl } from '@/lib/api';
@@ -25,12 +26,21 @@ async function ensureLatestBuild(): Promise<boolean> {
   return true;
 }
 
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
+
 async function init() {
   const shouldRender = await ensureLatestBuild();
   if (!shouldRender) return;
+  if (!PUBLISHABLE_KEY) {
+    document.body.innerHTML =
+      '<pre style="padding:24px;font-family:monospace">VITE_CLERK_PUBLISHABLE_KEY not set. Add it to the Railway service environment.</pre>';
+    return;
+  }
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <App />
+      <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/sign-in">
+        <App />
+      </ClerkProvider>
     </StrictMode>
   );
 }

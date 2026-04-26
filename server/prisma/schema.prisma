@@ -120,7 +120,10 @@ model User {
   firstName         String      @map("first_name")
   lastName          String      @map("last_name")
   email             String      @unique
-  password          String
+  /// Legacy bcrypt hash from the JWT-credentials era. Nullable now that Clerk owns identity; kept so legacy logins don't immediately break if we ever roll back.
+  password          String?
+  /// Clerk user id (user_…). Nullable so legacy rows can be adopted on first SSO login by email.
+  clerkUserId       String?     @unique @map("clerk_user_id")
   roleId            Int         @map("role_id")
   role              Role        @relation(fields: [roleId], references: [id], onDelete: Restrict)
   departmentId      String?     @map("department_id")
@@ -1292,11 +1295,13 @@ model AgentAuditEvent {
 // --- Multi-tenant org shell (used by QMS Agent execution packaging) ---
 
 model Organization {
-  id        String   @id @default(uuid())
-  name      String
-  slug      String   @unique
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  /// Clerk Organization id (org_…) — links this row to the SSO tenant.
+  clerkOrgId  String?  @unique @map("clerk_org_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   memberships         OrganizationMembership[]
   executionPackages   ExecutionPackage[]

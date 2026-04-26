@@ -22,6 +22,7 @@
     "test:integration-auth": "RUN_INTEGRATION_TESTS=1 node src/integrations/integration.test.js"
   },
   "dependencies": {
+    "@clerk/backend": "^1.30.0",
     "@prisma/client": "^6.1.0",
     "adm-zip": "^0.5.16",
     "bcrypt": "^5.1.1",
