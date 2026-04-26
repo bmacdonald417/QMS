@@ -96,3 +96,20 @@ h2 {
   transform: scale(1);
   transition: opacity var(--transition-default), transform var(--transition-default);
 }
+
+/* ─── Clerk SignIn / SignUp polish (dark theme) ─────────────────────────── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: #f3f4f6 !important;
+  -webkit-box-shadow: 0 0 0 1000px #1A1A1A inset !important;
+  caret-color: #f3f4f6 !important;
+  transition: background-color 9999s ease-in-out 0s !important;
+}
+.cl-internal-b3fm6y,
+.cl-poweredBy,
+.cl-badge,
+[data-localization-key="badge__poweredBy"] {
+  display: none !important;
+}
