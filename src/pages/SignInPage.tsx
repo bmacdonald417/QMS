@@ -1,6 +1,7 @@
 import { SignIn, useAuth as useClerkAuth } from '@clerk/clerk-react';
 import { Navigate } from 'react-router-dom';
 import { ShieldCheck, ClipboardList, GitBranch } from 'lucide-react';
+import { MacTechFooter } from '@/components/layout/MacTechFooter';
 
 const clerkAppearance = {
   variables: {
@@ -71,7 +72,8 @@ export function SignInPage() {
   if (isLoaded && isSignedIn) return <Navigate to="/" replace />;
 
   return (
-    <div className="min-h-screen flex bg-[#0A0A0A] text-gray-100">
+    <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-gray-100">
+      <div className="flex-1 flex">
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#0d1014] via-[#161c24] to-[#1f2832] relative overflow-hidden border-r border-[#28323e]">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(0,122,255,.09)_1px,transparent_1px),linear-gradient(90deg,rgba(0,122,255,.09)_1px,transparent_1px)] bg-[size:48px_48px]" />
         <div className="absolute -top-32 -left-32 w-[420px] h-[420px] rounded-full bg-[#007AFF]/15 blur-3xl pointer-events-none" />
@@ -149,6 +151,8 @@ export function SignInPage() {
           />
         </div>
       </div>
+      </div>
+      <MacTechFooter />
     </div>
   );
 }
