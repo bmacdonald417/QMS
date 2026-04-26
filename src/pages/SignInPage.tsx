@@ -23,23 +23,24 @@ const clerkAppearance = {
     headerTitle: 'hidden',
     headerSubtitle: 'hidden',
     socialButtonsBlockButton:
-      'h-11 rounded-md border border-[#2A2A2A] bg-[#1A1A1A] hover:bg-[#222] text-gray-100 font-medium normal-case text-sm',
-    socialButtonsBlockButtonText: 'text-gray-100 font-medium',
+      'h-12 rounded-lg border border-[#2A2A2A] bg-[#141414] hover:bg-[#1f1f1f] hover:border-[#007AFF]/40 text-gray-100 font-medium normal-case text-sm transition-colors',
+    socialButtonsBlockButtonText: 'text-gray-100 font-medium text-sm',
     socialButtonsBlockButtonArrow: 'hidden',
     socialButtonsProviderIcon: 'h-5 w-5',
-    dividerRow: 'my-4',
+    dividerRow: 'my-5',
     dividerLine: 'bg-[#2A2A2A]',
-    dividerText: 'text-gray-500 text-xs uppercase tracking-wide',
-    formFieldLabel: 'text-gray-300 font-medium text-sm',
+    dividerText: 'text-gray-500 text-[11px] uppercase tracking-[0.18em] font-medium px-3',
+    formFieldLabel: 'text-gray-300 font-medium text-sm mb-1.5',
     formFieldInput:
-      'h-11 rounded-md border border-[#2A2A2A] bg-[#1A1A1A] text-gray-100 placeholder:text-gray-500 focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/30',
+      'h-12 rounded-lg border border-[#2A2A2A] bg-[#141414] text-gray-100 placeholder:text-gray-500 focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/30 transition-colors',
     formButtonPrimary:
-      'h-11 rounded-md bg-[#007AFF] hover:bg-[#0056B3] text-white font-semibold normal-case text-sm shadow-none',
+      'h-12 rounded-lg bg-[#007AFF] hover:bg-[#0066D6] active:bg-[#0056B3] text-white font-semibold normal-case text-sm shadow-sm transition-colors',
     footerActionText: 'text-gray-400 text-sm',
-    footerActionLink: 'text-[#007AFF] hover:text-[#0056B3] font-medium',
-    formResendCodeLink: 'text-[#007AFF]',
+    footerActionLink: 'text-[#3B9DFF] hover:text-[#5BB0FF] font-semibold',
+    formResendCodeLink: 'text-[#3B9DFF] font-medium',
+    formFieldAction: 'text-[#3B9DFF] font-medium',
     identityPreviewText: 'text-gray-300',
-    identityPreviewEditButton: 'text-[#007AFF]',
+    identityPreviewEditButton: 'text-[#3B9DFF] font-medium',
     footer: 'hidden',
   },
 } as const;
@@ -121,11 +122,14 @@ export function SignInPage() {
               The quality system auditors trust.
             </h1>
           </div>
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold tracking-tight text-white">
-              Sign in to MacTech Quality
+          <div className="mb-7">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#3B9DFF] mb-2">
+              Sign in
+            </p>
+            <h1 className="text-3xl font-bold tracking-tight text-white">
+              MacTech Quality
             </h1>
-            <p className="mt-1 text-sm text-gray-400">
+            <p className="mt-2 text-sm text-gray-400 leading-relaxed">
               Use your MacTech account to access the QMS dashboard.
             </p>
           </div>
