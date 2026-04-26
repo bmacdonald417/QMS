@@ -17,13 +17,13 @@ const clerkAppearance = {
   },
   elements: {
     rootBox: 'w-full',
-    cardBox: 'w-full bg-[#141414] border border-[#2A2A2A] rounded-xl shadow-lg shadow-black/40 p-7',
+    cardBox: 'w-full shadow-none border-0 bg-transparent p-0',
     card: 'shadow-none border-0 bg-transparent p-0 w-full',
     header: 'hidden',
     headerTitle: 'hidden',
     headerSubtitle: 'hidden',
     socialButtonsBlockButton:
-      'h-12 rounded-lg border border-[#2A2A2A] bg-[#0A0A0A] hover:bg-[#1A1A1A] hover:border-[#007AFF]/40 text-gray-100 font-medium normal-case text-sm transition-colors',
+      'h-12 rounded-lg border border-[#3A3A3A] bg-[#0A0A0A] hover:bg-[#141414] hover:border-[#007AFF] text-gray-100 font-medium normal-case text-sm transition-colors',
     socialButtonsBlockButtonText: 'text-gray-100 font-medium text-sm',
     socialButtonsBlockButtonArrow: 'hidden',
     socialButtonsProviderIcon: 'h-5 w-5',
@@ -32,7 +32,7 @@ const clerkAppearance = {
     dividerText: 'text-gray-500 text-[11px] uppercase tracking-[0.18em] font-medium px-3',
     formFieldLabel: 'text-gray-300 font-medium text-sm mb-1.5',
     formFieldInput:
-      'h-12 rounded-lg border border-[#2A2A2A] bg-[#0A0A0A] text-gray-100 placeholder:text-gray-500 focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/30 transition-colors',
+      'h-12 rounded-lg border border-[#3A3A3A] bg-[#0A0A0A] text-gray-100 placeholder:text-gray-500 hover:border-[#4A4A4A] focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/30 transition-colors',
     formButtonPrimary:
       'h-12 rounded-lg bg-[#007AFF] hover:bg-[#0066D6] active:bg-[#0056B3] text-white font-semibold normal-case text-sm shadow-sm transition-colors',
     footerActionText: 'text-gray-400 text-sm',
