@@ -103,7 +103,7 @@ input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
   -webkit-text-fill-color: #f3f4f6 !important;
-  -webkit-box-shadow: 0 0 0 1000px #1A1A1A inset !important;
+  -webkit-box-shadow: 0 0 0 1000px #0A0A0A inset !important;
   caret-color: #f3f4f6 !important;
   transition: background-color 9999s ease-in-out 0s !important;
 }
