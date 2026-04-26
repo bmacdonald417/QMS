@@ -1,10 +1,14 @@
 # Dependencies
 node_modules/
 
-# Build
-# dist/ - commented out, we need to commit dist for Railway
-# server/dist/ - we commit this for Railway (deploys from server/ root)
+# Build artifacts — Railway rebuilds via nixpacks `npm run build`, so the
+# bundled JS lives only as a build output, never in git. Committing dist/
+# leaks build-time env vars (e.g. VITE_CLERK_PUBLISHABLE_KEY) into the repo
+# and lets stale local builds beat the freshly-built ones in production.
+dist/
+server/dist/
 *.local
+*.tsbuildinfo
 
 # Env
 .env
