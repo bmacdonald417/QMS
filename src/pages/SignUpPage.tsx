@@ -18,20 +18,24 @@ const clerkAppearance = {
   elements: {
     rootBox: 'w-full',
     card: 'shadow-none border-0 bg-transparent p-0 w-full',
-    headerTitle: 'text-2xl font-semibold tracking-tight text-white',
-    headerSubtitle: 'text-sm text-gray-400',
+    header: 'hidden',
+    headerTitle: 'hidden',
+    headerSubtitle: 'hidden',
+    socialButtonsBlockButton:
+      'h-11 rounded-md border border-[#2A2A2A] bg-[#1A1A1A] hover:bg-[#222] text-gray-100 font-medium normal-case text-sm',
+    socialButtonsBlockButtonText: 'text-gray-100 font-medium',
+    socialButtonsBlockButtonArrow: 'hidden',
+    socialButtonsProviderIcon: 'h-5 w-5',
+    dividerRow: 'my-4',
+    dividerLine: 'bg-[#2A2A2A]',
+    dividerText: 'text-gray-500 text-xs uppercase tracking-wide',
     formFieldLabel: 'text-gray-300 font-medium text-sm',
     formFieldInput:
       'h-11 rounded-md border border-[#2A2A2A] bg-[#1A1A1A] text-gray-100 placeholder:text-gray-500 focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/30',
     formButtonPrimary:
-      'h-11 rounded-md bg-[#007AFF] hover:bg-[#0056B3] text-white font-medium normal-case text-sm',
-    socialButtonsBlockButton:
-      'h-11 rounded-md border border-[#2A2A2A] bg-[#1A1A1A] hover:bg-[#222] text-gray-200',
-    socialButtonsBlockButtonText: 'text-gray-200',
+      'h-11 rounded-md bg-[#007AFF] hover:bg-[#0056B3] text-white font-semibold normal-case text-sm shadow-none',
     footerActionText: 'text-gray-400 text-sm',
     footerActionLink: 'text-[#007AFF] hover:text-[#0056B3] font-medium',
-    dividerLine: 'bg-[#2A2A2A]',
-    dividerText: 'text-gray-500 text-xs',
     footer: 'hidden',
   },
 } as const;
@@ -109,6 +113,14 @@ export function SignUpPage() {
             <h1 className="text-2xl font-bold tracking-tight text-white">
               The quality system auditors trust.
             </h1>
+          </div>
+          <div className="mb-6">
+            <h1 className="text-2xl font-semibold tracking-tight text-white">
+              Create your MacTech Quality account
+            </h1>
+            <p className="mt-1 text-sm text-gray-400">
+              Continue with Google or use your email below.
+            </p>
           </div>
           <SignUp
             routing="path"
