@@ -6,10 +6,18 @@ import {
   getIntegrationTokenFromRequest,
   verifyIntegrationToken,
 } from './integrations/auth.js';
+import {
+  sendAuditLogAsync,
+  shouldFireAuditOnce,
+} from './mactechAuditClient.js';
 
 const router = express.Router();
 
 const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY || '';
+// Throttle: at most one quality.session.opened event per user per hour, per
+// process. Across N replicas you may see up to N events per hour per user;
+// that's acceptable noise for a session-level signal.
+const AUDIT_SESSION_DEDUP_MS = 60 * 60 * 1000;
 
 // Lazy because we need a secret key. Throws when first invoked without one.
 let _clerk = null;
@@ -155,6 +163,22 @@ export async function authMiddleware(req, res, next) {
     roleName: user.role?.name,
     permissions: flattenPermissions(user.role),
   };
+
+  // Forward a deduped session-opened event to the central Identity hub.
+  // Fire-and-forget; never blocks the request, never throws upstream.
+  if (shouldFireAuditOnce(`quality.session:${clerkUserId}`, AUDIT_SESSION_DEDUP_MS)) {
+    sendAuditLogAsync({
+      payload: {
+        appKey: 'quality',
+        eventType: 'quality.session.opened',
+        eventCategory: 'auth',
+        action: 'Opened MacTech Quality (QMS / document control)',
+        actorClerkUserId: clerkUserId,
+        actorEmail: user.email,
+        metadata: { roleName: user.role?.name, path: req.path },
+      },
+    });
+  }
   return next();
 }
 
