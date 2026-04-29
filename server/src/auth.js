@@ -10,6 +10,39 @@ import {
   sendAuditLogAsync,
   shouldFireAuditOnce,
 } from './mactechAuditClient.js';
+import {
+  checkIdentityAccess,
+  findActiveAccessForApp,
+} from './mactechIdentityClient.js';
+
+const QMS_APP_KEY = 'quality';
+
+/**
+ * Map a MacTech customer-org role (from the Identity Command Center) to
+ * a QMS Role.name. QMS roles are: System Admin, Quality Manager,
+ * Manager, User, Read-Only. ICC roles are: customer_owner,
+ * customer_admin, compliance_manager, security_manager,
+ * evidence_contributor, auditor, read_only_user. Internal MacTech users
+ * always become System Admin.
+ */
+function mapIccRoleToQmsRole(iccRole, isInternal) {
+  if (isInternal) return 'System Admin';
+  switch (iccRole) {
+    case 'customer_owner':
+    case 'customer_admin':
+      return 'System Admin';
+    case 'compliance_manager':
+      return 'Quality Manager';
+    case 'security_manager':
+      return 'Manager';
+    case 'evidence_contributor':
+      return 'User';
+    case 'auditor':
+    case 'read_only_user':
+    default:
+      return 'Read-Only';
+  }
+}
 
 const router = express.Router();
 
@@ -102,13 +135,57 @@ async function resolveLocalUserFromClerk(clerkUserId) {
     where: { email },
     select: { id: true },
   });
-  if (!byEmail) return null;
+  if (byEmail) {
+    await prisma.user.update({
+      where: { id: byEmail.id },
+      data: { clerkUserId },
+    });
+    return loadUserById(byEmail.id);
+  }
 
-  await prisma.user.update({
-    where: { id: byEmail.id },
-    data: { clerkUserId },
+  // 3) JIT provision from the central Identity Command Center. If the
+  //    user has access to the "quality" app via any of their org
+  //    entitlements (or is an internal MacTech operator), create a local
+  //    QMS user row with the mapped role and continue. This removes the
+  //    need for a QMS admin to invite every customer-side user manually.
+  const iccResult = await checkIdentityAccess({
+    clerkUserId,
+    appKey: QMS_APP_KEY,
   });
-  return loadUserById(byEmail.id);
+  const access = findActiveAccessForApp(iccResult, QMS_APP_KEY);
+  if (!access) return null;
+
+  const qmsRoleName = mapIccRoleToQmsRole(
+    access.org.role,
+    access.user.isInternalMacTechUser,
+  );
+  const role = await prisma.role.findFirst({
+    where: { name: qmsRoleName },
+    select: { id: true },
+  });
+  if (!role) {
+    console.error(
+      `[auth] JIT provision failed: QMS role '${qmsRoleName}' not found.`,
+    );
+    return null;
+  }
+
+  const created = await prisma.user.create({
+    data: {
+      email,
+      firstName: access.user.firstName ?? cu?.firstName ?? '',
+      lastName: access.user.lastName ?? cu?.lastName ?? '',
+      clerkUserId,
+      roleId: role.id,
+      status: 'ACTIVE',
+    },
+    select: { id: true },
+  });
+  console.log(
+    `[auth] JIT-provisioned QMS user ${email} as ${qmsRoleName} ` +
+      `(via ICC org ${access.org.orgName})`,
+  );
+  return loadUserById(created.id);
 }
 
 function flattenPermissions(role) {
