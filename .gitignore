@@ -2,9 +2,9 @@
 node_modules/
 
 # Build artifacts — nixpacks doesn't carry the rebuilt dist into the runtime
-# image, so we commit the bundled output. Always run `npm run build` with
-# the production VITE_CLERK_PUBLISHABLE_KEY before committing or the
-# placeholder will leak into prod.
+# image, so we commit the bundled output. The VITE_* values needed by
+# `npm run build` come from .env.production (committed; values are public-
+# safe Clerk publishable + canonical API URL).
 *.local
 *.tsbuildinfo
 
@@ -12,6 +12,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+!.env.production
 
 # Logs
 *.log
