@@ -8,7 +8,7 @@ import { prisma } from './db.js';
 import { authMiddleware, requirePermission, requireRoles } from './auth.js';
 import { createAuditLog } from './audit.js';
 import { loadManifest, getDocumentFromManifest, getDocumentsByCategory } from './lib/cmmc/manifest.js';
-import { readDocumentFile, getDocumentMetadata } from './lib/cmmc/docParser.js';
+import { readDocumentFile, getDocumentMetadata, parseEffectiveDate } from './lib/cmmc/docParser.js';
 import { normalizeMarkdown } from './lib/cmmc/canonicalize.js';
 import {
   computeContentHash,
@@ -16,6 +16,7 @@ import {
   computeSigningHash,
   verifySigningHash,
 } from './lib/cmmc/hashing.js';
+import { getMacTechOrgId } from './lib/orgScope.js';
 
 const router = express.Router();
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
@@ -340,6 +341,8 @@ router.post('/documents/sync', requireRoles('System Admin', 'Admin', 'System Adm
               qmsDocType: manifestDoc.qms_doc_type,
               reviewCadence: manifestDoc.review_cadence || null,
               status: 'DRAFT',
+              organizationId: getMacTechOrgId(),
+              effectiveDate: parseEffectiveDate(fileMetadata.date),
               revisions: {
                 create: {
                   revisionLabel: fileMetadata.version || '1.0',
@@ -375,6 +378,15 @@ router.post('/documents/sync', requireRoles('System Admin', 'Admin', 'System Adm
                 manifestHash,
               },
             });
+            // Mirror the new revision's date onto the parent doc so the codex contract
+            // reads a fresh effective_date without having to re-derive from cmmc_revisions.
+            const newEffectiveDate = parseEffectiveDate(fileMetadata.date);
+            if (newEffectiveDate && existing.effectiveDate?.getTime() !== newEffectiveDate.getTime()) {
+              await prisma.cmmcDocument.update({
+                where: { id: existing.id },
+                data: { effectiveDate: newEffectiveDate },
+              });
+            }
             summary.updated++;
           }
 

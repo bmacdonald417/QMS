@@ -23,6 +23,8 @@ import { loadManifest } from '../src/lib/cmmc/manifest.js';
 import { readDocumentFile } from '../src/lib/cmmc/docParser.js';
 import { normalizeMarkdown } from '../src/lib/cmmc/canonicalize.js';
 import { computeContentHash, computeManifestHash } from '../src/lib/cmmc/hashing.js';
+import { parseEffectiveDate } from '../src/lib/cmmc/docParser.js';
+import { getMacTechOrgId } from '../src/lib/orgScope.js';
 
 async function ingestCmmcDocuments() {
   try {
@@ -70,6 +72,8 @@ async function ingestCmmcDocuments() {
               qmsDocType: manifestDoc.qms_doc_type,
               reviewCadence: manifestDoc.review_cadence || null,
               status: 'DRAFT',
+              organizationId: getMacTechOrgId(),
+              effectiveDate: parseEffectiveDate(fileMetadata.date),
               revisions: {
                 create: {
                   revisionLabel: fileMetadata.version || '1.0',
@@ -106,6 +110,15 @@ async function ingestCmmcDocuments() {
                 manifestHash,
               },
             });
+            // Mirror the new revision's date onto the parent doc's effectiveDate
+            // so the codex contract stays fresh without runtime parsing.
+            const newEffectiveDate = parseEffectiveDate(fileMetadata.date);
+            if (newEffectiveDate && existing.effectiveDate?.getTime() !== newEffectiveDate.getTime()) {
+              await prisma.cmmcDocument.update({
+                where: { id: existing.id },
+                data: { effectiveDate: newEffectiveDate },
+              });
+            }
             summary.updated++;
             console.log(`  ✓ Updated: ${manifestDoc.code}`);
           } else {

@@ -96,17 +96,20 @@ async function main() {
     await prisma.eSignConfig.create({ data: {} });
   }
 
-  const primaryOrg = await prisma.organization.upsert({
-    where: { slug: 'primary' },
-    create: { name: 'Primary Organization', slug: 'primary' },
-    update: { name: 'Primary Organization' },
+  // Canonical single-tenant org. Renamed from 'primary' → 'mactech' as part of the codex
+  // CMMC contract rollout (see server/prisma/sql/20260505_phase1a_rename_org_to_mactech.sql).
+  // Idempotent upsert keyed by slug; safe to re-run on fresh dev or after rename.
+  const mactechOrg = await prisma.organization.upsert({
+    where: { slug: 'mactech' },
+    create: { name: 'MacTech Solutions LLC', slug: 'mactech' },
+    update: { name: 'MacTech Solutions LLC' },
   });
 
   const allUsers = await prisma.user.findMany({ select: { id: true } });
   for (const u of allUsers) {
     await prisma.organizationMembership.upsert({
-      where: { organizationId_userId: { organizationId: primaryOrg.id, userId: u.id } },
-      create: { organizationId: primaryOrg.id, userId: u.id },
+      where: { organizationId_userId: { organizationId: mactechOrg.id, userId: u.id } },
+      create: { organizationId: mactechOrg.id, userId: u.id },
       update: {},
     });
   }

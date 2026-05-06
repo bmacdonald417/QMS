@@ -9,6 +9,7 @@ import { validateReviewResponses } from './lib/reviewQuestions.js';
 import { generateDocumentPdf } from './pdf.js';
 import { getNextChangeId } from './changeControls.js';
 import { computeQmsHash, getRecordVersion } from './governance.js';
+import { getMacTechOrgId } from './lib/orgScope.js';
 
 const router = express.Router();
 const DOCUMENT_ENTITY = 'Document';
@@ -519,6 +520,36 @@ router.get('/:id/template', requirePermission('document:view'), async (req, res)
   }
 });
 
+// GET /api/documents/by-code/:documentId
+//
+// Permalink lookup by the human-readable code (e.g. MAC-POL-210), not the
+// row UUID. The codex CMMC contract permalink uses this to stay stable
+// across version-row turnover (each new version is a new row → new UUID,
+// but the documentId code is constant). MUST be declared BEFORE `/:id`
+// because Express matches in route order.
+//
+// Returns the row's UUID so the caller (typically the SPA shim at
+// /documents/by-code/:code) can navigate to the canonical /documents/:uuid
+// detail page.
+router.get('/by-code/:documentId', async (req, res) => {
+  try {
+    const code = String(req.params.documentId || '').trim();
+    if (!code) return res.status(400).json({ error: 'documentId is required' });
+
+    const orgId = getMacTechOrgId();
+    const row = await prisma.document.findFirst({
+      where: { documentId: code, organizationId: orgId },
+      select: { id: true, documentId: true, title: true, status: true },
+      orderBy: [{ versionMajor: 'desc' }, { versionMinor: 'desc' }, { updatedAt: 'desc' }],
+    });
+    if (!row) return res.status(404).json({ error: 'Document not found' });
+    res.json({ id: row.id, documentId: row.documentId, title: row.title, status: row.status });
+  } catch (err) {
+    console.error('Document by-code lookup error:', err);
+    res.status(500).json({ error: 'Failed to resolve document by code' });
+  }
+});
+
 // GET /api/documents/:id
 router.get('/:id', async (req, res) => {
   try {
@@ -810,6 +841,7 @@ router.post('/', requirePermission('document:create'), async (req, res) => {
         content: typeof content === 'string' ? content : '',
         tags,
         authorId: req.user.id,
+        organizationId: getMacTechOrgId(),
         revisions: {
           create: {
             versionMajor: 1,
@@ -1691,6 +1723,8 @@ router.post('/:id/revise', requirePermission('document:create'), async (req, res
         status: 'DRAFT',
         content: source.content || '',
         authorId: req.user.id,
+        // Inherit org from the doc being revised; falls through to the helper if source predates the column.
+        organizationId: source.organizationId || getMacTechOrgId(),
         supersedesDocumentId: source.id,
         revisions: {
           create: {

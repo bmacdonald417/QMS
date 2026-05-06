@@ -290,6 +290,7 @@ model Document {
   status               DocumentStatus @default(DRAFT)
   content              String?        @db.Text
   authorId             String         @map("author_id")
+  organizationId       String         @map("organization_id")
   supersedesDocumentId String?        @map("supersedes_document_id")
   tags                 String[]       @default([])
   nextReviewDate       DateTime?      @map("next_review_date")
@@ -298,6 +299,7 @@ model Document {
   updatedAt            DateTime       @updatedAt @map("updated_at")
 
   author              User                @relation("DocumentAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  organization        Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   supersedesDocument  Document?           @relation("DocumentSupersedes", fields: [supersedesDocumentId], references: [id], onDelete: SetNull)
   supersededBy        Document[]          @relation("DocumentSupersedes")
   history             DocumentHistory[]
@@ -310,9 +312,11 @@ model Document {
   trainingModules     TrainingModule[]
   periodicReviews     PeriodicReview[]
   formRecordsAsTemplate FormRecord[]
+  cmmcControlTags     DocumentCmmcControlTag[]
 
   @@map("documents")
   @@index([documentId])
+  @@index([organizationId])
   @@unique([documentId, versionMajor, versionMinor], map: "document_version_unique")
 }
 
@@ -1039,16 +1043,21 @@ model CmmcDocument {
   path           String              // relative path from bundle root
   qmsDocType     String              @map("qms_doc_type")
   reviewCadence  String?             @map("review_cadence") // annual, monthly, etc.
+  effectiveDate  DateTime?           @map("effective_date") @db.Date // mirror of latest CmmcRevision.date when parseable; null when not. Feeds the codex CMMC contract's current_version_effective_date and synthesizeNextReviewDue. Backfilled by phase1b SQL; kept fresh by sync write paths.
   status         CmmcDocumentStatus  @default(DRAFT)
+  organizationId String              @map("organization_id")
   createdAt      DateTime            @default(now()) @map("created_at")
   updatedAt      DateTime            @updatedAt @map("updated_at")
 
-  revisions CmmcRevision[]
-  signatures CmmcSignature[]
+  organization     Organization              @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  revisions        CmmcRevision[]
+  signatures       CmmcSignature[]
+  cmmcControlTags  CmmcDocumentControlTag[]
 
   @@index([kind])
   @@index([status])
   @@index([reviewCadence])
+  @@index([organizationId])
   @@map("cmmc_documents")
 }
 
@@ -1305,6 +1314,8 @@ model Organization {
 
   memberships         OrganizationMembership[]
   executionPackages   ExecutionPackage[]
+  documents           Document[]
+  cmmcDocuments       CmmcDocument[]
 
   @@map("organizations")
 }
@@ -1444,4 +1455,34 @@ model CursorHandoff {
 
   @@index([executionPackageId])
   @@map("cursor_handoffs")
+}
+
+// --- Codex ↔ QMS CMMC governance contract: control tagging junctions ---
+// Read by GET /api/v1/cmmc/controls/{controlId}/documents and the bulk variant.
+// One row = "this document covers this CMMC control." Tagging is operator-driven via the QMS admin UI.
+
+model DocumentCmmcControlTag {
+  documentId    String   @map("document_id")
+  controlId     String   @map("control_id") // e.g. "3.1.4"
+  coverageNote  String?  @map("coverage_note") @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@id([documentId, controlId])
+  @@index([controlId])
+  @@map("document_cmmc_control_tags")
+}
+
+model CmmcDocumentControlTag {
+  cmmcDocumentId String   @map("cmmc_document_id")
+  controlId      String   @map("control_id")
+  coverageNote   String?  @map("coverage_note") @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  cmmcDocument   CmmcDocument @relation(fields: [cmmcDocumentId], references: [id], onDelete: Cascade)
+
+  @@id([cmmcDocumentId, controlId])
+  @@index([controlId])
+  @@map("cmmc_document_control_tags")
 }

@@ -28,6 +28,12 @@ import { startPeriodicReviewScheduler } from './periodicReviewScheduler.js';
 import agentRoutes from './agent/agentRoutes.js';
 import agentMcpRoutes from './agent/agentMcpRoutes.js';
 import orgQmsAgentRoutes from './orgQmsAgentRoutes.js';
+import { getMacTechOrgId } from './lib/orgScope.js';
+
+// Fail loudly at boot if the canonical single-tenant org id isn't set. The helper
+// also guards every call site, but startup-throw means we never serve a single
+// request in a misconfigured state.
+getMacTechOrgId();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;

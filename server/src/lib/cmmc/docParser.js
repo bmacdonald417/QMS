@@ -143,6 +143,21 @@ export function readDocumentFile(relativePath) {
  * @param {string} relativePath
  * @returns {Object} Metadata with defaults for missing fields
  */
+/**
+ * Parse a YYYY-MM-DD date string from a CMMC manifest/header into a Date.
+ * Returns null on any parse failure — callers should treat null as "no
+ * effective date on file" rather than synthesizing a fallback. Mirrors the
+ * regex guard used by the phase1b backfill SQL.
+ * @param {unknown} dateString
+ * @returns {Date|null}
+ */
+export function parseEffectiveDate(dateString) {
+  if (typeof dateString !== 'string') return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return null;
+  const d = new Date(`${dateString}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 export async function getDocumentMetadata(relativePath) {
   try {
     const { metadata } = readDocumentFile(relativePath);

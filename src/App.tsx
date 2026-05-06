@@ -44,6 +44,7 @@ import {
 } from '@/pages/placeholders';
 import { SignInPage } from '@/pages/SignInPage';
 import { SignUpPage } from '@/pages/SignUpPage';
+import DocumentByCodeRedirect from '@/pages/DocumentByCodeRedirect';
 import { AppProvider } from '@/context/AppContext';
 import { AuthProvider } from '@/context/AuthContext';
 
@@ -59,6 +60,7 @@ function AppRoutes() {
           <Route path="dashboard" element={<QualityHealthDashboard />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="documents" element={<DocumentControl />} />
+          <Route path="documents/by-code/:documentId" element={<DocumentByCodeRedirect />} />
           <Route path="documents/:id" element={<DocumentDetail />} />
           <Route path="training" element={<TrainingCompetency />} />
           <Route path="periodic-reviews" element={<PeriodicReviewsPage />} />

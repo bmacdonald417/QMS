@@ -17,6 +17,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { marked } from 'marked';
 import { prisma } from '../src/db.js';
 import { parseDocumentHeader, extractMarkdownBody } from '../src/lib/cmmc/docParser.js';
+import { getMacTechOrgId } from '../src/lib/orgScope.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: join(__dirname, '../.env') });
@@ -131,6 +132,7 @@ async function run() {
       status: 'DRAFT',
       content,
       authorId,
+      organizationId: getMacTechOrgId(),
       tags: [CMMC_TAG],
       revisions: {
         create: {
