@@ -77,7 +77,7 @@ function fullName(user) {
   return name.length > 0 ? name : null;
 }
 
-function mapDocumentRow(d, orgId, now) {
+export function mapDocumentRow(d, orgId, now) {
   // Belt-and-suspenders multi-tenant guard — cheap per-row check that throws
   // 500 if Prisma ever returns a row from a different tenant. With the
   // single-tenant filter in the query, this should be unreachable.
@@ -136,7 +136,7 @@ function mapDocumentRow(d, orgId, now) {
   };
 }
 
-function mapCmmcDocumentRow(c, orgId, now) {
+export function mapCmmcDocumentRow(c, orgId, now) {
   if (c.organizationId !== orgId) {
     throw new Error(
       `organizationId mismatch on CmmcDocument ${c.id}: expected ${orgId}, got ${c.organizationId}`
