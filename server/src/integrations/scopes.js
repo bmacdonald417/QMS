@@ -8,6 +8,7 @@ export const SCOPES = {
   TRAINING_READ: 'training:read',
   GOVERNANCE_READ: 'governance:read',
   GOVERNANCE_WRITE: 'governance:write',
+  CMMC_READ: 'cmmc:read',
 };
 
 /** All valid scope strings. */
@@ -27,6 +28,9 @@ export const GOVERNANCE_READ_SCOPES = [SCOPES.GOVERNANCE_READ];
 
 /** Scopes required for governance write. */
 export const GOVERNANCE_WRITE_SCOPES = [SCOPES.GOVERNANCE_READ, SCOPES.GOVERNANCE_WRITE];
+
+/** Scopes required for the codex CMMC contract (per-control + bulk endpoints). */
+export const CMMC_READ_SCOPES = [SCOPES.CMMC_READ];
 
 /**
  * Check if the given scopes array includes all required scopes.
