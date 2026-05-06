@@ -40,6 +40,13 @@ getMacTechOrgId();
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 
+// Trust Railway's reverse proxy hop. Without this, express-rate-limit can't
+// see the real client IP (the connection IP is always Railway's load balancer)
+// so all traffic buckets into one global pool, defeating per-IP limits.
+// `1` = trust one proxy. Railway terminates TLS at the edge and sets
+// X-Forwarded-For to the real client. See ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
+app.set('trust proxy', 1);
+
 app.use(cors({ origin: true, credentials: true }));
 // Increase JSON body limit for large document content (default 100kb causes 413)
 app.use(express.json({ limit: '15mb' }));
