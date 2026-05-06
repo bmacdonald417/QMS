@@ -22,6 +22,7 @@ import formRecordRoutes from './formRecords.js';
 import governanceRoutes from './governanceRoutes.js';
 import cmmcRoutes from './cmmc.js';
 import cmmcControlsRoutes from './cmmcControls.js';
+import cmmcControlTagsRoutes from './cmmcControlTags.js';
 import { requestIdMiddleware } from './audit.js';
 import { trainingApiLimiter, integrationTokenLimiter } from './systemMiddleware.js';
 import integrationTokenRoutes from './integrations/tokenRoute.js';
@@ -71,6 +72,8 @@ app.use('/api/agent/mcp', agentMcpRoutes);
 app.use('/api/agent', authMiddleware, agentRoutes);
 app.use('/api/org', authMiddleware, orgQmsAgentRoutes);
 app.use('/api/cmmc', authMiddleware, cmmcRoutes);
+// Phase 6 admin tagging UI — populates the codex-contract junctions.
+app.use('/api/cmmc-control-tags', authMiddleware, cmmcControlTagsRoutes);
 // Codex CMMC contract — integration-token only (no user JWT). Mounted under /v1
 // because the contract is versioned: the v2.1 field shape lives here, and any
 // future shape rev would land at /v2 to keep the codex client switchable.
