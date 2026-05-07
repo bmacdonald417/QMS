@@ -61,9 +61,11 @@ interface DocumentViewModel {
   effectiveDate: string | null;
   releasedAt: string | null;
   releasedByUserId: string | null;
+  releasedBy: UserRef | null;
   securityImpactAnalysis: string | null;
   securityImpactAnalysisAt: string | null;
   securityImpactAnalysisByUserId: string | null;
+  securityImpactAnalysisBy: UserRef | null;
   author: UserRef;
   signatures: SignatureRef[];
   controlsMapped: string[];
@@ -258,15 +260,7 @@ export default function DocumentView() {
               </div>
               <div>
                 <dt className="text-[11px] font-medium uppercase tracking-wider text-gray-500">Released by</dt>
-                <dd className="mt-0.5 text-gray-800">
-                  {doc.releasedByUserId
-                    ? sortedSigs.find((s) => s.signatureMeaning === 'Quality Release')?.signer
-                      ? fullName(
-                          sortedSigs.find((s) => s.signatureMeaning === 'Quality Release')!.signer,
-                        )
-                      : 'recorded'
-                    : '—'}
-                </dd>
+                <dd className="mt-0.5 text-gray-800">{fullName(doc.releasedBy)}</dd>
               </div>
             </dl>
           </header>
@@ -349,14 +343,32 @@ export default function DocumentView() {
                 <FileText className="h-4 w-4 text-gray-500" />
                 Security Impact Analysis · CMMC CM.L2-3.4.4
               </h2>
-              <p className="mt-2 text-xs text-gray-500">
-                Recorded {fmtDateTime(doc.securityImpactAnalysisAt)}
-                {doc.securityImpactAnalysisByUserId && (() => {
-                  const recorder = doc.signatures.find(
-                    () => doc.securityImpactAnalysisByUserId,
-                  );
-                  return recorder ? '' : '';
-                })()}
+              <dl className="mt-3 grid grid-cols-2 gap-x-8 gap-y-1 text-xs sm:grid-cols-3">
+                <div>
+                  <dt className="font-medium uppercase tracking-wider text-gray-500">Recorded by</dt>
+                  <dd className="mt-0.5 text-gray-800">
+                    {fullName(doc.securityImpactAnalysisBy)}
+                    {doc.securityImpactAnalysisBy?.email && (
+                      <span className="ml-1 text-gray-500">
+                        &lt;{doc.securityImpactAnalysisBy.email}&gt;
+                      </span>
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-medium uppercase tracking-wider text-gray-500">Recorded at</dt>
+                  <dd className="mt-0.5 text-gray-800">
+                    {fmtDateTime(doc.securityImpactAnalysisAt)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-medium uppercase tracking-wider text-gray-500">CMMC objective</dt>
+                  <dd className="mt-0.5 font-mono text-gray-800">CM.L2-3.4.4</dd>
+                </div>
+              </dl>
+              <p className="mt-3 text-[11px] text-gray-500">
+                Per Separation of Duties (CMMC AC.L2-3.1.4 / AU.L2-3.3.9), the SIA recorder
+                must not be the document author or any reviewer who signed below.
               </p>
               <pre className="mt-3 whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-800">
                 {doc.securityImpactAnalysis}

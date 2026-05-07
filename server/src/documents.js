@@ -615,6 +615,35 @@ router.get('/:id', async (req, res) => {
     } catch {
       document.controlsMapped = [];
     }
+    // Look up the SIA recorder + Quality Release stamper users by id.
+    // These are scalar foreign keys on the Document model with no Prisma
+    // relation — so we do a cheap explicit fetch. The view page renders
+    // their names in the SIA section + the metadata grid.
+    try {
+      const ids = [
+        document.securityImpactAnalysisByUserId,
+        document.releasedByUserId,
+      ].filter((x) => typeof x === 'string' && x);
+      if (ids.length > 0) {
+        const users = await prisma.user.findMany({
+          where: { id: { in: Array.from(new Set(ids)) } },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        });
+        const byId = Object.fromEntries(users.map((u) => [u.id, u]));
+        document.securityImpactAnalysisBy = document.securityImpactAnalysisByUserId
+          ? byId[document.securityImpactAnalysisByUserId] ?? null
+          : null;
+        document.releasedBy = document.releasedByUserId
+          ? byId[document.releasedByUserId] ?? null
+          : null;
+      } else {
+        document.securityImpactAnalysisBy = null;
+        document.releasedBy = null;
+      }
+    } catch {
+      document.securityImpactAnalysisBy = null;
+      document.releasedBy = null;
+    }
     res.json({ document });
   } catch (err) {
     console.error('Get document error:', err);
