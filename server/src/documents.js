@@ -10,6 +10,12 @@ import { generateDocumentPdf } from './pdf.js';
 import { getNextChangeId } from './changeControls.js';
 import { computeQmsHash, getRecordVersion } from './governance.js';
 import { getMacTechOrgId } from './lib/orgScope.js';
+import {
+  loadDocumentForLifecycle,
+  gateForRecordSIA,
+  gateForRelease,
+  nextRequiredAction,
+} from './lib/documentLifecycle.js';
 
 const router = express.Router();
 const DOCUMENT_ENTITY = 'Document';
@@ -1528,10 +1534,16 @@ async function qualityReleaseHandler(req, res) {
       return res.status(400).json({ error: 'Password is required for digital signature' });
     }
 
-    const document = await prisma.document.findUnique({ where: { id: req.params.id } });
+    // CMMC L2 alignment — load the doc with signatures and run the
+    // release gate. Refuses if SIA missing, no Approver signature, or
+    // releaser is the author. See documentLifecycle.js for the full
+    // gate matrix; spec at docs/specs/document-approval-cmmc-alignment.md
+    // on the codex repo.
+    const document = await loadDocumentForLifecycle(req.params.id);
     if (!document) return res.status(404).json({ error: 'Document not found' });
-    if (document.status !== 'APPROVED') {
-      return res.status(400).json({ error: 'Document must be Approved before quality release' });
+    const gate = gateForRelease(document, req.user.id);
+    if (!gate.ok) {
+      return res.status(409).json({ error: gate.reason });
     }
 
     const signer = await prisma.user.findUnique({
@@ -1574,7 +1586,15 @@ async function qualityReleaseHandler(req, res) {
       }
       await tx.document.update({
         where: { id: document.id },
-        data: { status: 'EFFECTIVE', effectiveDate: now },
+        data: {
+          status: 'EFFECTIVE',
+          effectiveDate: now,
+          // CMMC L2 release-stamp fields. Distinct from the Approver
+          // signature already on the doc; this is the Quality Manager's
+          // formal "this is now in production" gate (CM.L2-3.4.5 [d]/[h]).
+          releasedAt: now,
+          releasedByUserId: req.user.id,
+        },
       });
       await tx.document.updateMany({
         where: {
@@ -1672,6 +1692,112 @@ async function qualityReleaseHandler(req, res) {
     res.status(500).json({ error: 'Failed quality release' });
   }
 }
+
+// POST /api/documents/:id/security-impact-analysis
+//
+// CMMC CM.L2-3.4.4 — Security Impact Analysis recorded prior to APPROVED
+// transition. Body: { securityImpactAnalysis: string }. Enforces SoD via
+// gateForRecordSIA — recorder must not be author or any reviewer.
+router.post(
+  '/:id/security-impact-analysis',
+  requireRoles('Quality Manager', 'Manager', 'System Admin'),
+  requirePermission('document:review'),
+  async (req, res) => {
+    try {
+      const text = String(req.body?.securityImpactAnalysis ?? '').trim();
+      if (!text) {
+        return res
+          .status(400)
+          .json({ error: 'securityImpactAnalysis text is required' });
+      }
+      const document = await loadDocumentForLifecycle(req.params.id);
+      if (!document) return res.status(404).json({ error: 'Document not found' });
+      const gate = gateForRecordSIA(document, req.user.id);
+      if (!gate.ok) return res.status(409).json({ error: gate.reason });
+
+      const before = {
+        securityImpactAnalysis: document.securityImpactAnalysis,
+        securityImpactAnalysisAt: document.securityImpactAnalysisAt,
+        securityImpactAnalysisByUserId: document.securityImpactAnalysisByUserId,
+      };
+
+      const updated = await prisma.document.update({
+        where: { id: document.id },
+        data: {
+          securityImpactAnalysis: text,
+          securityImpactAnalysisAt: new Date(),
+          securityImpactAnalysisByUserId: req.user.id,
+          // If the doc was sitting in plain IN_REVIEW with no SIA, the
+          // recording itself doesn't auto-progress — we keep the existing
+          // approval submission flow as the next step. This preserves the
+          // current submit-for-approval semantics.
+        },
+        select: {
+          id: true,
+          securityImpactAnalysis: true,
+          securityImpactAnalysisAt: true,
+          securityImpactAnalysisByUserId: true,
+          status: true,
+        },
+      });
+
+      await createAuditLog({
+        userId: req.user.id,
+        action: 'DOCUMENT_SIA_RECORDED',
+        entityType: 'Document',
+        entityId: document.id,
+        beforeValue: before,
+        afterValue: {
+          length: text.length,
+          recordedByUserId: req.user.id,
+        },
+        ip: req.ip ?? null,
+        userAgent: req.get('user-agent') ?? null,
+        requestId: req.requestId ?? null,
+      });
+
+      res.json({ document: updated });
+    } catch (err) {
+      console.error('Document SIA record error:', err);
+      res.status(500).json({ error: 'Failed to record Security Impact Analysis' });
+    }
+  },
+);
+
+// GET /api/documents/:id/workflow-state
+//
+// Read-only diagnostic surface for the WorkflowStepper UI. Returns
+// the current status, the next-required-action descriptor, and a
+// release-readiness boolean. No auth changes beyond the parent
+// authMiddleware on /api/documents.
+router.get('/:id/workflow-state', async (req, res) => {
+  try {
+    const document = await loadDocumentForLifecycle(req.params.id);
+    if (!document) return res.status(404).json({ error: 'Document not found' });
+    const next = nextRequiredAction(document);
+    const releaseGate = gateForRelease(document, req.user?.id ?? '');
+    res.json({
+      status: document.status,
+      hasSIA: Boolean(document.securityImpactAnalysis?.trim()),
+      releasedAt: document.releasedAt,
+      releasedByUserId: document.releasedByUserId,
+      reviewerSignerCount: (document.signatures ?? []).filter((s) =>
+        /^reviewer$|^review$/i.test(s.signatureMeaning),
+      ).length,
+      approverSignerCount: (document.signatures ?? []).filter((s) =>
+        /^approver$|approve|release/i.test(s.signatureMeaning),
+      ).length,
+      nextRequiredAction: next,
+      // Release-readiness for the *current caller*. Useful for
+      // disabling the Release button with the right tooltip.
+      releaseReadyForCaller: releaseGate.ok,
+      releaseGateReason: releaseGate.ok ? null : releaseGate.reason,
+    });
+  } catch (err) {
+    console.error('Document workflow-state error:', err);
+    res.status(500).json({ error: 'Failed to load workflow state' });
+  }
+});
 
 // POST /api/documents/:id/quality-release
 router.post(

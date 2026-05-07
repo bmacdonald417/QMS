@@ -103,6 +103,12 @@ async function main() {
       generatedBy: args.publishedBy ?? 'governance-package-seed',
       issuerClientId: 'mactech-qms-package-issuer',
       source: 'governance_package_canonical',
+      // The canonical-roster build wants the FULL document set, including
+      // in-flight rows that are NOT yet released. The released_summary
+      // distinguishes them. Codex's OIS engine ignores released:false rows
+      // for evidence purposes, so this is safe — the canonical roster is
+      // a "what docs are in scope" snapshot, not "what's authorized."
+      releasedOnly: false,
     },
   );
   if (!manifest) {

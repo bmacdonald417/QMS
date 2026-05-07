@@ -301,6 +301,19 @@ model Document {
   tags                 String[]       @default([])
   nextReviewDate       DateTime?      @map("next_review_date")
   isUnderReview        Boolean        @default(false) @map("is_under_review")
+  // CMMC L2 alignment fields (see docs/specs/document-approval-cmmc-alignment.md):
+  // CM.L2-3.4.4 — Security Impact Analysis recorded prior to APPROVED transition.
+  // Free-form text capturing controls touched, risks, and mitigations. The
+  // recorded-by user must be different from the author and reviewers
+  // (Separation of Duties — AC.L2-3.1.4 + AU.L2-3.3.9).
+  securityImpactAnalysis           String?       @db.Text                @map("security_impact_analysis")
+  securityImpactAnalysisAt         DateTime?                             @map("security_impact_analysis_at")
+  securityImpactAnalysisByUserId   String?                               @map("security_impact_analysis_by_user_id")
+  // Quality Manager release stamp. Distinct from the Approver signature.
+  // CM.L2-3.4.5 [d]/[h] — physical/logical access restrictions ENFORCED.
+  // releasedByUserId may equal an Approver but MAY NOT equal the author.
+  releasedAt                       DateTime?                             @map("released_at")
+  releasedByUserId                 String?                               @map("released_by_user_id")
   createdAt            DateTime       @default(now()) @map("created_at")
   updatedAt            DateTime       @updatedAt @map("updated_at")
 

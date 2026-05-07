@@ -227,17 +227,28 @@ async function resolveControlsFor(document, platformMap) {
  * @param {{ generatedBy?: string, source?: string, toolVersion?: string,
  *           reviewPeriodStart?: string, reviewPeriodEnd?: string,
  *           issuerClientId?: string, issuerService?: string,
- *           issuerUrl?: string, gitSha?: string }} [opts]
+ *           issuerUrl?: string, gitSha?: string,
+ *           releasedOnly?: boolean }} [opts]
+ *
+ * `releasedOnly` defaults to TRUE per CMMC L2 alignment — drafts cannot
+ * ship to codex. The /system/governance-package canonical-roster build
+ * sets it to false explicitly so the FULL document set ships (including
+ * in-flight) for visibility purposes; the codex's OIS engine ignores
+ * `released: false` rows for evidence purposes regardless. See
+ * docs/specs/document-approval-cmmc-alignment.md (codex repo).
+ *
  * @returns {Promise<{ manifest: object|null, warnings: string[] }>}
  */
 export async function buildQmsGovernanceManifestFromDocumentIds(documentIds, opts = {}) {
   const generatedBy = opts.generatedBy ?? 'qms-server';
   const source = opts.source ?? 'qms_document_control';
-  const toolVersion = opts.toolVersion ?? '1.1.0-qms';
+  const toolVersion = opts.toolVersion ?? '1.2.0-qms';
   const issuerClientId = opts.issuerClientId ?? 'mactech-qms-manifest-issuer';
   const issuerService = opts.issuerService ?? 'qms';
   const issuerUrl = opts.issuerUrl ?? 'https://quality.mactechsolutionsllc.com';
   const gitSha = opts.gitSha;
+  // CMMC L2 default: released-only. Caller must explicitly opt out.
+  const releasedOnly = opts.releasedOnly ?? true;
 
   const platformRows = await prisma.governanceControlMapping.findMany();
   const platformMap = new Map(platformRows.map((r) => [r.documentNumber, r.controlIds]));
@@ -298,7 +309,7 @@ export async function buildQmsGovernanceManifestFromDocumentIds(documentIds, opt
       signatures,
     );
 
-    if (opts.releasedOnly && !released) {
+    if (releasedOnly && !released) {
       warnings.push(
         `Skipped (not released): ${document.documentId} (status=${document.status}, signatures=${signatures.length})`,
       );
