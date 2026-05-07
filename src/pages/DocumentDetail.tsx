@@ -6,6 +6,7 @@ import { DocumentContentRender } from '@/components/DocumentContentRender';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { GovernanceApprovalPanel } from '@/components/modules/compliance/GovernanceApprovalPanel';
 import { ReleaseToCodexButton } from '@/components/governance/ReleaseToCodexButton';
+import { CmmcGatePanel, type CmmcWorkflowState } from '@/components/governance/CmmcGatePanel';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest, apiUrl } from '@/lib/api';
 import { stripMarkdownFormatting, formatRelativeTime } from '@/lib/format';
@@ -163,6 +164,12 @@ export function DocumentDetail() {
   const [linkSearchLoading, setLinkSearchLoading] = useState(false);
   const [statusTooltipVisible, setStatusTooltipVisible] = useState(false);
   const [workflowDetailsOpen, setWorkflowDetailsOpen] = useState(false);
+  // CMMC gate state — populated by CmmcGatePanel via onWorkflowState. Used
+  // to disable the Quality Release button + show the gate reason on hover.
+  const [cmmcState, setCmmcState] = useState<CmmcWorkflowState | null>(null);
+  // Bumped after successful approve/release/SIA-record so CmmcGatePanel
+  // re-fetches /workflow-state.
+  const [cmmcRefreshKey, setCmmcRefreshKey] = useState(0);
   const workflowDetailsRef = useRef<HTMLDivElement>(null);
   const linkDropdownRef = useRef<HTMLDivElement>(null);
   const reviewCommentTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -195,6 +202,9 @@ export function DocumentDetail() {
       setTitle(data.document.title);
       setDocumentType(data.document.documentType);
       setContent(data.document.content || '');
+      // Tell CmmcGatePanel to re-fetch its workflow-state — the doc's
+      // signatures / SIA / release flags may have changed.
+      setCmmcRefreshKey((n) => n + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load document');
     } finally {
@@ -966,6 +976,17 @@ export function DocumentDetail() {
         </Card>
       )}
 
+      {/* CMMC L2 compliance gate — surfaces SIA / signature / release
+          requirements. Always render above the approval/release cards so
+          authors and reviewers see the gate even when they can't act. */}
+      {doc.status !== 'EFFECTIVE' && doc.status !== 'OBSOLETE' && (
+        <CmmcGatePanel
+          documentId={doc.id}
+          refreshKey={cmmcRefreshKey}
+          onWorkflowState={setCmmcState}
+        />
+      )}
+
       {canApprove && (
         <Card padding="md">
           <h2 className="mb-2 text-lg text-white">Approval</h2>
@@ -982,9 +1003,20 @@ export function DocumentDetail() {
           <p className="mb-3 text-sm text-gray-400">
             Final quality release requires password re-entry and records digital signature evidence.
           </p>
-          <Button variant="success" onClick={() => setPasswordModal('release')}>
-            Release Document
-          </Button>
+          {cmmcState && !cmmcState.releaseReadyForCaller ? (
+            <>
+              <Button variant="success" disabled title={cmmcState.releaseGateReason ?? ''}>
+                Release Document
+              </Button>
+              <p className="mt-2 text-xs text-amber-400">
+                Blocked: {cmmcState.releaseGateReason ?? 'CMMC L2 release gate not satisfied'}
+              </p>
+            </>
+          ) : (
+            <Button variant="success" onClick={() => setPasswordModal('release')}>
+              Release Document
+            </Button>
+          )}
         </Card>
       )}
 
