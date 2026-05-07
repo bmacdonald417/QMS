@@ -38,6 +38,7 @@ import {
   SystemGovernanceManifest,
   SystemGovernancePackage,
   SystemGovernanceRelease,
+  SystemReleaseReadiness,
 } from '@/pages/system';
 import {
   TeamTraining,
@@ -96,6 +97,7 @@ function AppRoutes() {
             <Route path="qms-agent/execution-packages/:id" element={<SystemExecutionPackageDetail />} />
             <Route path="governance-manifest" element={<SystemGovernanceManifest />} />
             <Route path="governance-package" element={<SystemGovernancePackage />} />
+            <Route path="release-readiness" element={<SystemReleaseReadiness />} />
             <Route path="governance-release" element={<SystemGovernanceRelease />} />
           </Route>
           <Route path="team-documents" element={<Navigate to="/documents" replace />} />

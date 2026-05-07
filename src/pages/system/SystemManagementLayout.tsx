@@ -14,6 +14,7 @@ const navItems = [
   { to: '/system/qms-agent/execution-packages', end: false, label: 'Execution packages' },
   { to: '/system/governance-manifest', end: false, label: 'Governance manifest' },
   { to: '/system/governance-package', end: false, label: 'Vault package (canonical)' },
+  { to: '/system/release-readiness', end: false, label: 'Release readiness' },
   { to: '/system/governance-release', end: false, label: 'Bulk release to Codex' },
 ];
 
