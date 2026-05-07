@@ -603,6 +603,18 @@ router.get('/:id', async (req, res) => {
     const isAuthor = req.user && document.authorId === req.user.id;
     const hasAssignment = document.assignments?.some((a) => a.assignedToId === req.user?.id);
     document.canAddLinks = !!(req.user && (isAuthor || hasAssignment) && document.status !== 'OBSOLETE');
+    // Surface CMMC control mappings on the doc record so the read-only
+    // /documents/:id/view page can render them inline. Cheap join — one
+    // lookup keyed by document_number.
+    try {
+      const mapping = await prisma.governanceControlMapping.findUnique({
+        where: { documentNumber: document.documentId },
+        select: { controlIds: true },
+      });
+      document.controlsMapped = mapping?.controlIds ?? [];
+    } catch {
+      document.controlsMapped = [];
+    }
     res.json({ document });
   } catch (err) {
     console.error('Get document error:', err);

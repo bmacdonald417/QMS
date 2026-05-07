@@ -49,6 +49,8 @@ import {
 import { SignInPage } from '@/pages/SignInPage';
 import { SignUpPage } from '@/pages/SignUpPage';
 import DocumentByCodeRedirect from '@/pages/DocumentByCodeRedirect';
+import DocumentView from '@/pages/DocumentView';
+import DocumentByCodeViewRedirect from '@/pages/DocumentByCodeViewRedirect';
 import CmmcControlTags from '@/pages/CmmcControlTags';
 import { AppProvider } from '@/context/AppContext';
 import { AuthProvider } from '@/context/AuthContext';
@@ -60,6 +62,14 @@ function AppRoutes() {
       <Route path="/sign-up/*" element={<SignUpPage />} />
       <Route path="/login" element={<Navigate to="/sign-in" replace />} />
       <Route path="/" element={<ProtectedLayout />}>
+        {/* Read-only "C3PAO presentation" view of a single document.
+            Auth-gated via ProtectedLayout but rendered WITHOUT the app
+            chrome (sidebar/header) so it prints/shares cleanly. */}
+        <Route path="documents/:id/view" element={<DocumentView />} />
+        <Route
+          path="documents/by-code/:documentId/view"
+          element={<DocumentByCodeViewRedirect />}
+        />
         <Route element={<MainLayout />}>
           <Route index element={<ExecutiveDashboard />} />
           <Route path="dashboard" element={<QualityHealthDashboard />} />
