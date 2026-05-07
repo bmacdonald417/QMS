@@ -1126,6 +1126,47 @@ model CmmcSignature {
 // fallback for documents that haven't been tagged in the admin UI yet.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Determinate MacTech Vault Governance Package
+//
+// Canonical, IMMUTABLE roster of the documents every CMMC L2 vault carries.
+// Every client gets the SAME document_number / document_type / controls_mapped
+// set; only doc CONTENT is prefilled per-tenant (future questionnaire flow).
+//
+// One row per version. Once `is_active=true` and `published_at` is set, the
+// row is read-only by application convention (no UPDATE/DELETE routes; the
+// CLI script seedGovernancePackageVersion.js refuses to overwrite a
+// published version). New versions are PUBLISHED — never mutated.
+//
+// CMMC alignment:
+//   3.4.1 Baseline Configuration — frozen-blob snapshot of doc roster
+//   3.4.2 Configuration Change Control — versioned via versionLabel
+//   3.4.5 Authorize Changes — only published versions count as canonical
+//   3.3.8 Audit Records Protection — published packages are read-only
+//
+// The frozen `manifestEnvelope` jsonb holds the full v1.2 envelope as it
+// would be emitted at publish time: documents[] with sha256s, signatures,
+// controls_touched, content_hash, etc. Storing the whole envelope means
+// codex-side and QMS-side always see the same canonical set; the
+// /system/governance-package UI just renders this blob.
+// ─────────────────────────────────────────────────────────────────────────────
+model GovernancePackageVersion {
+  id              String   @id @default(uuid())
+  versionLabel    String   @unique @map("version_label") // e.g. "v1.0.0"
+  publishedAt     DateTime @map("published_at")
+  publishedBy     String?  @map("published_by")
+  contentHash     String   @map("content_hash") // sha256 of canonicalized envelope
+  manifestEnvelope Json    @map("manifest_envelope")
+  docCount        Int      @map("doc_count")
+  controlsTouched String[] @map("controls_touched")
+  isActive        Boolean  @default(false) @map("is_active") // exactly one true at a time
+  notes           String?  @db.Text
+
+  @@index([isActive])
+  @@index([publishedAt])
+  @@map("governance_package_versions")
+}
+
 model GovernanceControlMapping {
   id             String   @id @default(uuid())
   documentNumber String   @unique @map("document_number")

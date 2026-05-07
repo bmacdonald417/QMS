@@ -12,3 +12,5 @@ export { SystemQmsAgent } from './SystemQmsAgent';
 export { SystemExecutionPackages } from './SystemExecutionPackages';
 export { SystemExecutionPackageDetail } from './SystemExecutionPackageDetail';
 export { SystemGovernanceManifest } from './SystemGovernanceManifest';
+export { SystemGovernancePackage } from './SystemGovernancePackage';
+export { SystemGovernanceRelease } from './SystemGovernanceRelease';

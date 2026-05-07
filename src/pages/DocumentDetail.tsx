@@ -5,6 +5,7 @@ import { Badge, Button, Card, Input, Modal } from '@/components/ui';
 import { DocumentContentRender } from '@/components/DocumentContentRender';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { GovernanceApprovalPanel } from '@/components/modules/compliance/GovernanceApprovalPanel';
+import { ReleaseToCodexButton } from '@/components/governance/ReleaseToCodexButton';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest, apiUrl } from '@/lib/api';
 import { stripMarkdownFormatting, formatRelativeTime } from '@/lib/format';
@@ -522,6 +523,11 @@ export function DocumentDetail() {
               <span className="text-sm text-gray-400">
                 Next review: {new Date(doc.nextReviewDate).toLocaleDateString()}
               </span>
+            )}
+            {(user?.roleName === 'Admin' ||
+              user?.roleName === 'Quality Manager' ||
+              user?.roleName === 'System Admin') && (
+              <ReleaseToCodexButton documentIds={[doc.id]} variant="compact" />
             )}
           </div>
         </div>
