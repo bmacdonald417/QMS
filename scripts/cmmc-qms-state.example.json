@@ -1,0 +1,18 @@
+{
+  "generated_by": "patrick@mactechsolutionsllc.com",
+  "documents": {
+    "MAC-POL-210": {
+      "status": "EFFECTIVE",
+      "next_review_date": "2027-01-23",
+      "revision": {
+        "content_hash": "replace-with-cmmc_revisions.content_hash-from-database",
+        "signing_hash": "replace-with-cmmc_revisions.signing_hash-if-present"
+      },
+      "signature": {
+        "signed_by": "signer@example.com",
+        "signed_at": "2026-01-23T18:00:00Z",
+        "signature_hash": "replace-with-cmmc_signatures.signing_hash"
+      }
+    }
+  }
+}

@@ -17,6 +17,7 @@
     "db:remove-cmmc-tag": "node scripts/remove-cmmc-tag.js",
     "db:add-cmmc-tag": "node scripts/add-cmmc-tag.js",
     "ingest:governance-zip": "node scripts/ingestGovernanceZip.js",
+    "db:seed-governance-mapping": "node scripts/seedGovernanceControlMapping.js",
     "db:wipe-documents": "node scripts/wipe-all-documents.js",
     "test:training": "node src/training.test.js",
     "test:integration-auth": "RUN_INTEGRATION_TESTS=1 node src/integrations/integration.test.js"

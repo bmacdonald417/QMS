@@ -18,9 +18,15 @@ import {
   verifyGovernanceSignature,
   getGovernanceApprovalStatus,
 } from './governance.js';
+import governanceManifestRoutes from './governanceManifestRoutes.js';
 
 const router = express.Router();
 const LEGACY_KEY = process.env.INTEGRATION_KEY || '';
+
+// Mount manifest sub-routes under /api/governance/* so Brian's existing
+// /ingest-manifest, /manifest-runs/latest, /ssp-manifest-status, and the
+// new /push-to-codex are reachable via the parent governance router.
+router.use(governanceManifestRoutes);
 
 async function resolveAuditUserId() {
   let id = process.env.INTEGRATION_AUDIT_USER_ID;

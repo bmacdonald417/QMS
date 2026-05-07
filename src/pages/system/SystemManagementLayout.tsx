@@ -12,6 +12,7 @@ const navItems = [
   { to: '/system/integrations', end: false, label: 'Integrations' },
   { to: '/system/qms-agent', end: false, label: 'QMS Agent' },
   { to: '/system/qms-agent/execution-packages', end: false, label: 'Execution packages' },
+  { to: '/system/governance-manifest', end: false, label: 'Governance manifest' },
 ];
 
 export function SystemManagementLayout() {

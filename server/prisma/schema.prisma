@@ -174,6 +174,7 @@ model User {
   formRecordsFinalized  FormRecord[]      @relation("FormRecordFinalizedBy")
   signatureRequestsCreated SignatureRequest[]
   cmmcSignatures           CmmcSignature[]
+  governanceManifestRuns   GovernanceManifestRun[] @relation("GovernanceManifestCreatedBy")
   agentRequestsCreated     AgentRequest[]     @relation("AgentRequestCreator")
   agentAuditEvents         AgentAuditEvent[]
   organizationMemberships OrganizationMembership[]
@@ -1108,6 +1109,105 @@ model CmmcSignature {
   @@index([userId])
   @@index([signedAt])
   @@map("cmmc_signatures")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Trust Codex governance manifest ingest (JSON-only — hashes, not file uploads)
+//
+// QMS produces a signed mactech-governance-manifest.v1.1 envelope, ships it
+// to codex via codexManifestClient.js, AND records the run here for QMS-
+// internal audit/visibility. Two parallel audit trails: codex tracks what
+// it received; QMS tracks what it produced. Both are append-only.
+//
+// GovernanceControlMapping (documentNumber → controlIds[]) is the LEGACY
+// mapping seeded from scripts/governance-control-mapping.json. Going
+// forward, document↔control mapping happens via the Phase 6 junction tables
+// (DocumentCmmcControlTag, CmmcDocumentControlTag); this table remains as
+// fallback for documents that haven't been tagged in the admin UI yet.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model GovernanceControlMapping {
+  id             String   @id @default(uuid())
+  documentNumber String   @unique @map("document_number")
+  controlIds     String[] @map("control_ids")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("governance_control_mapping")
+}
+
+model GovernanceManifestRun {
+  id                    String   @id @default(uuid())
+  runId                 String   @unique @map("run_id")
+  manifestSchema        String?  @map("manifest_schema")
+  generatedAt           DateTime @map("generated_at")
+  generatedBy           String?  @map("generated_by")
+  toolVersion           String?  @map("tool_version")
+  basePath              String?  @map("base_path")
+  documentsTotal        Int      @map("documents_total")
+  governanceDocCount    Int      @map("governance_doc_count")
+  supportingDocCount    Int      @map("supporting_doc_count")
+  uniqueControlsCovered Int      @map("unique_controls_covered")
+  reviewOverdue         Json     @map("review_overdue")
+  ingestLog             Json?    @map("ingest_log")
+  // v1.1 chain-of-custody fields (null on legacy v1 runs).
+  contentHash           String?  @map("content_hash")
+  signingHash           String?  @map("signing_hash")
+  signatureKid          String?  @map("signature_kid")
+  // Codex push outcome (null until/unless we attempt the push). Tracks
+  // cross-system delivery for CMMC 3.3.4 alerting on missed manifests.
+  codexPushedAt         DateTime? @map("codex_pushed_at")
+  codexPushStatus       String?   @map("codex_push_status") // "stored" | "already_present" | "failed"
+  codexPushError        String?   @map("codex_push_error")
+  createdByUserId       String?  @map("created_by_user_id")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  createdBy      User?                    @relation("GovernanceManifestCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  documentHashes GovernanceDocumentHash[]
+  controlLinks   GovernanceControlLink[]
+
+  @@index([createdAt])
+  @@map("governance_manifest_runs")
+}
+
+model GovernanceDocumentHash {
+  id                   String   @id @default(uuid())
+  runId                String   @map("run_id")
+  documentNumber       String   @map("document_number")
+  documentName         String?  @map("document_name")
+  documentType         String   @map("document_type")
+  filePath             String?  @map("file_path")
+  version              String?
+  sha256               String
+  fileSizeBytes        Int?     @map("file_size_bytes")
+  effectiveDate        String?  @map("effective_date")
+  nextReviewDate       String?  @map("next_review_date")
+  status               String?
+  inPlatformLibrary    Boolean  @default(false) @map("in_platform_library")
+  controlsSource       String?  @map("controls_source") // "junctions" | "platform_mapping" | "manifest_fallback" | "none"
+  controlsResolved     String[] @default([]) @map("controls_resolved")
+  countsTowardCoverage Boolean  @default(true) @map("counts_toward_coverage")
+
+  run GovernanceManifestRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([documentNumber])
+  @@map("governance_document_hashes")
+}
+
+model GovernanceControlLink {
+  id              String @id @default(uuid())
+  runId           String @map("run_id")
+  controlId       String @map("control_id")
+  documentNumber  String @map("document_number")
+  policyDocStatus String @default("satisfied") @map("policy_doc_status")
+  source          String
+
+  run GovernanceManifestRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, controlId, documentNumber])
+  @@index([runId])
+  @@index([controlId])
+  @@map("governance_control_links")
 }
 
 model IntegrationClient {
