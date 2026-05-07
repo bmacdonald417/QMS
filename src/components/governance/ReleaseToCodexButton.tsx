@@ -102,6 +102,11 @@ export function ReleaseToCodexButton({
             ship with <span className="font-mono">released = false</span> (they appear in
             the manifest but don't count as authorized changes under CMMC 3.4.5).
           </p>
+          <p className="text-xs text-gray-500">
+            This action requires the <code className="rounded bg-gray-100 px-1 py-0.5">document:release</code>{' '}
+            permission (Quality Manager or System Admin role). Other releasers can still
+            create/review/approve documents in QMS without being able to release them to Codex.
+          </p>
           {error && (
             <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
               {error}

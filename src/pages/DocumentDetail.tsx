@@ -524,9 +524,8 @@ export function DocumentDetail() {
                 Next review: {new Date(doc.nextReviewDate).toLocaleDateString()}
               </span>
             )}
-            {(user?.roleName === 'Admin' ||
-              user?.roleName === 'Quality Manager' ||
-              user?.roleName === 'System Admin') && (
+            {(user?.roleName === 'System Admin' ||
+              user?.permissions?.includes('document:release')) && (
               <ReleaseToCodexButton documentIds={[doc.id]} variant="compact" />
             )}
           </div>

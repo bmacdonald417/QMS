@@ -49,16 +49,24 @@ function governanceWriteLike(req, res, next) {
   });
 }
 
+// Aligns with QMS's existing canonical role catalog (Manager, Quality Manager,
+// Read-Only, System Admin, User) and permission codes shown at /system/roles.
+// Releasing a document = same authority as releasing through the QMS quality-
+// release flow → guard on `document:release`. System Admin role is permitted
+// regardless of permission set because it bypasses fine-grained checks
+// system-wide.
 function requireManifestIngestAccess(req, res, next) {
   if (req.governanceActor === 'integration') return next();
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
   const role = (req.user.roleName || '').trim();
-  if (/assessor/i.test(role)) {
-    return res.status(403).json({ error: 'Assessor role cannot ingest governance manifests' });
-  }
-  const allowed = ['System Admin', 'Quality Manager', 'Admin', 'Administrator'];
-  if (allowed.includes(role)) return next();
-  return res.status(403).json({ error: 'Governance manifest ingest requires System Admin or Quality Manager' });
+  const permissions = Array.isArray(req.user.permissions) ? req.user.permissions : [];
+  if (role === 'System Admin') return next();
+  if (permissions.includes('document:release')) return next();
+  return res.status(403).json({
+    error:
+      'Governance manifest release requires the document:release permission ' +
+      '(Quality Manager or System Admin role).',
+  });
 }
 
 function parseLocalDate(s) {
