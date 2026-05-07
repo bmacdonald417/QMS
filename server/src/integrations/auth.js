@@ -92,7 +92,12 @@ export function requireIntegrationScope(requiredScope) {
 
     const decoded = verifyIntegrationToken(token);
     if (!decoded) {
-      return res.status(401).json({ error: 'Invalid or expired integration token' });
+      // The bearer token didn't validate as an integration token. It may
+      // still be a Clerk user JWT — defer to the next middleware so the
+      // caller's JWT-fallback chain (authMiddleware) gets a turn. This
+      // matches the documented contract: "Otherwise delegates to next
+      // (caller should chain with authMiddleware for JWT fallback)."
+      return next();
     }
 
     if (!decoded.scp.includes(requiredScope)) {
@@ -118,7 +123,9 @@ export function requireAnyIntegrationScope(...requiredScopes) {
 
     const decoded = verifyIntegrationToken(token);
     if (!decoded) {
-      return res.status(401).json({ error: 'Invalid or expired integration token' });
+      // Same fallthrough as requireIntegrationScope — defer to next so a
+      // Clerk JWT in the same Authorization header gets a turn at JWT auth.
+      return next();
     }
 
     const hasRequired = requiredScopes.some((s) => decoded.scp.includes(s));
