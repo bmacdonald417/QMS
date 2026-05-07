@@ -77,6 +77,7 @@ const SIG_STYLES: Record<string, string> = {
   Reviewer: 'bg-blue-50 text-blue-800 ring-blue-200',
   Approver: 'bg-violet-50 text-violet-800 ring-violet-200',
   'Quality Release': 'bg-emerald-50 text-emerald-800 ring-emerald-200',
+  'SIA Recorded': 'bg-amber-50 text-amber-800 ring-amber-200',
 };
 
 const ALLOWED_HTML_TAGS = [
@@ -132,12 +133,68 @@ export default function DocumentView() {
       .finally(() => setLoading(false));
   }, [token, id]);
 
+  // Build the full CMMC L2 attestation chain. The SIA is NOT a 21 CFR
+  // Part 11 e-signature (no password re-entry, no document_signatures
+  // row), but it IS one of the four required CMMC attestations and an
+  // auditor expects to see all four in one place. Synthesize an SIA
+  // pseudo-row from the document's SIA fields so the auditor doesn't
+  // have to context-switch between two sections to confirm SoD.
+  type ChainRow = {
+    kind: 'esig' | 'attestation';
+    meaning: string;
+    signer: UserRef | null;
+    at: string | null;
+    signatureHash: string | null;
+    cmmcRef: string;
+  };
+
+  const chainRows = useMemo<ChainRow[]>(() => {
+    if (!doc) return [];
+    const rows: ChainRow[] = [];
+    for (const s of doc.signatures) {
+      rows.push({
+        kind: 'esig',
+        meaning: s.signatureMeaning,
+        signer: s.signer,
+        at: s.signedAt,
+        signatureHash: s.signatureHash ?? null,
+        cmmcRef:
+          s.signatureMeaning === 'Reviewer'
+            ? 'CM.L2-3.4.3 [b]'
+            : s.signatureMeaning === 'Approver'
+              ? 'CM.L2-3.4.3 [c]'
+              : s.signatureMeaning === 'Quality Release'
+                ? 'CM.L2-3.4.5'
+                : '',
+      });
+    }
+    if (doc.securityImpactAnalysis?.trim()) {
+      rows.push({
+        kind: 'attestation',
+        meaning: 'SIA Recorded',
+        signer: doc.securityImpactAnalysisBy,
+        at: doc.securityImpactAnalysisAt,
+        signatureHash: null, // not an e-sig — no password-bound hash
+        cmmcRef: 'CM.L2-3.4.4',
+      });
+    }
+    const order = (m: string) =>
+      m === 'Reviewer' ? 0 : m === 'SIA Recorded' ? 1 : m === 'Approver' ? 2 : m === 'Quality Release' ? 3 : 4;
+    return rows.sort(
+      (a, b) =>
+        order(a.meaning) - order(b.meaning) ||
+        new Date(a.at ?? 0).getTime() - new Date(b.at ?? 0).getTime(),
+    );
+  }, [doc]);
+
+  // Subset used for the hash-provenance footer (e-sig only)
   const sortedSigs = useMemo(() => {
     if (!doc) return [];
     const order = (m: string) =>
       m === 'Reviewer' ? 0 : m === 'Approver' ? 1 : m === 'Quality Release' ? 2 : 3;
     return [...doc.signatures].sort(
-      (a, b) => order(a.signatureMeaning) - order(b.signatureMeaning) ||
+      (a, b) =>
+        order(a.signatureMeaning) - order(b.signatureMeaning) ||
         new Date(a.signedAt).getTime() - new Date(b.signedAt).getTime(),
     );
   }, [doc]);
@@ -288,15 +345,21 @@ export default function DocumentView() {
             )}
           </section>
 
-          {/* Signature ledger */}
+          {/* Combined attestation ledger */}
           <section className="border-t border-gray-200 bg-gray-50/50 px-10 py-8 print:px-0">
             <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-700">
               <ShieldCheck className="h-4 w-4 text-gray-500" />
-              Approval chain · 21 CFR Part 11 e-signatures
+              Approval &amp; attestation chain · CMMC L2
             </h2>
-            {sortedSigs.length === 0 ? (
+            <p className="mt-1 text-xs text-gray-500">
+              All four CMMC L2 doc-control attestations. Reviewer, Approver, and Quality
+              Release are 21 CFR Part 11 e-signatures (password-verified). SIA is recorded
+              as an attributed audit-trail event per CM.L2-3.4.4 — not an e-signature, but
+              required before approval.
+            </p>
+            {chainRows.length === 0 ? (
               <p className="mt-3 text-sm italic text-gray-500">
-                No signatures recorded yet.
+                No attestations recorded yet.
               </p>
             ) : (
               <div className="mt-3 overflow-hidden rounded-lg border border-gray-200 bg-white">
@@ -304,29 +367,41 @@ export default function DocumentView() {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Role</th>
-                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Signer</th>
-                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Signed at</th>
-                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Signature hash</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Signer / recorder</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">At</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">CMMC ref</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Evidence</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {sortedSigs.map((s) => (
-                      <tr key={s.id}>
+                    {chainRows.map((r, i) => (
+                      <tr key={i}>
                         <td className="px-4 py-2 align-top">
                           <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${SIG_STYLES[s.signatureMeaning] ?? 'bg-gray-100 text-gray-700 ring-gray-200'}`}
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${SIG_STYLES[r.meaning] ?? 'bg-gray-100 text-gray-700 ring-gray-200'}`}
                           >
-                            {s.signatureMeaning}
+                            {r.meaning}
                           </span>
                         </td>
                         <td className="px-4 py-2 align-top text-gray-900">
-                          {fullName(s.signer)}
+                          {fullName(r.signer)}
                         </td>
                         <td className="px-4 py-2 align-top whitespace-nowrap text-gray-700">
-                          {fmtDateTime(s.signedAt)}
+                          {fmtDateTime(r.at)}
+                        </td>
+                        <td className="px-4 py-2 align-top font-mono text-xs text-gray-700">
+                          {r.cmmcRef || '—'}
                         </td>
                         <td className="px-4 py-2 align-top font-mono text-xs text-gray-500">
-                          {shortHash(s.signatureHash, 24)}
+                          {r.kind === 'esig' ? (
+                            <span title="21 CFR Part 11 e-signature hash">
+                              {shortHash(r.signatureHash, 18)}
+                            </span>
+                          ) : (
+                            <span className="italic text-gray-400" title="Audit-trail attestation, not an e-signature">
+                              audit-trail event
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -336,39 +411,22 @@ export default function DocumentView() {
             )}
           </section>
 
-          {/* SIA */}
+          {/* SIA narrative — prose body only; the recorder/timestamp/CMMC
+              ref are already in the attestation chain table above. */}
           {doc.securityImpactAnalysis?.trim() && (
             <section className="border-t border-gray-200 px-10 py-8 print:px-0">
               <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-700">
                 <FileText className="h-4 w-4 text-gray-500" />
-                Security Impact Analysis · CMMC CM.L2-3.4.4
+                Security Impact Analysis · narrative
               </h2>
-              <dl className="mt-3 grid grid-cols-2 gap-x-8 gap-y-1 text-xs sm:grid-cols-3">
-                <div>
-                  <dt className="font-medium uppercase tracking-wider text-gray-500">Recorded by</dt>
-                  <dd className="mt-0.5 text-gray-800">
-                    {fullName(doc.securityImpactAnalysisBy)}
-                    {doc.securityImpactAnalysisBy?.email && (
-                      <span className="ml-1 text-gray-500">
-                        &lt;{doc.securityImpactAnalysisBy.email}&gt;
-                      </span>
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="font-medium uppercase tracking-wider text-gray-500">Recorded at</dt>
-                  <dd className="mt-0.5 text-gray-800">
-                    {fmtDateTime(doc.securityImpactAnalysisAt)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="font-medium uppercase tracking-wider text-gray-500">CMMC objective</dt>
-                  <dd className="mt-0.5 font-mono text-gray-800">CM.L2-3.4.4</dd>
-                </div>
-              </dl>
-              <p className="mt-3 text-[11px] text-gray-500">
-                Per Separation of Duties (CMMC AC.L2-3.1.4 / AU.L2-3.3.9), the SIA recorder
-                must not be the document author or any reviewer who signed below.
+              <p className="mt-1 text-[11px] text-gray-500">
+                Recorded by{' '}
+                <span className="font-medium text-gray-700">
+                  {fullName(doc.securityImpactAnalysisBy)}
+                </span>{' '}
+                on {fmtDateTime(doc.securityImpactAnalysisAt)}. Per Separation of
+                Duties (CMMC AC.L2-3.1.4 / AU.L2-3.3.9), the recorder must not be the
+                document author or any reviewer.
               </p>
               <pre className="mt-3 whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-800">
                 {doc.securityImpactAnalysis}
