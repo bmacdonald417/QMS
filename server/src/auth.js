@@ -14,35 +14,12 @@ import {
   checkIdentityAccess,
   findActiveAccessForApp,
 } from './mactechIdentityClient.js';
+import {
+  mapIccRoleToQmsRole,
+  INTERNAL_MACTECH_SENTINEL,
+} from './lib/iccRoleMapping.js';
 
 const QMS_APP_KEY = 'quality';
-
-/**
- * Map a MacTech customer-org role (from the Identity Command Center) to
- * a QMS Role.name. QMS roles are: System Admin, Quality Manager,
- * Manager, User, Read-Only. ICC roles are: customer_owner,
- * customer_admin, compliance_manager, security_manager,
- * evidence_contributor, auditor, read_only_user. Internal MacTech users
- * always become System Admin.
- */
-function mapIccRoleToQmsRole(iccRole, isInternal) {
-  if (isInternal) return 'System Admin';
-  switch (iccRole) {
-    case 'customer_owner':
-    case 'customer_admin':
-      return 'System Admin';
-    case 'compliance_manager':
-      return 'Quality Manager';
-    case 'security_manager':
-      return 'Manager';
-    case 'evidence_contributor':
-      return 'User';
-    case 'auditor':
-    case 'read_only_user':
-    default:
-      return 'Read-Only';
-  }
-}
 
 const router = express.Router();
 
@@ -170,6 +147,14 @@ async function resolveLocalUserFromClerk(clerkUserId) {
     return null;
   }
 
+  // Record the raw ICC role at provision time so the SystemUsers UI can
+  // detect manual overrides later (current QMS role !=
+  // mapIccRoleToQmsRole(iccRoleAtProvision)). Internal MacTech operators
+  // get the sentinel since they don't have a per-org ICC role.
+  const iccRoleAtProvision = access.user.isInternalMacTechUser
+    ? INTERNAL_MACTECH_SENTINEL
+    : access.org.role ?? null;
+
   const created = await prisma.user.create({
     data: {
       email,
@@ -178,12 +163,13 @@ async function resolveLocalUserFromClerk(clerkUserId) {
       clerkUserId,
       roleId: role.id,
       status: 'ACTIVE',
+      iccRoleAtProvision,
     },
     select: { id: true },
   });
   console.log(
     `[auth] JIT-provisioned QMS user ${email} as ${qmsRoleName} ` +
-      `(via ICC org ${access.org.orgName})`,
+      `(ICC role: ${iccRoleAtProvision}, via org ${access.org.orgName})`,
   );
   return loadUserById(created.id);
 }

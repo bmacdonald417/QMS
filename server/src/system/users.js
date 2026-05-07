@@ -107,6 +107,7 @@ router.get(
             lockedAt: true,
             createdAt: true,
             roleId: true,
+            iccRoleAtProvision: true,
             departmentId: true,
             siteId: true,
             role: { select: { id: true, name: true } },
@@ -294,6 +295,24 @@ router.get(
 );
 
 // PUT /api/system/users/:id
+// GET /api/system/users/icc-role-mapping
+//
+// Returns the canonical {iccRole: qmsRoleName} mapping table so the
+// SystemUsers UI can render a "default would be X; current override is Y"
+// hint without re-implementing the mapping logic. Read-only; no auth gate
+// beyond the system-admin/manager guard the parent router applies.
+router.get('/icc-role-mapping', async (_req, res) => {
+  // Lazy-imported to avoid a circular auth.js → users.js dependency.
+  const { ICC_TO_QMS_DEFAULT_TABLE, INTERNAL_MACTECH_SENTINEL } = await import(
+    '../lib/iccRoleMapping.js'
+  );
+  res.json({
+    table: ICC_TO_QMS_DEFAULT_TABLE,
+    internalMacTechSentinel: INTERNAL_MACTECH_SENTINEL,
+    internalMacTechMaps: 'System Admin',
+  });
+});
+
 router.put(
   '/:id',
   requireSystemRole('System Admin', 'Quality Manager', 'Manager'),

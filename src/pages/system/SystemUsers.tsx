@@ -17,8 +17,15 @@ interface UserRow {
   lockedAt?: string | null;
   createdAt: string;
   roleName?: string;
+  iccRoleAtProvision?: string | null;
   department?: { id: string; name: string } | null;
   site?: { id: string; name: string } | null;
+}
+
+interface IccRoleMapping {
+  table: Record<string, string>;
+  internalMacTechSentinel: string;
+  internalMacTechMaps: string;
 }
 
 interface RolesResponse {
@@ -42,6 +49,7 @@ export function SystemUsers() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
   const [assignableRoles, setAssignableRoles] = useState<{ id: number; name: string }[]>([]);
+  const [iccMapping, setIccMapping] = useState<IccRoleMapping | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ACTIVE'); // Default: only active (deleted/inactive users "disappear")
   const [roleFilter, setRoleFilter] = useState('');
@@ -88,6 +96,9 @@ export function SystemUsers() {
 
   useEffect(() => {
     if (!token || !showAddModal) return;
+    apiRequest<IccRoleMapping>('/api/system/users/icc-role-mapping', { token })
+      .then(setIccMapping)
+      .catch(() => setIccMapping(null));
     apiRequest<RolesResponse>('/api/system/users/assignable-roles', { token })
       .then((data) => {
         const list = data.roles || [];
@@ -121,10 +132,49 @@ export function SystemUsers() {
     }
   };
 
+  // Compute ICC default role for a row given its iccRoleAtProvision; returns
+  // null if we can't determine (legacy row, missing mapping, etc.). Used to
+  // surface manual-override hints in the Role column.
+  function iccDefaultFor(row: UserRow): string | null {
+    if (!iccMapping) return null;
+    const icc = row.iccRoleAtProvision;
+    if (!icc) return null;
+    if (icc === iccMapping.internalMacTechSentinel) return iccMapping.internalMacTechMaps;
+    return iccMapping.table[icc] ?? null;
+  }
+
   const columns: Column<UserRow>[] = [
     { key: 'name', header: 'Name', render: (r) => `${r.firstName} ${r.lastName}` },
     { key: 'email', header: 'Email' },
-    { key: 'roleName', header: 'Role' },
+    {
+      key: 'roleName',
+      header: 'Role',
+      render: (r) => {
+        const iccDefault = iccDefaultFor(r);
+        const overridden = iccDefault && r.roleName && iccDefault !== r.roleName;
+        return (
+          <div className="flex flex-col">
+            <span>{r.roleName}</span>
+            {overridden && (
+              <span
+                className="text-[10px] text-amber-500"
+                title={`ICC default for this user is "${iccDefault}". Current role is a manual override.`}
+              >
+                override (ICC: {iccDefault})
+              </span>
+            )}
+            {iccDefault && !overridden && r.iccRoleAtProvision && (
+              <span
+                className="text-[10px] text-gray-500"
+                title={`Provisioned from ICC role "${r.iccRoleAtProvision}".`}
+              >
+                ICC default
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
     { key: 'department', header: 'Department', render: (r) => r.department?.name ?? '—' },
     { key: 'site', header: 'Site', render: (r) => r.site?.name ?? '—' },
     {

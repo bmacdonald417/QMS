@@ -124,6 +124,11 @@ model User {
   password          String?
   /// Clerk user id (user_…). Nullable so legacy rows can be adopted on first SSO login by email.
   clerkUserId       String?     @unique @map("clerk_user_id")
+  /// Raw ICC role at JIT-provision time (`compliance_manager` etc., or `__internal_mactech__`
+  /// sentinel for internal MacTech operators, or NULL for legacy/manually-created users).
+  /// Compare against the current `roleId` mapping to detect manual role overrides — see
+  /// docs/specs/identity-and-roles-architecture.md on the codex repo.
+  iccRoleAtProvision String?    @map("icc_role_at_provision")
   roleId            Int         @map("role_id")
   role              Role        @relation(fields: [roleId], references: [id], onDelete: Restrict)
   departmentId      String?     @map("department_id")
