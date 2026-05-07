@@ -105,6 +105,22 @@ function computeContentHash({ run_id, generated_at, source, documents, controls_
       file_path: d.file_path ?? null,
       file_size_bytes: d.file_size_bytes ?? null,
       next_review_date: d.next_review_date ?? null,
+      // v1.2 fields — sorted/canonicalized so re-runs match across sides.
+      released: d.released ?? false,
+      released_at: d.released_at ?? null,
+      // Sort signatures by signed_at desc for determinism.
+      signatures: Array.isArray(d.signatures)
+        ? [...d.signatures]
+            .sort((a, b) => String(b.signed_at).localeCompare(String(a.signed_at)))
+            .map((s) => ({
+              document_hash: s.document_hash ?? null,
+              signature_hash: s.signature_hash ?? null,
+              signature_meaning: s.signature_meaning ?? null,
+              signed_at: s.signed_at ?? null,
+              signer_email: s.signer_email ?? null,
+              signer_name: s.signer_name ?? null,
+            }))
+        : [],
       sha256: String(d.sha256 ?? '').toLowerCase(),
       status: d.status ?? null,
       version: d.version ?? null,
@@ -129,6 +145,57 @@ function signHmac(signingHash) {
   // Single-key today; bump kid on rotation. Codex tolerates any kid as
   // long as the secret matches.
   return { kid: process.env.QMS_MANIFEST_SIGNING_KID || 'qms-manifest-2026-05', value };
+}
+
+/**
+ * Fetch the signature chain for a Document, ordered most-recent first.
+ * Each row carries the QMS-side e-sig record: signer name (from User
+ * row), signature_meaning ("Approver" | "Reviewer"), signed_at,
+ * document_hash (the doc state at signing), signature_hash (the
+ * signing-artifact hash). passwordHash is intentionally NOT included
+ * — that's a re-auth artifact, not part of the audit chain.
+ */
+async function fetchDocumentSignatures(documentDbId) {
+  const sigs = await prisma.documentSignature.findMany({
+    where: { documentId: documentDbId },
+    orderBy: { signedAt: 'desc' },
+    include: {
+      signer: { select: { firstName: true, lastName: true, email: true } },
+    },
+  });
+  return sigs.map((s) => {
+    const name = `${s.signer?.firstName ?? ''} ${s.signer?.lastName ?? ''}`.trim();
+    return {
+      signer_name: name || s.signer?.email || null,
+      signer_email: s.signer?.email ?? null,
+      signature_meaning: s.signatureMeaning,
+      signed_at: s.signedAt.toISOString(),
+      document_hash: s.documentHash,
+      signature_hash: s.signatureHash,
+    };
+  });
+}
+
+const APPROVER_SIG_RE = /^approver$|approve|release/i;
+
+/**
+ * Compute the document's "released" state for codex consumption.
+ *
+ *   released_at = earliest Approver-meaning signature.signed_at,
+ *                 falling back to the effective_date string.
+ *   released    = status === EFFECTIVE OR has at least one Approver
+ *                 signature. This is the gate CMMC L2 considers
+ *                 "authorized change" (3.4.5).
+ */
+function computeReleaseState(status, effectiveDateString, signatures) {
+  const approverSigs = signatures
+    .filter((s) => APPROVER_SIG_RE.test(s.signature_meaning))
+    .sort((a, b) => a.signed_at.localeCompare(b.signed_at));
+  const earliestApprover = approverSigs[0]?.signed_at ?? null;
+
+  const released_at = earliestApprover ?? effectiveDateString ?? null;
+  const released = status === 'EFFECTIVE' || approverSigs.length > 0;
+  return { released, released_at };
 }
 
 /**
@@ -224,6 +291,20 @@ export async function buildQmsGovernanceManifestFromDocumentIds(documentIds, opt
       ? new Date(document.nextReviewDate).toISOString().slice(0, 10)
       : null;
 
+    const signatures = await fetchDocumentSignatures(document.id);
+    const { released, released_at } = computeReleaseState(
+      document.status,
+      eff,
+      signatures,
+    );
+
+    if (opts.releasedOnly && !released) {
+      warnings.push(
+        `Skipped (not released): ${document.documentId} (status=${document.status}, signatures=${signatures.length})`,
+      );
+      continue;
+    }
+
     documents.push({
       document_number: document.documentId,
       document_name: document.title,
@@ -232,6 +313,9 @@ export async function buildQmsGovernanceManifestFromDocumentIds(documentIds, opt
       version,
       effective_date: eff,
       next_review_date: nextReview,
+      released,
+      released_at,
+      signatures,
       status: mapDocumentStatusToManifest(document.status),
       sha256,
       file_size_bytes: fileSizeBytes,
@@ -281,10 +365,18 @@ export async function buildQmsGovernanceManifestFromDocumentIds(documentIds, opt
     }
   }
 
-  // v1.1 envelope. Order of top-level keys is unimportant on the wire
-  // (canonicalize sorts), but we keep human-readable groupings here.
+  // v1.2 release_summary — at-a-glance view of what's released vs in-flight.
+  const releasedDocs = documents.filter((d) => d.released).length;
+  const release_summary = {
+    released_docs: releasedDocs,
+    unreleased_docs: documents.length - releasedDocs,
+  };
+
+  // v1.2 envelope. Adds documents[].signatures[], documents[].released,
+  // documents[].released_at, and a top-level release_summary. Codex
+  // accepts both v1.1 and v1.2.
   const manifest = {
-    schema: 'mactech-governance-manifest.v1.1',
+    schema: 'mactech-governance-manifest.v1.2',
     generated_at: generatedAt,
     generated_by: generatedBy,
     tool_version: toolVersion,
@@ -314,6 +406,8 @@ export async function buildQmsGovernanceManifestFromDocumentIds(documentIds, opt
       kid: signature_obj.kid,
       value: signature_obj.value,
     },
+
+    release_summary,
 
     summary: {
       total_documents: documents.length,
