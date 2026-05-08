@@ -39,6 +39,25 @@ const RELEASEABLE_STATUSES = new Set([
   'DRAFT',
 ]);
 
+// Status pill styling — green for live, amber for in-flight, muted for draft.
+// Mirrors the compliance palette in tailwind.config.js so the visual language is
+// shared with the rest of the QMS surfaces (release readiness, governance manifest).
+function statusBadgeClass(status: string): string {
+  if (status === 'EFFECTIVE' || status === 'APPROVED') {
+    return 'bg-compliance-green-muted text-compliance-green ring-1 ring-inset ring-compliance-green/30';
+  }
+  if (
+    status === 'IN_REVIEW' ||
+    status === 'AWAITING_APPROVAL' ||
+    status === 'PENDING_APPROVAL' ||
+    status === 'PENDING_QUALITY_RELEASE'
+  ) {
+    return 'bg-compliance-amber/10 text-compliance-amber ring-1 ring-inset ring-compliance-amber/30';
+  }
+  // DRAFT and anything else
+  return 'bg-surface-overlay text-gray-400 ring-1 ring-inset ring-surface-border';
+}
+
 export function SystemGovernanceRelease() {
   const { token } = useAuth();
   const [docs, setDocs] = useState<DocRow[]>([]);
@@ -107,8 +126,8 @@ export function SystemGovernanceRelease() {
   return (
     <div className="mx-auto max-w-6xl space-y-5 p-6">
       <header>
-        <h1 className="text-2xl font-semibold">Bulk release to Codex</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-semibold text-gray-100">Bulk release to Codex</h1>
+        <p className="mt-1 text-sm leading-relaxed text-gray-400">
           Pick QMS-managed documents and ship them as a signed governance manifest. Each
           document carries its current signature chain and lifecycle state. Codex verifies the
           envelope HMAC, persists immutably, and refreshes the OIS narrative for any
@@ -117,7 +136,10 @@ export function SystemGovernanceRelease() {
       </header>
 
       {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">
+        <div
+          role="alert"
+          className="rounded-md border border-compliance-red/30 bg-compliance-red/10 px-4 py-2 text-sm text-compliance-red"
+        >
           {error}
         </div>
       )}
@@ -129,20 +151,24 @@ export function SystemGovernanceRelease() {
           placeholder="Search code, title, or controlId…"
           className="max-w-sm"
         />
-        <span className="text-sm text-gray-500">
-          {selected.size} of {filtered.length} selected ({docs.length} total)
+        <span className="text-sm text-gray-400" aria-live="polite">
+          <span className="font-medium text-gray-200">{selected.size}</span>
+          <span className="text-gray-500"> of </span>
+          <span className="font-medium text-gray-200">{filtered.length}</span>
+          <span className="text-gray-500"> selected ({docs.length} total)</span>
         </span>
         <button
           type="button"
           onClick={selectAll}
-          className="rounded-md border border-gray-300 px-2 py-1 text-xs hover:bg-gray-50"
+          className="rounded-md border border-surface-border bg-surface-elevated px-2.5 py-1 text-xs text-gray-300 transition hover:border-mactech-blue/40 hover:bg-surface-overlay hover:text-gray-100"
         >
           Select all visible
         </button>
         <button
           type="button"
           onClick={clearAll}
-          className="rounded-md border border-gray-300 px-2 py-1 text-xs hover:bg-gray-50"
+          disabled={selected.size === 0}
+          className="rounded-md border border-surface-border bg-surface-elevated px-2.5 py-1 text-xs text-gray-300 transition hover:border-mactech-blue/40 hover:bg-surface-overlay hover:text-gray-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-surface-border disabled:hover:bg-surface-elevated disabled:hover:text-gray-300"
         >
           Clear
         </button>
@@ -157,72 +183,89 @@ export function SystemGovernanceRelease() {
         </div>
       </div>
 
-      <Card>
+      <Card padding="none">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-surface-border">
+            <thead className="bg-surface-overlay">
               <tr>
-                <th className="w-10 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500"></th>
-                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">Code</th>
-                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">Title</th>
-                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">Status</th>
-                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">Tagged controls</th>
+                <th scope="col" className="w-10 px-3 py-3"></th>
+                <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">Code</th>
+                <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">Title</th>
+                <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">Status</th>
+                <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">Tagged controls</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 bg-white">
+            <tbody className="divide-y divide-surface-border">
               {loading && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">
+                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
                     Loading…
                   </td>
                 </tr>
               )}
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">
+                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
                     No documents match.
                   </td>
                 </tr>
               )}
               {!loading &&
-                filtered.map((d) => (
-                  <tr key={d.id} className={selected.has(d.id) ? 'bg-blue-50/30' : ''}>
-                    <td className="px-3 py-2">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(d.id)}
-                        onChange={() => toggle(d.id)}
-                        aria-label={`Select ${d.code}`}
-                      />
-                    </td>
-                    <td className="px-4 py-2 font-mono text-xs text-gray-900">{d.code}</td>
-                    <td className="px-4 py-2 text-sm text-gray-900">
-                      <div className="font-medium">{d.title}</div>
-                      {d.version && <div className="text-[11px] text-gray-500">v{d.version}</div>}
-                    </td>
-                    <td className="px-4 py-2 text-xs">
-                      <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-[11px] text-gray-700">
-                        {d.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="flex flex-wrap gap-1">
-                        {d.tags.length === 0 ? (
-                          <span className="text-xs italic text-gray-400">no tags</span>
-                        ) : (
-                          d.tags.map((t) => (
-                            <span
-                              key={t.controlId}
-                              className="inline-flex items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-800"
-                            >
-                              {t.controlId}
+                filtered.map((d) => {
+                  const isSelected = selected.has(d.id);
+                  return (
+                    <tr
+                      key={d.id}
+                      onClick={() => toggle(d.id)}
+                      className={`cursor-pointer transition-colors ${
+                        isSelected
+                          ? 'bg-mactech-blue-muted hover:bg-mactech-blue-muted/80'
+                          : 'hover:bg-surface-overlay'
+                      }`}
+                    >
+                      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggle(d.id)}
+                          aria-label={`Select ${d.code}`}
+                          className="h-4 w-4 cursor-pointer rounded border-surface-border bg-surface-overlay text-mactech-blue accent-mactech-blue focus:ring-2 focus:ring-mactech-blue focus:ring-offset-0"
+                        />
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-gray-200">{d.code}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="font-medium text-gray-100">{d.title}</div>
+                        {d.version && <div className="mt-0.5 text-[11px] text-gray-500">v{d.version}</div>}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[10px] tracking-wide ${statusBadgeClass(d.status)}`}
+                        >
+                          {d.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {d.tags.length === 0 ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] italic text-gray-500">
+                              <span className="h-1 w-1 rounded-full bg-gray-600"></span>
+                              untagged
                             </span>
-                          ))
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          ) : (
+                            d.tags.map((t) => (
+                              <span
+                                key={t.controlId}
+                                className="inline-flex items-center rounded-full bg-mactech-blue-muted px-2 py-0.5 font-mono text-[10px] font-medium text-mactech-blue ring-1 ring-inset ring-mactech-blue/20"
+                              >
+                                {t.controlId}
+                              </span>
+                            ))
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
