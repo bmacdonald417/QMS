@@ -50,19 +50,8 @@ const PORT = Number(process.env.PORT) || 3001;
 app.set('trust proxy', 1);
 
 app.use(cors({ origin: true, credentials: true }));
-// Increase JSON body limit for large document content (default 100kb causes 413).
-// EXCEPT: skip this parser for the SSP Doc Control bridge endpoint —
-// /api/external-submissions/ssp uses express.raw() route-locally because the
-// HMAC verification must run against the EXACT bytes the sender signed. If
-// the global json parser fires first, req.body becomes a parsed object and
-// the route's `Buffer.isBuffer(req.body)` check trips, returning a misleading
-// "Bridge not configured" 500. The bridge author flagged this intent in a
-// comment lower in this file but the path-skip wasn't actually wired up.
-const jsonParser = express.json({ limit: '15mb' });
-app.use((req, res, next) => {
-  if (req.path === '/api/external-submissions/ssp') return next();
-  return jsonParser(req, res, next);
-});
+// Increase JSON body limit for large document content (default 100kb causes 413)
+app.use(express.json({ limit: '15mb' }));
 app.use(requestIdMiddleware);
 
 app.use('/api/auth', authRoutes);
