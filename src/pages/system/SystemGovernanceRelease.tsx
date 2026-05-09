@@ -3,6 +3,7 @@ import { Card, Input } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/lib/api';
 import { ReleaseToCodexButton } from '@/components/governance/ReleaseToCodexButton';
+import { DocStatusBadge } from '@/components/cmmc/DocStatusBadge';
 
 // Bulk release surface — pick documents from the QMS-managed set and ship
 // a signed manifest to Codex in one push. Single-doc release is also
@@ -39,24 +40,8 @@ const RELEASEABLE_STATUSES = new Set([
   'DRAFT',
 ]);
 
-// Status pill styling — green for live, amber for in-flight, muted for draft.
-// Mirrors the compliance palette in tailwind.config.js so the visual language is
-// shared with the rest of the QMS surfaces (release readiness, governance manifest).
-function statusBadgeClass(status: string): string {
-  if (status === 'EFFECTIVE' || status === 'APPROVED') {
-    return 'bg-success/15 text-success ring-1 ring-inset ring-success/30';
-  }
-  if (
-    status === 'IN_REVIEW' ||
-    status === 'AWAITING_APPROVAL' ||
-    status === 'PENDING_APPROVAL' ||
-    status === 'PENDING_QUALITY_RELEASE'
-  ) {
-    return 'bg-warning/10 text-warning ring-1 ring-inset ring-warning/30';
-  }
-  // DRAFT and anything else
-  return 'bg-secondary text-gray-400 ring-1 ring-inset ring-border';
-}
+// Status badge moved to src/components/cmmc/DocStatusBadge.tsx so it's reusable
+// across system surfaces (governance-release, external-submissions, doc list).
 
 export function SystemGovernanceRelease() {
   const { token } = useAuth();
@@ -238,11 +223,7 @@ export function SystemGovernanceRelease() {
                         {d.version && <div className="mt-0.5 text-[11px] text-gray-500">v{d.version}</div>}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[10px] tracking-wide ${statusBadgeClass(d.status)}`}
-                        >
-                          {d.status}
-                        </span>
+                        <DocStatusBadge status={d.status} />
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">

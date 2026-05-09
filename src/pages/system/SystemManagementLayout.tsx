@@ -16,6 +16,7 @@ const navItems = [
   { to: '/system/governance-package', end: false, label: 'Vault package (canonical)' },
   { to: '/system/release-readiness', end: false, label: 'Release readiness' },
   { to: '/system/governance-release', end: false, label: 'Bulk release to Codex' },
+  { to: '/system/external-submissions', end: false, label: 'External submissions' },
 ];
 
 export function SystemManagementLayout() {

@@ -24,6 +24,7 @@ const CMMC_GROUP = [
   'IT_SYSTEM',
   'SECURITY',
   'AUDIT_ASSESSMENT',
+  'SSP', // Phase 2: Codex SSP Doc Control bridge — released SSPs flow back via the manifest.
 ];
 
 async function main() {

@@ -17,6 +17,7 @@ enum DocumentType {
   AUDIT_ASSESSMENT
   INCIDENT_RESPONSE_PLAN
   CONFIGURATION_MANAGEMENT_PLAN
+  SSP
   OTHER
 }
 
@@ -179,6 +180,7 @@ model User {
   formRecordsFinalized  FormRecord[]      @relation("FormRecordFinalizedBy")
   signatureRequestsCreated SignatureRequest[]
   cmmcSignatures           CmmcSignature[]
+  externalSubmissionsRejected ExternalDocumentSubmission[] @relation("ExternalSubmissionRejector")
   governanceManifestRuns   GovernanceManifestRun[] @relation("GovernanceManifestCreatedBy")
   agentRequestsCreated     AgentRequest[]     @relation("AgentRequestCreator")
   agentAuditEvents         AgentAuditEvent[]
@@ -332,6 +334,7 @@ model Document {
   periodicReviews     PeriodicReview[]
   formRecordsAsTemplate FormRecord[]
   cmmcControlTags     DocumentCmmcControlTag[]
+  externalSubmission    ExternalDocumentSubmission?
 
   @@map("documents")
   @@index([documentId])
@@ -889,6 +892,7 @@ model FileAsset {
   uploadedBy User      @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
   fileLinks  FileLink[]
   formRecordPdf        FormRecord?
+  externalSubmissionPdf ExternalDocumentSubmission? @relation("ExternalSubmissionPdf")
 
   @@map("file_assets")
 }
@@ -1644,4 +1648,65 @@ model CmmcDocumentControlTag {
   @@id([cmmcDocumentId, controlId])
   @@index([controlId])
   @@map("cmmc_document_control_tags")
+}
+
+// --- External submissions bridge (Codex SSP Doc Control, Phase 2) ---
+// Inbound submissions from external systems (today: Codex). Each row is the
+// staging record for an authorized record that QMS will then walk through its
+// own Reviewer → Approver → Quality Release flow. The full inbound payload is
+// preserved verbatim in payloadJson so a C3PAO can audit what the source
+// system attested vs. what QMS released. The QMS Document is created in DRAFT
+// inside the same transaction; once it reaches EFFECTIVE the manifest export
+// picks it up and Codex Phase 3 links it back to this row by document_number
+// + sha256 match.
+//
+// status is partially derived from the linked Document (see
+// deriveSubmissionStatusFromDocument in src/lib/sspSubmissionContract.js) —
+// REJECTED is the only persisted terminal that doesn't follow Document.status.
+
+enum ExternalSubmissionStatus {
+  PENDING_REVIEW
+  UNDER_REVIEW
+  APPROVED
+  QUALITY_RELEASED
+  REJECTED
+}
+
+model ExternalDocumentSubmission {
+  id                       String   @id @default(uuid())
+  externalSystem           String   @map("external_system") // e.g. "codex"
+  inboundBridgeVersion     String   @default("1") @map("inbound_bridge_version")
+  externalSubmissionId     String   @map("external_submission_id")
+  externalOrganizationId   String   @map("external_organization_id")
+  externalDocumentId       String   @map("external_document_id")
+  externalVersionNumber    Int      @map("external_version_number")
+  documentNumber           String   @map("document_number")
+  documentType             DocumentType @map("document_type")
+  payloadSha256            String   @map("payload_sha256")
+  payloadJson              Json     @map("payload_json")
+  pdfFileAssetId           String?  @unique @map("pdf_file_asset_id")
+  controlsMapped           String[] @default([]) @map("controls_mapped")
+  qmsDocumentId            String?  @unique @map("qms_document_id")
+  status                   ExternalSubmissionStatus @default(PENDING_REVIEW)
+  rejectedAt               DateTime? @map("rejected_at")
+  rejectedById             String?   @map("rejected_by_id")
+  rejectionReason          String?   @map("rejection_reason") @db.Text
+  supersededBySubmissionId String?  @map("superseded_by_submission_id")
+  submittedAt              DateTime @default(now()) @map("submitted_at")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  qmsDocument        Document?                    @relation(fields: [qmsDocumentId], references: [id], onDelete: SetNull)
+  pdfFileAsset       FileAsset?                   @relation("ExternalSubmissionPdf", fields: [pdfFileAssetId], references: [id], onDelete: SetNull)
+  rejectedBy         User?                        @relation("ExternalSubmissionRejector", fields: [rejectedById], references: [id], onDelete: SetNull)
+  supersededBy       ExternalDocumentSubmission?  @relation("SubmissionSupersedes", fields: [supersededBySubmissionId], references: [id], onDelete: SetNull)
+  supersedes         ExternalDocumentSubmission[] @relation("SubmissionSupersedes")
+
+  // Idempotency: a repeat POST with the same (org, ext_doc, sha256) returns
+  // the existing row with 200 OK rather than creating a duplicate.
+  @@unique([externalOrganizationId, externalDocumentId, payloadSha256], map: "external_submission_idempotency")
+  @@index([documentNumber])
+  @@index([status])
+  @@index([externalSystem, externalSubmissionId])
+  @@map("external_document_submissions")
 }

@@ -38,6 +38,7 @@ import {
   SystemGovernanceManifest,
   SystemGovernancePackage,
   SystemGovernanceRelease,
+  SystemExternalSubmissions,
   SystemReleaseReadiness,
 } from '@/pages/system';
 import {
@@ -109,6 +110,7 @@ function AppRoutes() {
             <Route path="governance-package" element={<SystemGovernancePackage />} />
             <Route path="release-readiness" element={<SystemReleaseReadiness />} />
             <Route path="governance-release" element={<SystemGovernanceRelease />} />
+            <Route path="external-submissions" element={<SystemExternalSubmissions />} />
           </Route>
           <Route path="team-documents" element={<Navigate to="/documents" replace />} />
           <Route path="team-training" element={<TeamTraining />} />

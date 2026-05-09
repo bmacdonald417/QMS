@@ -14,4 +14,5 @@ export { SystemExecutionPackageDetail } from './SystemExecutionPackageDetail';
 export { SystemGovernanceManifest } from './SystemGovernanceManifest';
 export { SystemGovernancePackage } from './SystemGovernancePackage';
 export { SystemGovernanceRelease } from './SystemGovernanceRelease';
+export { SystemExternalSubmissions } from './SystemExternalSubmissions';
 export { SystemReleaseReadiness } from './SystemReleaseReadiness';

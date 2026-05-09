@@ -24,6 +24,7 @@ import governancePackageRoutes from './governancePackageRoutes.js';
 import cmmcRoutes from './cmmc.js';
 import cmmcControlsRoutes from './cmmcControls.js';
 import cmmcControlTagsRoutes from './cmmcControlTags.js';
+import externalSubmissionsSspRoutes from './externalSubmissionsSsp.js';
 import { requestIdMiddleware } from './audit.js';
 import { trainingApiLimiter, integrationTokenLimiter } from './systemMiddleware.js';
 import integrationTokenRoutes from './integrations/tokenRoute.js';
@@ -87,6 +88,12 @@ app.use('/api/cmmc-control-tags', authMiddleware, cmmcControlTagsRoutes);
 // because the contract is versioned: the v2.1 field shape lives here, and any
 // future shape rev would land at /v2 to keep the codex client switchable.
 app.use('/api/v1/cmmc', cmmcControlsRoutes);
+// Codex SSP Doc Control bridge (Phase 2). The POST /ssp sub-route handles its
+// own Bearer + HMAC auth and uses express.raw() for HMAC verification — must
+// not be wrapped in app-level auth or JSON body-parsing middleware. The
+// list/detail/reject sub-routes inside this router apply user JWT + System
+// Admin role themselves.
+app.use('/api/external-submissions', externalSubmissionsSspRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });

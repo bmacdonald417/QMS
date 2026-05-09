@@ -40,6 +40,7 @@ function qmsDocumentTypeToManifestType(dt) {
     WORK_INSTRUCTION: 'procedure',
     FORM: 'form',
     IT_SYSTEM: 'ssp',
+    SSP: 'ssp', // Phase 2: dedicated SSP type for the Codex Doc Control bridge.
     SECURITY: 'security_guide',
     AUDIT_ASSESSMENT: 'assessment',
     INCIDENT_RESPONSE_PLAN: 'plan',
