@@ -273,6 +273,15 @@ export async function buildQmsGovernanceManifestFromDocumentIds(documentIds, opt
         content: true,
         effectiveDate: true,
         nextReviewDate: true,
+        // Phase 2: SSP-bridge round-trip needs the manifest to surface
+        // the ORIGINAL payload_sha256 Codex sent (the canonical-JSON hash),
+        // not sha256(stub markdown). The Codex linker matches on that exact
+        // hash to flip ssp_doc_control_submissions.status from 'submitted'
+        // to 'released'. Joins through ExternalDocumentSubmission.qmsDocumentId.
+        // See .claude/briefs/ssp-bridge-mapping.md (codex repo) MISMATCH 1.
+        externalSubmission: {
+          select: { payloadSha256: true },
+        },
       },
     });
     if (!document) {
@@ -281,7 +290,16 @@ export async function buildQmsGovernanceManifestFromDocumentIds(documentIds, opt
     }
 
     const content = document.content ?? '';
-    const sha256 = createHash('sha256').update(Buffer.from(content, 'utf8')).digest('hex');
+    // SHA-256 source per doc-type:
+    //   - SSP types with a Codex bridge submission: surface the ORIGINAL
+    //     canonical-JSON sha256 the Codex sender computed and signed
+    //     (so the Codex linker's submitted_payload_sha256 == sha256 match
+    //     succeeds end-to-end).
+    //   - Everything else: hash the QMS Document.content as before.
+    const sha256 =
+      (document.documentType === 'SSP' &&
+        document.externalSubmission?.payloadSha256) ||
+      createHash('sha256').update(Buffer.from(content, 'utf8')).digest('hex');
     const fileSizeBytes = Buffer.byteLength(content, 'utf8');
     const version = `${document.versionMajor}.${document.versionMinor}`;
     const manifestType = qmsDocumentTypeToManifestType(document.documentType);
