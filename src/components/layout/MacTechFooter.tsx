@@ -1,8 +1,13 @@
 /**
- * Shared MacTech footer — same component code lives in all four MacTech
- * apps so it stays visually identical. Update in lockstep.
+ * Shared MacTech footer — same component code lives in all MacTech apps so
+ * it stays visually identical. Update in lockstep with the other suite apps
+ * (clearD, Compliance, CaptureOS, Training).
+ *
+ * The clearD entry was added so users can hop back into the cleared talent
+ * network from any MacTech surface.
  */
 const APPS = [
+  { label: 'clearD', href: 'https://cleard.mactechsolutionsllc.com' },
   { label: 'CaptureOS', href: 'https://capture.mactechsolutionsllc.com' },
   { label: 'Compliance', href: 'https://codex.mactechsolutionsllc.com' },
   { label: 'Training', href: 'https://training.mactechsolutionsllc.com' },
@@ -24,6 +29,8 @@ export function MacTechFooter() {
           <span>Veteran-owned</span>
           <span className="text-gray-600">·</span>
           <span>SDVOSB-certified</span>
+          <span className="text-gray-600">·</span>
+          <span>Quality is a MacTech Suite product</span>
         </div>
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-500">

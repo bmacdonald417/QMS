@@ -143,7 +143,7 @@ export function ReleaseToCodexButton({
                       result.codex_push_status === 'stored'
                         ? 'rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800'
                         : result.codex_push_status === 'already_present'
-                          ? 'rounded-full bg-blue-100 px-2 py-0.5 text-blue-800'
+                          ? 'rounded-full bg-secondary px-2 py-0.5 text-secondary-foreground'
                           : 'rounded-full bg-red-100 px-2 py-0.5 text-red-800'
                     }
                   >

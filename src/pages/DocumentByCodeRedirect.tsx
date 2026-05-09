@@ -54,7 +54,7 @@ export default function DocumentByCodeRedirect() {
         <p className="mt-2 text-sm text-gray-600">
           No document with code <code className="rounded bg-gray-100 px-1.5 py-0.5">{documentId}</code> exists in this workspace.
         </p>
-        <Link to="/documents" className="mt-4 inline-block text-sm text-blue-600 hover:underline">
+        <Link to="/documents" className="mt-4 inline-block text-sm text-primary hover:underline">
           ← Back to documents
         </Link>
       </div>
@@ -70,7 +70,7 @@ export default function DocumentByCodeRedirect() {
         <p className="mt-2 text-sm text-gray-600">
           Something went wrong looking up <code className="rounded bg-gray-100 px-1.5 py-0.5">{documentId}</code>. Try again, or browse the document list.
         </p>
-        <Link to="/documents" className="mt-4 inline-block text-sm text-blue-600 hover:underline">
+        <Link to="/documents" className="mt-4 inline-block text-sm text-primary hover:underline">
           ← Back to documents
         </Link>
       </div>

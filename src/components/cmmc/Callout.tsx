@@ -6,34 +6,37 @@ interface CalloutProps {
   children: React.ReactNode;
 }
 
+// Semantic-token palette. The brief forbids using blue alongside copper, so
+// "info" reads as a neutral attention chip (muted surface + foreground), and
+// warning/success/danger map onto the warning/success/destructive tokens.
 const typeConfig = {
   info: {
     icon: Info,
-    bg: 'bg-blue-500/10',
-    border: 'border-blue-500/30',
-    text: 'text-blue-300',
-    iconColor: 'text-blue-400',
+    bg: 'bg-muted',
+    border: 'border-border',
+    text: 'text-foreground',
+    iconColor: 'text-muted-foreground',
   },
   warning: {
     icon: AlertCircle,
-    bg: 'bg-yellow-500/10',
-    border: 'border-yellow-500/30',
-    text: 'text-yellow-300',
-    iconColor: 'text-yellow-400',
+    bg: 'bg-warning/10',
+    border: 'border-warning/30',
+    text: 'text-warning',
+    iconColor: 'text-warning',
   },
   success: {
     icon: CheckCircle,
-    bg: 'bg-green-500/10',
-    border: 'border-green-500/30',
-    text: 'text-green-300',
-    iconColor: 'text-green-400',
+    bg: 'bg-success/10',
+    border: 'border-success/30',
+    text: 'text-success',
+    iconColor: 'text-success',
   },
   danger: {
     icon: XCircle,
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/30',
-    text: 'text-red-300',
-    iconColor: 'text-red-400',
+    bg: 'bg-destructive/10',
+    border: 'border-destructive/30',
+    text: 'text-destructive',
+    iconColor: 'text-destructive',
   },
 };
 

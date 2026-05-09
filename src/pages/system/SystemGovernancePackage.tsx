@@ -147,7 +147,7 @@ export function SystemGovernancePackage() {
         <div className="flex flex-wrap items-baseline justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold">
-              <span className="font-mono text-blue-700">{current.versionLabel}</span>
+              <span className="font-mono text-primary">{current.versionLabel}</span>
               <span className="ml-2 inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
                 Active
               </span>
@@ -236,7 +236,7 @@ export function SystemGovernancePackage() {
                         d.controls_mapped.map((c) => (
                           <span
                             key={c}
-                            className="inline-flex items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-800"
+                            className="inline-flex items-center rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary"
                           >
                             {c}
                           </span>

@@ -53,7 +53,7 @@ export default function DocumentByCodeViewRedirect() {
           No document with code{' '}
           <code className="rounded bg-gray-100 px-1.5 py-0.5">{documentId}</code> exists.
         </p>
-        <Link to="/documents" className="mt-4 inline-block text-sm text-blue-600 hover:underline">
+        <Link to="/documents" className="mt-4 inline-block text-sm text-primary hover:underline">
           ← Back to documents
         </Link>
       </div>
@@ -68,7 +68,7 @@ export default function DocumentByCodeViewRedirect() {
           Something went wrong looking up{' '}
           <code className="rounded bg-gray-100 px-1.5 py-0.5">{documentId}</code>.
         </p>
-        <Link to="/documents" className="mt-4 inline-block text-sm text-blue-600 hover:underline">
+        <Link to="/documents" className="mt-4 inline-block text-sm text-primary hover:underline">
           ← Back to documents
         </Link>
       </div>

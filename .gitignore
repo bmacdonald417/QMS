@@ -25,6 +25,9 @@ npm-debug.log*
 # Cursor MCP (contains secrets; never commit)
 .cursor/mcp.json
 
+# Claude Code working artifacts (briefs, screenshots, agent state)
+.claude/
+
 # OS
 .DS_Store
 Thumbs.db

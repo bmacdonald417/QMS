@@ -73,9 +73,15 @@ interface DocumentViewModel {
   recordVersion?: number;
 }
 
+// Per the brief: only one accent (copper) is allowed for affordance, and
+// state colors are reserved for green/amber/red. Reviewer/Approver are
+// neutral procedural badges (subtle muted chip, distinguished by label),
+// Quality Release is the "ready to ship" success state, and SIA Recorded
+// is the "records-required attestation" warning state. Avoids both the
+// blue/copper clash and the prior multi-hue legend.
 const SIG_STYLES: Record<string, string> = {
-  Reviewer: 'bg-blue-50 text-blue-800 ring-blue-200',
-  Approver: 'bg-violet-50 text-violet-800 ring-violet-200',
+  Reviewer: 'bg-gray-100 text-gray-800 ring-gray-200',
+  Approver: 'bg-gray-100 text-gray-900 ring-gray-300',
   'Quality Release': 'bg-emerald-50 text-emerald-800 ring-emerald-200',
   'SIA Recorded': 'bg-amber-50 text-amber-800 ring-amber-200',
 };
@@ -212,7 +218,7 @@ export default function DocumentView() {
     return (
       <div className="min-h-screen bg-gray-50 py-16 text-center">
         <p className="text-base font-semibold text-gray-900">{err}</p>
-        <Link to="/documents" className="mt-4 inline-block text-sm text-blue-700 hover:underline">
+        <Link to="/documents" className="mt-4 inline-block text-sm text-primary hover:underline">
           ← Back to documents
         </Link>
       </div>
@@ -236,7 +242,7 @@ export default function DocumentView() {
       <div className="mx-auto max-w-4xl px-6 py-10 print:px-0 print:py-2">
         {/* Top action row (hidden in print) */}
         <div className="no-print mb-4 flex items-center justify-between text-sm">
-          <Link to={`/documents/${doc.id}`} className="text-blue-700 hover:underline">
+          <Link to={`/documents/${doc.id}`} className="text-primary hover:underline">
             ← Open in editable QMS view
           </Link>
           <div className="flex items-center gap-3">
@@ -291,7 +297,7 @@ export default function DocumentView() {
                   {doc.controlsMapped.map((c) => (
                     <span
                       key={c}
-                      className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-800 ring-1 ring-blue-200"
+                      className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary ring-1 ring-primary/20"
                       title={`This document backs CMMC L2 control ${c}`}
                     >
                       {c}
@@ -326,13 +332,13 @@ export default function DocumentView() {
           <section className="px-10 py-10 print:px-0">
             {looksLikeHtml ? (
               <div
-                className="prose prose-slate max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-a:text-blue-700 prose-strong:text-gray-900 prose-table:text-sm prose-th:bg-gray-50 prose-td:align-top print:text-black"
+                className="prose prose-slate max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-a:text-primary prose-strong:text-gray-900 prose-table:text-sm prose-th:bg-gray-50 prose-td:align-top print:text-black"
                 dangerouslySetInnerHTML={{
                   __html: DOMPurify.sanitize(contentTrimmed, { ALLOWED_TAGS: ALLOWED_HTML_TAGS }),
                 }}
               />
             ) : contentTrimmed ? (
-              <div className="prose prose-slate max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-a:text-blue-700 prose-strong:text-gray-900 prose-table:text-sm prose-th:bg-gray-50 prose-td:align-top print:text-black">
+              <div className="prose prose-slate max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-a:text-primary prose-strong:text-gray-900 prose-table:text-sm prose-th:bg-gray-50 prose-td:align-top print:text-black">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeSlug, [rehypeAutolinkHeadings, { behavior: 'wrap' }]]}

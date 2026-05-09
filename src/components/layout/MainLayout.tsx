@@ -1,25 +1,10 @@
-import { Outlet } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
-import { Header } from './Header';
-import { MacTechFooter } from './MacTechFooter';
-import { QmsAgentFab } from '@/components/agent/QmsAgentFab';
+import { MacTechShell } from './MacTechShell';
 
 /**
- * Main application layout: collapsible sidebar + breadcrumb header + search.
- * Wraps all module pages for consistent navigation and chrome.
+ * Main application layout — now a thin alias around `MacTechShell`, the new
+ * obsidian + copper signed-in chrome. Existing routes that imported
+ * `MainLayout` keep working unchanged.
  */
 export function MainLayout() {
-  return (
-    <div className="flex h-screen bg-surface overflow-hidden">
-      <Sidebar />
-      <div className="flex flex-1 flex-col min-w-0">
-        <Header />
-        <main className="flex-1 overflow-auto p-6">
-          <Outlet />
-        </main>
-        <MacTechFooter />
-      </div>
-      <QmsAgentFab />
-    </div>
-  );
+  return <MacTechShell />;
 }

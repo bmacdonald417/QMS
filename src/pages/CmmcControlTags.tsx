@@ -247,7 +247,7 @@ export default function CmmcControlTags() {
                           {d.tags.map((t) => (
                             <span
                               key={t.controlId}
-                              className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-800"
+                              className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
                               title={t.coverageNote ?? undefined}
                             >
                               {t.controlId}
@@ -255,7 +255,7 @@ export default function CmmcControlTags() {
                                 type="button"
                                 onClick={() => removeTag(d, t.controlId)}
                                 disabled={busy}
-                                className="ml-0.5 text-blue-500 hover:text-blue-700 disabled:opacity-50"
+                                className="ml-0.5 text-primary hover:text-primary/80 disabled:opacity-50"
                                 aria-label={`Remove ${t.controlId}`}
                               >
                                 ×

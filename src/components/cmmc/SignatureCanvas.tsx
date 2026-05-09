@@ -19,7 +19,14 @@ export function SignatureCanvas({ onSignatureChange, width = 400, height = 200 }
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.strokeStyle = '#007AFF';
+    // Resolve the copper accent from the design-token contract (--primary
+    // in src/index.css). Canvas needs a concrete color string, so we pull
+    // the live HSL triple at draw time and wrap it as hsl(...). Falls back
+    // to the literal copper hex (#F1994C) if the variable isn't resolvable
+    // (e.g. SSR/JSDOM contexts where document is detached).
+    const root = typeof document !== 'undefined' ? document.documentElement : null;
+    const primaryVar = root ? getComputedStyle(root).getPropertyValue('--primary').trim() : '';
+    ctx.strokeStyle = primaryVar ? `hsl(${primaryVar})` : '#F1994C';
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';

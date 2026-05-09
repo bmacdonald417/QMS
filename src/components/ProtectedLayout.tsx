@@ -1,6 +1,9 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth as useClerkAuth, useClerk } from '@clerk/clerk-react';
+import { ShieldAlert } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 /**
  * Three states matter here:
@@ -16,7 +19,7 @@ export function ProtectedLayout() {
 
   if (isLoading || !isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-gray-400 text-sm">
+      <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground text-sm">
         Loading…
       </div>
     );
@@ -28,22 +31,32 @@ export function ProtectedLayout() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] px-4">
-        <div className="max-w-md w-full rounded-xl border border-[#2A2A2A] bg-[#121212] p-8 text-center">
-          <h1 className="text-xl font-semibold text-white mb-3">No QMS account linked</h1>
-          <p className="text-sm text-gray-400 leading-relaxed">
-            Your sign-in succeeded, but this Clerk identity isn&apos;t linked to a QMS user.
-            An administrator needs to invite you (the QMS user&apos;s email must match the
-            email on your Clerk account).
-          </p>
-          <button
-            type="button"
-            onClick={() => signOut({ redirectUrl: '/sign-in' })}
-            className="mt-6 h-10 px-4 rounded-md bg-[#007AFF] hover:bg-[#0056B3] text-white text-sm font-medium"
-          >
-            Sign out and use a different account
-          </button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-8 text-center">
+            <div
+              className="brand-mark-chip mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl [&_svg]:h-5 [&_svg]:w-5"
+              aria-hidden
+            >
+              <ShieldAlert />
+            </div>
+            <h1 className="text-xl font-semibold text-foreground mb-3">
+              No QMS account linked
+            </h1>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Your sign-in succeeded, but this Clerk identity isn&apos;t linked to a QMS user.
+              An administrator needs to invite you (the QMS user&apos;s email must match the
+              email on your Clerk account).
+            </p>
+            <Button
+              variant="outline"
+              className="mt-6"
+              onClick={() => signOut({ redirectUrl: '/sign-in' })}
+            >
+              Sign out and use a different account
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
-import { Button } from './Button';
+import { Button } from './LegacyButton';
 
 export interface ModalProps {
   isOpen: boolean;

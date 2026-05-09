@@ -2,30 +2,96 @@
 @tailwind components;
 @tailwind utilities;
 
-/* — MacTech TQMS/QAMS — Dark theme, scrollbar, focus states */
+/* =============================================================================
+ * MacTech QMS — "obsidian + copper" palette.
+ * Ported from MacTech Governance (and matched 1:1 with vetted/clearD) for
+ * cross-suite visual consistency. Dark-first, single warm copper accent.
+ *
+ * Hue strategy:
+ *  - Backgrounds: ~24° hue (warm charcoal).
+ *  - Foreground: ~40° hue, very low saturation.
+ *  - Primary: 28° / 85% / 62% — burnished copper (#F1994C).
+ *  - Accent: deep ember (28° / 50% / 18%) with amber highlight foreground.
+ *
+ * The CSS-variable contract matches shadcn/ui so its primitives drop in
+ * unchanged.
+ * ========================================================================== */
 
 :root {
-  --surface: #0a0a0a;
-  --surface-elevated: #121212;
-  --surface-border: #2a2a2a;
-  --mactech-blue: #007aff;
-  --compliance-green: #28cd41;
-  --transition-default: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  /* light mode (kept for completeness — QMS is dark-first) */
+  --background: 0 0% 99%;
+  --foreground: 24 12% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 24 12% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 24 12% 10%;
+  --primary: 24 80% 38%;
+  --primary-foreground: 24 15% 98%;
+  --secondary: 24 8% 95%;
+  --secondary-foreground: 24 12% 10%;
+  --muted: 24 8% 95%;
+  --muted-foreground: 24 8% 38%;
+  --accent: 32 75% 92%;
+  --accent-foreground: 24 80% 22%;
+  --destructive: 0 84% 55%;
+  --destructive-foreground: 24 15% 98%;
+  --success: 145 55% 38%;
+  --success-foreground: 24 15% 98%;
+  --warning: 32 90% 44%;
+  --warning-foreground: 24 12% 10%;
+  --border: 24 10% 88%;
+  --input: 24 10% 88%;
+  --ring: 24 80% 38%;
+  --radius: 0.5rem;
 }
+
+.dark,
+[data-theme='dark'],
+html.dark {
+  --background: 24 6% 7%;
+  --foreground: 40 12% 95%;
+  --card: 24 6% 9%;
+  --card-foreground: 40 12% 95%;
+  --popover: 24 6% 10%;
+  --popover-foreground: 40 12% 95%;
+  --primary: 28 85% 62%;
+  --primary-foreground: 24 15% 8%;
+  --secondary: 24 5% 14%;
+  --secondary-foreground: 40 12% 95%;
+  --muted: 24 5% 14%;
+  --muted-foreground: 30 8% 65%;
+  --accent: 28 50% 18%;
+  --accent-foreground: 35 90% 80%;
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 40 12% 95%;
+  --success: 145 50% 50%;
+  --success-foreground: 24 6% 7%;
+  --warning: 38 90% 60%;
+  --warning-foreground: 24 6% 7%;
+  --border: 24 5% 16%;
+  --input: 24 5% 16%;
+  --ring: 28 85% 62%;
+}
+
+/* -----------------------------------------------------------------------------
+ * Base — paint the page from the new tokens.
+ * -------------------------------------------------------------------------- */
 
 * {
   box-sizing: border-box;
 }
 
 html {
-  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+html,
 body {
-  @apply bg-surface text-gray-100;
-  background-color: var(--surface);
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   min-height: 100vh;
 }
 
@@ -36,45 +102,87 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--surface-elevated);
+  background: hsl(var(--card));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--surface-border);
+  background: hsl(var(--border));
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a3a3a;
+  background: hsl(var(--muted-foreground) / 0.4);
 }
 
-/* Focus states — accessibility & GxP usability */
+/* Accessibility — visible focus everywhere. */
 :focus-visible {
-  outline: 2px solid var(--mactech-blue);
+  outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
 
 button:focus-visible,
 a:focus-visible,
-[tabindex="0"]:focus-visible {
-  outline: 2px solid var(--mactech-blue);
+[tabindex='0']:focus-visible {
+  outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
 
 /* Typographic hierarchy */
 h1 {
-  @apply text-2xl font-semibold tracking-tight text-white;
+  @apply text-2xl font-semibold tracking-tight;
+  color: hsl(var(--foreground));
 }
 
 h2 {
-  @apply text-lg font-medium text-gray-200;
+  @apply text-lg font-medium;
+  color: hsl(var(--foreground));
 }
 
 .label-caps {
-  @apply text-xs font-medium uppercase tracking-wider text-gray-500;
+  @apply text-xs font-medium uppercase tracking-wider;
+  color: hsl(var(--muted-foreground));
 }
 
-/* Motion — fluid transitions */
+/* -----------------------------------------------------------------------------
+ * Signature visual utilities (ported from vetted/Governance).
+ * -------------------------------------------------------------------------- */
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.brand-mark-chip {
+  background-color: hsl(var(--primary) / 0.12);
+  color: hsl(var(--primary));
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--primary) / 0.3),
+    inset 0 1px 0 0 hsl(var(--primary) / 0.18);
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(to right, hsl(var(--border) / 0.18) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--border) / 0.18) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.qms-hero-bg {
+  background-image:
+    radial-gradient(
+      ellipse 60% 45% at 25% 20%,
+      hsl(var(--primary) / 0.14),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 50% 40% at 80% 85%,
+      hsl(var(--accent) / 0.55),
+      transparent 70%
+    );
+}
+
+/* -----------------------------------------------------------------------------
+ * Motion — fluid transitions
+ * -------------------------------------------------------------------------- */
 .page-enter {
   opacity: 0;
   transform: translateY(4px);
@@ -83,7 +191,8 @@ h2 {
 .page-enter-active {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity var(--transition-default), transform var(--transition-default);
+  transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .modal-enter {
@@ -94,7 +203,8 @@ h2 {
 .modal-enter-active {
   opacity: 1;
   transform: scale(1);
-  transition: opacity var(--transition-default), transform var(--transition-default);
+  transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ─── Clerk SignIn / SignUp polish (dark theme) ─────────────────────────── */
@@ -102,9 +212,9 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-  -webkit-text-fill-color: #f3f4f6 !important;
-  -webkit-box-shadow: 0 0 0 1000px #0A0A0A inset !important;
-  caret-color: #f3f4f6 !important;
+  -webkit-text-fill-color: hsl(var(--foreground)) !important;
+  -webkit-box-shadow: 0 0 0 1000px hsl(var(--background)) inset !important;
+  caret-color: hsl(var(--foreground)) !important;
   transition: background-color 9999s ease-in-out 0s !important;
 }
 /* "Secured by Clerk" branding is hidden via the dashboard toggle (Settings

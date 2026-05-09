@@ -24,22 +24,22 @@ export interface SidebarItem {
 }
 
 const icons = {
-  dashboard: <LayoutDashboard className="h-5 w-5" />,
-  documents: <FileText className="h-5 w-5" />,
-  training: <GraduationCap className="h-5 w-5" />,
-  audits: <ClipboardCheck className="h-5 w-5" />,
-  capa: <AlertTriangle className="h-5 w-5" />,
-  changeControl: <GitBranch className="h-5 w-5" />,
-  risk: <Shield className="h-5 w-5" />,
-  equipment: <Wrench className="h-5 w-5" />,
-  suppliers: <Truck className="h-5 w-5" />,
-  system: <Settings className="h-5 w-5" />,
-  approvals: <CheckSquare className="h-5 w-5" />,
-  myTasks: <ListTodo className="h-5 w-5" />,
-  search: <Search className="h-5 w-5" />,
-  periodicReviews: <CalendarCheck className="h-5 w-5" />,
-  qualityHealth: <HeartPulse className="h-5 w-5" />,
-  completedForms: <FileCheck className="h-5 w-5" />,
+  dashboard: <LayoutDashboard className="h-4 w-4" />,
+  documents: <FileText className="h-4 w-4" />,
+  training: <GraduationCap className="h-4 w-4" />,
+  audits: <ClipboardCheck className="h-4 w-4" />,
+  capa: <AlertTriangle className="h-4 w-4" />,
+  changeControl: <GitBranch className="h-4 w-4" />,
+  risk: <Shield className="h-4 w-4" />,
+  equipment: <Wrench className="h-4 w-4" />,
+  suppliers: <Truck className="h-4 w-4" />,
+  system: <Settings className="h-4 w-4" />,
+  approvals: <CheckSquare className="h-4 w-4" />,
+  myTasks: <ListTodo className="h-4 w-4" />,
+  search: <Search className="h-4 w-4" />,
+  periodicReviews: <CalendarCheck className="h-4 w-4" />,
+  qualityHealth: <HeartPulse className="h-4 w-4" />,
+  completedForms: <FileCheck className="h-4 w-4" />,
 };
 
 /**
