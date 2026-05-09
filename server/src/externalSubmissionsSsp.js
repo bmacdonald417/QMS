@@ -314,14 +314,6 @@ router.post(
       return res.status(500).json({
         error: 'internal_error',
         message: 'Failed to persist submission. The submission was not accepted.',
-        // TEMP DEBUG (revert before tagging release): surface the actual
-        // exception so the orchestrator script can diagnose without
-        // requiring TTY-bound `railway logs`.
-        debug: {
-          message: err instanceof Error ? err.message : String(err),
-          code: err && typeof err === 'object' && 'code' in err ? err.code : null,
-          meta: err && typeof err === 'object' && 'meta' in err ? err.meta : null,
-        },
       });
     }
   },
