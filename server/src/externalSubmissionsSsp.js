@@ -33,6 +33,7 @@ import {
   validateSspSubmission,
   deriveSubmissionStatusFromDocument,
 } from './lib/sspSubmissionContract.js';
+import { renderSspCanonicalToMarkdown } from './lib/renderSspCanonicalToMarkdown.js';
 import { getMacTechOrgId } from './lib/orgScope.js';
 
 const router = express.Router();
@@ -177,36 +178,50 @@ router.post(
           : parsed.ssp_version_number;
 
         // 3. Create the QMS Document in DRAFT. Authored by the bot, awaiting
-        //    a human Reviewer pickup. The body content is a stub pointer to
-        //    the PDF + canonical_json on the staging row — the QMS Document
-        //    is a controlled-record wrapper, not a body store for the SSP.
-        const stubContent = [
-          `# System Security Plan — ${parsed.boundary_name}`,
-          ``,
+        //    a human Reviewer pickup. The body content is the FULL SSP
+        //    canonical content rendered to markdown — every section
+        //    (system_id / scope / environment / connections /
+        //    security_reqs / update_freq / 110 controls / appendix) with
+        //    its body_md, citations, and objective verdicts. This is what
+        //    /documents/:id/view renders, what shows up in PDF exports,
+        //    and what the Reviewer reads. A previous version of this
+        //    handler stored only a stub wrapper — the read-only view came
+        //    out as 2-4 pages instead of the real ~120-page SSP.
+        //
+        //    Provenance + Codex signoffs are appended at the END so the
+        //    audit trail stays in the doc body (auditor sees them on the
+        //    same page as the signature ledger).
+        const renderedBody = renderSspCanonicalToMarkdown(
+          parsed.artifacts?.canonical_json ?? {},
+          {
+            boundary_name: parsed.boundary_name,
+            generated_at: parsed.generated_at,
+            payload_sha256: parsed.payload_sha256,
+            ssp_version_number: parsed.ssp_version_number,
+            controls_mapped: parsed.controls_mapped,
+          },
+        );
+        const provenanceFooter = [
+          '',
+          '---',
+          '',
+          '## Provenance — Codex signoffs preserved as evidence',
+          '',
           `**Source:** Trust Codex (https://codex.mactechsolutionsllc.com)  `,
-          `**Submission:** \`${parsed.submission_id}\`  `,
-          `**Codex SSP version:** ${parsed.ssp_version_number}  `,
-          `**Generated at:** ${parsed.generated_at}  `,
-          `**Payload SHA-256:** \`${parsed.payload_sha256}\``,
-          ``,
-          `This document is the QMS-controlled record wrapper for an SSP authored in Trust Codex.`,
-          `The authoritative content is the PDF artifact attached to this Document; the full canonical`,
-          `JSON payload (including all 110 control determinations) is preserved on the linked external`,
-          `submission row for audit.`,
-          ``,
-          `## Codex sign-offs (provenance — preserved as evidence)`,
-          ``,
+          `**Submission ID:** \`${parsed.submission_id}\`  `,
+          '',
           ...parsed.signoffs.map(
-            (s) => `- **${s.kind}** — ${s.signer_display_name} on ${s.signed_at}`,
+            (s) => `- **${s.kind}** — ${s.signer_display_name} (${s.signer_title}) on ${s.signed_at}`,
           ),
-          ``,
-          `## QMS release chain`,
-          ``,
-          `This document will move through QMS's standard Reviewer → Approver → Quality Release flow.`,
-          `When released, the next governance manifest export will surface it to Codex with`,
+          '',
+          '## QMS release chain',
+          '',
+          `This document moved through QMS's standard Reviewer → Approver → Quality Release flow.`,
+          `On release, the next governance manifest export surfaces it to Codex with`,
           `\`document_type='ssp'\` and \`document_number='${parsed.document_number}'\` so the Codex linker`,
-          `can match it back to submission \`${parsed.submission_id}\`.`,
+          `matches it back to submission \`${parsed.submission_id}\`.`,
         ].join('\n');
+        const fullContent = renderedBody + provenanceFooter;
 
         const document = await tx.document.create({
           data: {
@@ -216,7 +231,7 @@ router.post(
             versionMajor,
             versionMinor: 0,
             status: 'DRAFT',
-            content: stubContent,
+            content: fullContent,
             authorId: botUserId,
             organizationId: orgId,
             supersedesDocumentId: prior?.id ?? null,
