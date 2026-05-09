@@ -111,7 +111,7 @@ export function AuditManagement() {
           : undefined
       }
     >
-      {error && <p className="mb-3 text-sm text-compliance-red">{error}</p>}
+      {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
       {loading ? (
         <p className="text-gray-400">Loading…</p>
       ) : (
@@ -137,7 +137,7 @@ export function AuditManagement() {
           </>
         }
       >
-        {submitErr && <p className="text-sm text-compliance-red mb-2">{submitErr}</p>}
+        {submitErr && <p className="text-sm text-destructive mb-2">{submitErr}</p>}
         <div className="space-y-3">
           <Input label="Audit name *" value={name} onChange={(e) => setName(e.target.value)} />
           <div>
@@ -145,7 +145,7 @@ export function AuditManagement() {
             <select
               value={auditKind}
               onChange={(e) => setAuditKind(e.target.value as typeof auditKind)}
-              className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+              className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
             >
               <option value="INTERNAL">Internal</option>
               <option value="EXTERNAL">External</option>

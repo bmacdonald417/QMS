@@ -74,20 +74,20 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative rounded-md p-2 text-gray-300 hover:bg-surface-overlay hover:text-white transition-colors"
+        className="relative rounded-md p-2 text-gray-300 hover:bg-secondary hover:text-white transition-colors"
         aria-label="Notifications"
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-compliance-red px-1 text-[10px] text-white">
+          <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] text-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-96 max-w-[80vw] rounded-lg border border-surface-border bg-surface-elevated shadow-depth-lg z-40">
-          <div className="border-b border-surface-border px-4 py-3 text-sm font-medium text-white">
+        <div className="absolute right-0 mt-2 w-96 max-w-[80vw] rounded-lg border border-border bg-card shadow-lg z-40">
+          <div className="border-b border-border px-4 py-3 text-sm font-medium text-white">
             Notifications
           </div>
           <div className="max-h-80 overflow-y-auto">
@@ -98,13 +98,13 @@ export function NotificationBell() {
             ) : (
               <ul>
                 {items.map((item) => (
-                  <li key={item.id} className="border-b border-surface-border last:border-b-0">
+                  <li key={item.id} className="border-b border-border last:border-b-0">
                     <Link
                       to={item.link}
                       className={`block px-4 py-3 text-sm transition-colors ${
                         item.read
-                          ? 'text-gray-400 hover:bg-surface-overlay'
-                          : 'text-gray-200 bg-mactech-blue-muted/30 hover:bg-surface-overlay'
+                          ? 'text-gray-400 hover:bg-secondary'
+                          : 'text-gray-200 bg-primary/30 hover:bg-secondary'
                       }`}
                       onClick={() => {
                         markRead(item.id);

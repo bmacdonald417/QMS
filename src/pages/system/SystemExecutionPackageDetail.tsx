@@ -31,7 +31,7 @@ function MigrationRiskSummaryView({ summary }: { summary: MigrationRiskSummary }
     ) : null;
 
   return (
-    <div className="mt-2 rounded border border-surface-border bg-surface-overlay p-3 text-xs text-gray-300">
+    <div className="mt-2 rounded border border-border bg-secondary p-3 text-xs text-gray-300">
       <p className="text-sm text-gray-100">{summary.summary}</p>
       {summary.impactedTables?.length ? (
         <div className="mt-3">
@@ -374,8 +374,8 @@ export function SystemExecutionPackageDetail() {
   if (!pkg) {
     return (
       <div className="space-y-3">
-        <p className="text-compliance-red">{error || 'Package not found.'}</p>
-        <Link to="/system/qms-agent/execution-packages" className="text-mactech-blue hover:underline text-sm">
+        <p className="text-destructive">{error || 'Package not found.'}</p>
+        <Link to="/system/qms-agent/execution-packages" className="text-primary hover:underline text-sm">
           Back to packages
         </Link>
       </div>
@@ -397,20 +397,20 @@ export function SystemExecutionPackageDetail() {
         <div className="flex flex-wrap gap-2">
           <Link
             to="/system/qms-agent/execution-packages"
-            className="inline-flex items-center justify-center rounded-lg border border-surface-border bg-surface-elevated px-4 py-2 text-sm font-medium text-gray-200 hover:bg-surface-overlay"
+            className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-gray-200 hover:bg-secondary"
           >
             All packages
           </Link>
           <Link
             to="/system/qms-agent"
-            className="inline-flex items-center justify-center rounded-lg border border-surface-border bg-surface-elevated px-4 py-2 text-sm font-medium text-gray-200 hover:bg-surface-overlay"
+            className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-gray-200 hover:bg-secondary"
           >
             QMS Agent
           </Link>
         </div>
       </div>
 
-      {error && <p className="text-sm text-compliance-red">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       {readinessScore && (readinessScore.band === 'LOW' || readinessScore.band === 'MEDIUM') ? (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
@@ -440,13 +440,13 @@ export function SystemExecutionPackageDetail() {
         <div className="grid gap-3 md:grid-cols-2">
           <div>
             <label className="label-caps mb-1.5 block text-gray-500">Inferred module</label>
-            <div className="rounded border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-200">
+            <div className="rounded border border-border bg-secondary px-3 py-2 text-sm text-gray-200">
               {pkg.inferredModuleKey ?? '—'}
             </div>
           </div>
           <div>
             <label className="label-caps mb-1.5 block text-gray-500">Suggested template</label>
-            <div className="rounded border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-200">
+            <div className="rounded border border-border bg-secondary px-3 py-2 text-sm text-gray-200">
               {pkg.suggestedTemplateKey ?? '—'}
             </div>
           </div>
@@ -458,7 +458,7 @@ export function SystemExecutionPackageDetail() {
             <select
               value={moduleOverrideDraft}
               onChange={(e) => setModuleOverrideDraft(e.target.value)}
-              className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+              className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
             >
               <option value="">(use inference)</option>
               {modules.map((m) => (
@@ -473,7 +473,7 @@ export function SystemExecutionPackageDetail() {
             <select
               value={templateOverrideDraft}
               onChange={(e) => setTemplateOverrideDraft(e.target.value)}
-              className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+              className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
             >
               <option value="">(use suggestion)</option>
               {templates.map((t) => (
@@ -560,7 +560,7 @@ export function SystemExecutionPackageDetail() {
           </p>
         ) : (
           <div className="space-y-6">
-            <div className="rounded border border-surface-border bg-surface-overlay p-4">
+            <div className="rounded border border-border bg-secondary p-4">
               <div className="text-xs text-gray-500">Readiness score</div>
               <div className="mt-1 flex flex-wrap items-end gap-3">
                 <div className="text-3xl font-semibold text-white">{readinessScore?.score ?? '—'}</div>
@@ -598,7 +598,7 @@ export function SystemExecutionPackageDetail() {
               <h3 className="text-sm font-medium text-white">Acceptance criteria</h3>
               <div className="mt-2 space-y-2">
                 {(implementationReadiness.acceptanceCriteria || []).slice(0, 60).map((c: AcceptanceCriterion) => (
-                  <div key={c.id} className="rounded border border-surface-border bg-surface-overlay p-3 text-xs text-gray-300">
+                  <div key={c.id} className="rounded border border-border bg-secondary p-3 text-xs text-gray-300">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-mono text-[11px] text-gray-500">{c.id}</span>
                       <span className="text-gray-500">
@@ -616,7 +616,7 @@ export function SystemExecutionPackageDetail() {
               <h3 className="text-sm font-medium text-white">Regression and test plan</h3>
               <div className="mt-2 space-y-2">
                 {(implementationReadiness.regressionPlan || []).map((t: RegressionTestSuggestion) => (
-                  <div key={t.id} className="rounded border border-surface-border bg-surface-overlay p-3 text-xs text-gray-300">
+                  <div key={t.id} className="rounded border border-border bg-secondary p-3 text-xs text-gray-300">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="text-sm text-gray-100">{t.title}</div>
                       <span className="text-gray-500">
@@ -649,7 +649,7 @@ export function SystemExecutionPackageDetail() {
               <p className="mt-1 text-xs text-gray-500">Suggestions only — do not auto-seed production data.</p>
               <div className="mt-2 space-y-2">
                 {(implementationReadiness.fixtureSuggestions || []).map((f: FixtureSuggestion) => (
-                  <div key={f.label} className="rounded border border-surface-border bg-surface-overlay p-3 text-xs text-gray-300">
+                  <div key={f.label} className="rounded border border-border bg-secondary p-3 text-xs text-gray-300">
                     <div className="text-sm text-gray-100">
                       {f.label} <span className="text-gray-500">({f.module})</span>
                     </div>
@@ -661,7 +661,7 @@ export function SystemExecutionPackageDetail() {
               </div>
             </div>
 
-            <div className="rounded border border-surface-border bg-surface-overlay p-4 space-y-3">
+            <div className="rounded border border-border bg-secondary p-4 space-y-3">
               <h3 className="text-sm font-medium text-white">Acknowledge known gaps</h3>
               <p className="text-xs text-gray-500">
                 Use this when you intentionally accept residual risk (for example, missing workflow snapshot in lower
@@ -670,7 +670,7 @@ export function SystemExecutionPackageDetail() {
               <div>
                 <label className="label-caps mb-1.5 block text-gray-500">Note (optional)</label>
                 <textarea
-                  className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100"
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-gray-100"
                   rows={3}
                   value={gapNote}
                   onChange={(e) => setGapNote(e.target.value)}
@@ -696,7 +696,7 @@ export function SystemExecutionPackageDetail() {
             <select
               value={nextStatus}
               onChange={(e) => setNextStatus(e.target.value)}
-              className="rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+              className="rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
             >
               <option value="DRAFT">DRAFT</option>
               <option value="READY">READY</option>
@@ -717,7 +717,7 @@ export function SystemExecutionPackageDetail() {
             <select
               value={assigneeUserId}
               onChange={(e) => setAssigneeUserId(e.target.value)}
-              className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+              className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
             >
               <option value="">Unassigned</option>
               {users.map((u) => (
@@ -760,7 +760,7 @@ export function SystemExecutionPackageDetail() {
               Latest handoff: <span className="text-gray-200">{handoff.id}</span> ({handoff.status}) —{' '}
               {new Date(handoff.createdAt).toLocaleString()}
             </div>
-            <pre className="max-h-[28vh] overflow-auto rounded border border-surface-border bg-surface-overlay p-3 text-[11px] text-gray-200">
+            <pre className="max-h-[28vh] overflow-auto rounded border border-border bg-secondary p-3 text-[11px] text-gray-200">
               {handoff.handoffPrompt.slice(0, 8000)}
             </pre>
           </div>
@@ -776,7 +776,7 @@ export function SystemExecutionPackageDetail() {
             Export payload JSON
           </Button>
         </div>
-        <pre className="max-h-[32vh] overflow-auto rounded border border-surface-border bg-surface-overlay p-3 text-xs text-gray-200">
+        <pre className="max-h-[32vh] overflow-auto rounded border border-border bg-secondary p-3 text-xs text-gray-200">
           {JSON.stringify(pkg.payloadJson, null, 2)}
         </pre>
       </Card>
@@ -790,7 +790,7 @@ export function SystemExecutionPackageDetail() {
               {(pkg.checklistJson || [])
                 .filter((c) => c.category === 'intelligence')
                 .map((c) => (
-                  <li key={c.id} className="rounded border border-surface-border bg-surface-overlay p-2">
+                  <li key={c.id} className="rounded border border-border bg-secondary p-2">
                     <span className="text-xs text-gray-500">{c.category}</span>
                     <div>{c.text}</div>
                   </li>
@@ -806,7 +806,7 @@ export function SystemExecutionPackageDetail() {
               {(pkg.checklistJson || [])
                 .filter((c) => c.category !== 'intelligence')
                 .map((c) => (
-                  <li key={c.id} className="rounded border border-surface-border bg-surface-overlay p-2">
+                  <li key={c.id} className="rounded border border-border bg-secondary p-2">
                     <span className="text-xs text-gray-500">{c.category}</span>
                     <div>{c.text}</div>
                   </li>
@@ -820,7 +820,7 @@ export function SystemExecutionPackageDetail() {
         <h2 className="text-lg font-medium text-white">Execution tasks</h2>
         <p className="text-xs text-gray-500">Tasks are ordered and editable; saving writes an audit-friendly agent run log entry.</p>
         {(pkg.tasks || []).map((t) => (
-          <div key={t.id} className="space-y-2 rounded border border-surface-border bg-surface-overlay p-3">
+          <div key={t.id} className="space-y-2 rounded border border-border bg-secondary p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="text-xs text-gray-500">
                 {t.taskType} · order {t.orderIndex} · {t.status}
@@ -839,7 +839,7 @@ export function SystemExecutionPackageDetail() {
             <div>
               <label className="label-caps mb-1.5 block text-gray-500">Description</label>
               <textarea
-                className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-gray-100"
                 rows={4}
                 value={taskDrafts[t.id]?.description ?? ''}
                 onChange={(e) =>

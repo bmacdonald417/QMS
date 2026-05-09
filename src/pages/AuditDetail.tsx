@@ -115,7 +115,7 @@ export function AuditDetail() {
       header: 'Linked CAPA',
       render: (row) =>
         row.capa ? (
-          <Link to={`/capas/${row.capa.id}`} className="text-[var(--mactech-blue)] hover:underline">
+          <Link to={`/capas/${row.capa.id}`} className="text-primary hover:underline">
             {row.capa.capaId}
           </Link>
         ) : (
@@ -127,7 +127,7 @@ export function AuditDetail() {
   if (loading || !audit) {
     return (
       <PageShell title="Audit" subtitle={loading ? 'Loading…' : error || 'Not found'} backLink={{ label: 'Audits', href: '/audits' }}>
-        {error && <p className="text-compliance-red text-sm">{error}</p>}
+        {error && <p className="text-destructive text-sm">{error}</p>}
       </PageShell>
     );
   }
@@ -168,7 +168,7 @@ export function AuditDetail() {
           </>
         }
       >
-        {submitErr && <p className="text-sm text-compliance-red mb-2">{submitErr}</p>}
+        {submitErr && <p className="text-sm text-destructive mb-2">{submitErr}</p>}
         <div className="space-y-3">
           <Input label="Finding code *" value={findingCode} onChange={(e) => setFindingCode(e.target.value)} placeholder="e.g. F-01" />
           <Input label="Title *" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -178,7 +178,7 @@ export function AuditDetail() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+              className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
             />
           </div>
           <Input
@@ -193,7 +193,7 @@ export function AuditDetail() {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={2}
-              className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+              className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
             />
           </div>
         </div>

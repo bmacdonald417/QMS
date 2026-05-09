@@ -394,7 +394,7 @@ export function DocumentDetail() {
   }, [doc?.status]);
 
   if (loading) return <p className="text-gray-400">Loading document...</p>;
-  if (error) return <p className="text-compliance-red">{error}</p>;
+  if (error) return <p className="text-destructive">{error}</p>;
   if (!doc) return <p className="text-gray-400">Document not found.</p>;
 
   const isAuthor = user?.id === doc.authorId;
@@ -494,7 +494,7 @@ export function DocumentDetail() {
                 {(doc.tags ?? []).map((tag) => (
                   <span
                     key={tag}
-                    className="rounded bg-surface-elevated px-2 py-0.5 text-xs text-gray-300"
+                    className="rounded bg-card px-2 py-0.5 text-xs text-gray-300"
                   >
                     {tag}
                   </span>
@@ -541,7 +541,7 @@ export function DocumentDetail() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-surface-border bg-surface-elevated/50 px-3 py-2 text-sm">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-border bg-card/50 px-3 py-2 text-sm">
           <span
             className="relative inline-flex shrink-0"
             onMouseEnter={() => setStatusTooltipVisible(true)}
@@ -600,9 +600,9 @@ export function DocumentDetail() {
                 <span
                   className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors duration-150 ${
                     step.current
-                      ? 'bg-mactech-blue/20 text-mactech-blue ring-1 ring-mactech-blue/40'
+                      ? 'bg-primary/20 text-primary ring-1 ring-primary/40'
                       : step.completed
-                        ? 'bg-compliance-green/15 text-compliance-green'
+                        ? 'bg-success/15 text-success'
                         : 'text-gray-500'
                   }`}
                   aria-current={step.current ? 'step' : undefined}
@@ -620,7 +620,7 @@ export function DocumentDetail() {
             <button
               type="button"
               onClick={() => setWorkflowDetailsOpen((v) => !v)}
-              className="inline-flex items-center gap-1 rounded p-1.5 text-gray-400 transition-colors hover:bg-surface-border hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+              className="inline-flex items-center gap-1 rounded p-1.5 text-gray-400 transition-colors hover:bg-border hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-ring"
               aria-label="Workflow details"
               aria-expanded={workflowDetailsOpen}
             >
@@ -629,7 +629,7 @@ export function DocumentDetail() {
             </button>
             {workflowDetailsOpen && (
               <div
-                className="absolute right-0 top-full z-50 mt-1.5 w-80 rounded-lg border border-surface-border bg-surface-elevated p-4 shadow-lg transition-opacity duration-150"
+                className="absolute right-0 top-full z-50 mt-1.5 w-80 rounded-lg border border-border bg-card p-4 shadow-lg transition-opacity duration-150"
                 role="dialog"
                 aria-label="Workflow details"
               >
@@ -692,7 +692,7 @@ export function DocumentDetail() {
               <select
                 value={documentType}
                 onChange={(e) => setDocumentType(e.target.value)}
-                className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {documentTypes.map(({ value, label }) => (
                   <option key={value} value={value}>{label}</option>
@@ -739,7 +739,7 @@ export function DocumentDetail() {
             </Button>
           </div>
         ) : (
-          <div className="min-h-[240px] rounded-lg border border-surface-border bg-surface-overlay p-4">
+          <div className="min-h-[240px] rounded-lg border border-border bg-secondary p-4">
             <DocumentContentRender content={doc.content} />
           </div>
         )}
@@ -752,7 +752,7 @@ export function DocumentDetail() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className="label-caps mb-1.5 block">Reviewers</label>
-              <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-surface-border p-3">
+              <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-border p-3">
                 {reviewers.map((reviewer) => (
                   <label key={reviewer.id} className="flex items-center gap-2 text-sm text-gray-300">
                     <input
@@ -776,7 +776,7 @@ export function DocumentDetail() {
               <select
                 value={approverId}
                 onChange={(e) => setApproverId(e.target.value)}
-                className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">Select approver</option>
                 {approvers.map((approver) => (
@@ -791,7 +791,7 @@ export function DocumentDetail() {
                   value={submitComment}
                   onChange={(e) => setSubmitComment(e.target.value)}
                   rows={4}
-                  className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
             </div>
@@ -836,7 +836,7 @@ export function DocumentDetail() {
           </p>
           <div className="mb-4 space-y-4">
             {REVIEW_QUESTIONS.map((q) => (
-              <div key={q.id} className="rounded-lg border border-surface-border bg-surface-elevated/50 p-3">
+              <div key={q.id} className="rounded-lg border border-border bg-card/50 p-3">
                 <p className="mb-2 text-sm font-medium text-gray-200">{q.label}</p>
                 <div className="flex flex-wrap items-center gap-4">
                   <label className="flex items-center gap-2 text-sm text-gray-300">
@@ -850,7 +850,7 @@ export function DocumentDetail() {
                           [q.id]: { ...prev[q.id], value: 'no', comments: prev[q.id]?.comments ?? '' },
                         }))
                       }
-                      className="rounded border-surface-border text-mactech-blue focus:ring-mactech-blue"
+                      className="rounded border-border text-primary focus:ring-ring"
                     />
                     No
                   </label>
@@ -865,7 +865,7 @@ export function DocumentDetail() {
                           [q.id]: { ...prev[q.id], value: 'yes', comments: prev[q.id]?.comments ?? '' },
                         }))
                       }
-                      className="rounded border-surface-border text-mactech-blue focus:ring-mactech-blue"
+                      className="rounded border-border text-primary focus:ring-ring"
                     />
                     Yes
                   </label>
@@ -880,7 +880,7 @@ export function DocumentDetail() {
                       [q.id]: { ...prev[q.id], value: prev[q.id]?.value ?? 'no', comments: e.target.value },
                     }))
                   }
-                  className="mt-2 w-full rounded border border-surface-border bg-surface-elevated px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+                  className="mt-2 w-full rounded border border-border bg-card px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
             ))}
@@ -897,10 +897,10 @@ export function DocumentDetail() {
               setReviewComment(e.target.value);
               if (reviewFooterError) setReviewFooterError('');
             }}
-            className={`w-full rounded-lg border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue ${
+            className={`w-full rounded-lg border bg-card px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring ${
               reviewFooterError
-                ? 'border-compliance-red ring-2 ring-compliance-red/40'
-                : 'border-surface-border'
+                ? 'border-destructive ring-2 ring-destructive/40'
+                : 'border-border'
             }`}
             placeholder="Optional for Approve. Required for Approve with Comments and Requires revision."
             aria-describedby={reviewFooterError ? 'review-footer-error' : undefined}
@@ -914,7 +914,7 @@ export function DocumentDetail() {
           {reviewFooterError && (
             <p
               id="review-footer-error"
-              className="mt-2 rounded-md border border-compliance-red/50 bg-compliance-red/10 px-3 py-2 text-sm text-red-200"
+              className="mt-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-red-200"
               role="alert"
             >
               {reviewFooterError}
@@ -1056,7 +1056,7 @@ export function DocumentDetail() {
                   <span className="text-gray-400">{link.linkType}:</span>
                   <button
                     type="button"
-                    className="text-mactech-blue hover:underline"
+                    className="text-primary hover:underline"
                     onClick={() => navigate(`/documents/${other.id}`)}
                   >
                     {other.documentId} v{other.versionMajor}.{other.versionMinor} – {stripMarkdownFormatting(other.title)}
@@ -1071,7 +1071,7 @@ export function DocumentDetail() {
             <select
               value={linkType}
               onChange={(e) => setLinkType(e.target.value)}
-              className="rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
+              className="rounded-lg border border-border bg-card px-3 py-2 text-gray-100"
             >
               <option value="references">references</option>
               <option value="impacts">impacts</option>
@@ -1101,7 +1101,7 @@ export function DocumentDetail() {
                 </button>
               )}
               {linkDropdownOpen && (
-                <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-auto rounded-lg border border-surface-border bg-surface-elevated shadow-lg">
+                <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-auto rounded-lg border border-border bg-card shadow-lg">
                   {linkSearchLoading ? (
                     <div className="px-3 py-4 text-center text-sm text-gray-500">Searching...</div>
                   ) : !linkSearchQuery.trim() ? (
@@ -1113,7 +1113,7 @@ export function DocumentDetail() {
                       <button
                         key={d.id}
                         type="button"
-                        className="w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-surface-overlay focus:bg-surface-overlay focus:outline-none"
+                        className="w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-secondary focus:bg-secondary focus:outline-none"
                         onClick={() => {
                           setLinkTargetId(d.id);
                           setLinkSearchQuery('');
@@ -1162,8 +1162,8 @@ export function DocumentDetail() {
                 key={c.id}
                 className={`rounded-lg border p-3 ${
                   c.status === 'OPEN'
-                    ? 'border-surface-border bg-surface-overlay'
-                    : 'border-surface-border/50 bg-surface-elevated/50'
+                    ? 'border-border bg-secondary'
+                    : 'border-border/50 bg-card/50'
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -1234,7 +1234,7 @@ export function DocumentDetail() {
               rows={3}
               value={newCommentText}
               onChange={(e) => setNewCommentText(e.target.value)}
-              className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100"
               placeholder="Add a comment..."
             />
             <Button
@@ -1270,7 +1270,7 @@ export function DocumentDetail() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-surface-border text-left text-gray-400">
+                  <tr className="border-b border-border text-left text-gray-400">
                     <th className="py-2">Meaning</th>
                     <th className="py-2">Signer</th>
                     <th className="py-2">Signed At</th>
@@ -1278,7 +1278,7 @@ export function DocumentDetail() {
                 </thead>
                 <tbody>
                   {doc.signatures.map((signature) => (
-                    <tr key={signature.id} className="border-b border-surface-border text-gray-200">
+                    <tr key={signature.id} className="border-b border-border text-gray-200">
                       <td className="py-2">{signature.signatureMeaning}</td>
                       <td className="py-2">
                         {signature.signer.firstName} {signature.signer.lastName}
@@ -1298,7 +1298,7 @@ export function DocumentDetail() {
                 {doc.signatures.map((sig) => (
                   <div
                     key={sig.id}
-                    className="rounded-lg border border-surface-border bg-surface-overlay p-3"
+                    className="rounded-lg border border-border bg-secondary p-3"
                   >
                     <div className="mb-2 flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-200">
@@ -1338,7 +1338,7 @@ export function DocumentDetail() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-surface-border text-left text-gray-400">
+                <tr className="border-b border-border text-left text-gray-400">
                   <th className="py-2">Version</th>
                   <th className="py-2">Effective Date</th>
                   <th className="py-2">Author</th>
@@ -1347,7 +1347,7 @@ export function DocumentDetail() {
               </thead>
               <tbody>
                 {doc.revisions.map((revision) => (
-                  <tr key={revision.id} className="border-b border-surface-border text-gray-200">
+                  <tr key={revision.id} className="border-b border-border text-gray-200">
                     <td className="py-2">
                       {revision.versionMajor}.{revision.versionMinor}
                     </td>
@@ -1377,7 +1377,7 @@ export function DocumentDetail() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-surface-border text-left text-gray-400">
+                  <tr className="border-b border-border text-left text-gray-400">
                     <th className="py-2">Document ID</th>
                     <th className="py-2">Version</th>
                     <th className="py-2">Title</th>
@@ -1385,11 +1385,11 @@ export function DocumentDetail() {
                 </thead>
                 <tbody>
                   {referenceLinks.map((link) => (
-                    <tr key={link.id} className="border-b border-surface-border text-gray-200">
+                    <tr key={link.id} className="border-b border-border text-gray-200">
                       <td className="py-2">
                         <button
                           type="button"
-                          className="text-mactech-blue hover:underline text-left"
+                          className="text-primary hover:underline text-left"
                           onClick={() => navigate(`/documents/${link.targetDocument.id}`)}
                         >
                           {link.targetDocument.documentId}
@@ -1401,7 +1401,7 @@ export function DocumentDetail() {
                       <td className="py-2">
                         <button
                           type="button"
-                          className="text-mactech-blue hover:underline text-left"
+                          className="text-primary hover:underline text-left"
                           onClick={() => navigate(`/documents/${link.targetDocument.id}`)}
                         >
                           {stripMarkdownFormatting(link.targetDocument.title)}
@@ -1430,7 +1430,7 @@ export function DocumentDetail() {
               const isReviewRejected = item.action === 'Review Rejected' && details;
               const questionsWithYes = isReviewRejected && Array.isArray(details.questionsWithYes) ? details.questionsWithYes : null;
               return (
-                <li key={item.id} className="rounded-lg border border-surface-border bg-surface-overlay p-3">
+                <li key={item.id} className="rounded-lg border border-border bg-secondary p-3">
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-gray-200">
                       {item.action} - {item.user.firstName} {item.user.lastName}
@@ -1508,7 +1508,7 @@ export function DocumentDetail() {
           <p className="text-sm text-gray-300">
             Permanently delete <strong>{doc.documentId}</strong> v{doc.versionMajor}.{doc.versionMinor} – {stripMarkdownFormatting(doc.title)}? This cannot be undone.
           </p>
-          {deleteError && <p className="text-sm text-compliance-red">{deleteError}</p>}
+          {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
           <div className="flex gap-2 justify-end">
             <Button
               variant="secondary"
@@ -1657,7 +1657,7 @@ export function DocumentDetail() {
       >
         <div className="space-y-4">
           {signatureError && (
-            <p className="text-sm text-compliance-red">{signatureError}</p>
+            <p className="text-sm text-destructive">{signatureError}</p>
           )}
           {passwordModal === 'review' && (
             <p className="text-sm text-gray-400">
@@ -1679,7 +1679,7 @@ export function DocumentDetail() {
                 value={signatureComment}
                 onChange={(e) => setSignatureComment(e.target.value)}
                 rows={4}
-                className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
           )}

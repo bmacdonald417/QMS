@@ -161,7 +161,7 @@ export function CompletedFormDetail() {
   const removeField = (index: number) => setFieldEntries((e) => e.filter((_, i) => i !== index));
 
   if (loading) return <PageShell title="Completed Form"><p className="text-gray-400">Loading…</p></PageShell>;
-  if (error && !record) return <PageShell title="Completed Form"><p className="text-compliance-red">{error}</p></PageShell>;
+  if (error && !record) return <PageShell title="Completed Form"><p className="text-destructive">{error}</p></PageShell>;
   if (!record) return <PageShell title="Completed Form"><p className="text-gray-400">Not found</p></PageShell>;
 
   return (
@@ -170,10 +170,10 @@ export function CompletedFormDetail() {
       subtitle={`${record.templateCode} – ${record.recordNumber} | ${record.status}`}
       backLink={{ label: 'Completed Forms', href: '/completed-forms' }}
     >
-      {error && <p className="mb-3 text-sm text-compliance-red">{error}</p>}
+      {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
 
       {isDraft && (
-        <Card padding="md" className="mb-4 border-mactech-blue/50 bg-mactech-blue-muted/20">
+        <Card padding="md" className="mb-4 border-primary/50 bg-primary/20">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-white">Save your work</span>
             <Button onClick={handleSaveDraft} disabled={saveSubmitting}>
@@ -193,7 +193,7 @@ export function CompletedFormDetail() {
             <button
               type="button"
               onClick={() => navigate(`/documents/${record.templateDocument!.id}`)}
-              className="text-mactech-blue hover:underline"
+              className="text-primary hover:underline"
             >
               {record.templateDocument.documentId} – {record.templateDocument.title} (v{record.templateDocument.versionMajor}.{record.templateDocument.versionMinor})
             </button>

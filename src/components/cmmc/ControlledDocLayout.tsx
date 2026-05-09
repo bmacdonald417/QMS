@@ -47,7 +47,7 @@ export function ControlledDocLayout({
         <Card variant="elevated" padding="lg" className="mb-8 min-h-[600px] flex flex-col justify-center">
           <div className="text-center">
             <div className="mb-8">
-              <FileText className="w-16 h-16 text-mactech-blue mx-auto mb-4" />
+              <FileText className="w-16 h-16 text-primary mx-auto mb-4" />
               <h1 className="text-4xl font-bold text-white mb-2">{title}</h1>
               <div className="text-xl text-gray-400 font-mono mb-4">{code}</div>
               <StatusPill status={status} />
@@ -108,7 +108,7 @@ export function ControlledDocLayout({
           </Card>
 
           {/* Footer */}
-          <div className="mt-8 pt-4 border-t border-surface-border text-center text-sm text-gray-500">
+          <div className="mt-8 pt-4 border-t border-border text-center text-sm text-gray-500">
             <div className="font-mono">{code}</div>
             {version && <div>Version {version}</div>}
             <div className="mt-2">Classification: Internal Use</div>

@@ -104,7 +104,7 @@ export function SignatureModal({ isOpen, onClose, onSign, documentCode, document
         <div>
           <label className="label-caps block mb-2">Role</label>
           <select
-            className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
+            className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100"
             value={role}
             onChange={(e) => setRole(e.target.value as 'APPROVER' | 'ACKNOWLEDGER')}
           >
@@ -151,7 +151,7 @@ export function SignatureModal({ isOpen, onClose, onSign, documentCode, document
           </div>
         )}
 
-        <div className="flex gap-3 justify-end pt-4 border-t border-surface-border">
+        <div className="flex gap-3 justify-end pt-4 border-t border-border">
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>

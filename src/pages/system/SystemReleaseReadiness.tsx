@@ -188,7 +188,7 @@ export function SystemReleaseReadiness() {
 
       {err && (
         <Card padding="md">
-          <p className="text-compliance-red">{err}</p>
+          <p className="text-destructive">{err}</p>
         </Card>
       )}
 
@@ -224,7 +224,7 @@ export function SystemReleaseReadiness() {
             <FilterChip active={filter === 'effective'} count={counts?.effective} onClick={() => setFilter('effective')}>
               Effective
             </FilterChip>
-            <span className="mx-2 hidden h-5 w-px bg-surface-border md:inline-block" />
+            <span className="mx-2 hidden h-5 w-px bg-border md:inline-block" />
             <FilterChip active={filter === 'missing_sia'} count={counts?.missing_sia} onClick={() => setFilter('missing_sia')}>
               Missing SIA
             </FilterChip>
@@ -240,7 +240,7 @@ export function SystemReleaseReadiness() {
             placeholder="Search by ID, title, or type…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-64 rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-mactech-blue focus:outline-none"
+            className="w-64 rounded-lg border border-border bg-card px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-primary focus:outline-none"
           />
         </div>
       </Card>
@@ -278,12 +278,12 @@ function SummaryTile({
   const toneClass = {
     success: 'text-emerald-400 border-emerald-500/30',
     warning: 'text-amber-400 border-amber-500/30',
-    info: 'text-mactech-blue border-mactech-blue/30',
-    neutral: 'text-gray-200 border-surface-border',
-    danger: 'text-compliance-red border-compliance-red/30',
+    info: 'text-primary border-primary/30',
+    neutral: 'text-gray-200 border-border',
+    danger: 'text-destructive border-destructive/30',
   }[tone];
   return (
-    <div className={`rounded-lg border bg-surface-elevated p-3 ${toneClass}`}>
+    <div className={`rounded-lg border bg-card p-3 ${toneClass}`}>
       <div className="text-xs uppercase tracking-wider text-gray-500">{label}</div>
       <div className={`mt-1 text-2xl font-semibold ${toneClass}`}>{value}</div>
     </div>
@@ -307,13 +307,13 @@ function FilterChip({
       onClick={onClick}
       className={`rounded-full border px-3 py-1 text-xs transition ${
         active
-          ? 'border-mactech-blue bg-mactech-blue/15 text-mactech-blue'
-          : 'border-surface-border bg-surface-elevated text-gray-400 hover:bg-surface-overlay hover:text-gray-200'
+          ? 'border-primary bg-primary/15 text-primary'
+          : 'border-border bg-card text-gray-400 hover:bg-secondary hover:text-gray-200'
       }`}
     >
       {children}
       {typeof count === 'number' && (
-        <span className={`ml-1.5 text-[10px] ${active ? 'text-mactech-blue' : 'text-gray-500'}`}>
+        <span className={`ml-1.5 text-[10px] ${active ? 'text-primary' : 'text-gray-500'}`}>
           {count}
         </span>
       )}
@@ -334,7 +334,7 @@ function ReadinessRowCard({ row }: { row: ReadinessRow }) {
           <div className="flex flex-wrap items-center gap-2">
             <Link
               to={`/documents/${row.id}`}
-              className="font-medium text-mactech-blue hover:underline"
+              className="font-medium text-primary hover:underline"
             >
               {row.documentId}
             </Link>
@@ -373,8 +373,8 @@ function ReadinessRowCard({ row }: { row: ReadinessRow }) {
           </div>
 
           {stepLabel && (
-            <div className="mt-3 rounded-md border border-mactech-blue/40 bg-mactech-blue/5 px-3 py-2">
-              <p className="text-xs uppercase tracking-wider text-mactech-blue">
+            <div className="mt-3 rounded-md border border-primary/40 bg-primary/5 px-3 py-2">
+              <p className="text-xs uppercase tracking-wider text-primary">
                 Next required action
               </p>
               <p className="mt-0.5 text-sm text-gray-100">

@@ -73,7 +73,7 @@ export function ChangeControlDetail() {
       subtitle={cc.title}
       backLink={{ label: 'Back to Change Control', href: '/change-control' }}
     >
-      {error && <p className="mb-3 text-sm text-compliance-red">{error}</p>}
+      {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
       <Card>
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">

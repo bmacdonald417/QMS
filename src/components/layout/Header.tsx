@@ -57,7 +57,7 @@ export function Header() {
   ];
 
   return (
-    <header className="flex h-14 items-center justify-between gap-4 border-b border-surface-border bg-surface-elevated px-6">
+    <header className="flex h-14 items-center justify-between gap-4 border-b border-border bg-card px-6">
       <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm">
         {breadcrumbs.map((crumb, i) => (
           <span key={crumb.path} className="flex items-center gap-2">
@@ -83,7 +83,7 @@ export function Header() {
             placeholder="Search documents, CAPAs, audits..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border border-surface-border bg-surface-overlay py-2 pl-9 pr-3 text-sm text-gray-100 placeholder-gray-500 focus:border-mactech-blue focus:outline-none focus:ring-1 focus:ring-mactech-blue"
+            className="w-full rounded-lg border border-border bg-secondary py-2 pl-9 pr-3 text-sm text-gray-100 placeholder-gray-500 focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring"
           />
         </div>
         <span className="text-xs text-gray-400 hidden sm:inline">

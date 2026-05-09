@@ -50,7 +50,7 @@ export function ChangeControlNew() {
     >
       <Card>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <p className="text-sm text-compliance-red">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <div>
             <label className="label-caps block mb-1">Title *</label>
             <Input
@@ -68,7 +68,7 @@ export function ChangeControlNew() {
               placeholder="Describe the change and scope"
               required
               rows={4}
-              className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200 placeholder-gray-500"
+              className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200 placeholder-gray-500"
             />
           </div>
           <div>
@@ -78,7 +78,7 @@ export function ChangeControlNew() {
               onChange={(e) => setRiskAssessment(e.target.value)}
               placeholder="Impact assessment (e.g. Low — documentation only)"
               rows={2}
-              className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200 placeholder-gray-500"
+              className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200 placeholder-gray-500"
             />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

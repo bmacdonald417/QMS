@@ -83,7 +83,7 @@ export function TrainingCompetency() {
       key: 'document',
       header: 'Document',
       render: (r) => (
-        <Link to={`/documents/${r.trainingModule.document.id}`} className="text-mactech-blue hover:underline">
+        <Link to={`/documents/${r.trainingModule.document.id}`} className="text-primary hover:underline">
           {r.trainingModule.document.documentId} v{r.trainingModule.document.versionMajor}.{r.trainingModule.document.versionMinor}
         </Link>
       ),
@@ -149,7 +149,7 @@ export function TrainingCompetency() {
                 <li
                   key={mod.id}
                   className={`rounded-lg border p-3 ${
-                    moduleId === mod.id ? 'border-mactech-blue bg-mactech-blue-muted/30' : 'border-surface-border bg-surface-overlay'
+                    moduleId === mod.id ? 'border-primary bg-primary/30' : 'border-border bg-secondary'
                   }`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -158,14 +158,14 @@ export function TrainingCompetency() {
                       <p className="text-sm text-gray-500">{mod.description}</p>
                       <p className="mt-1 text-xs text-gray-400">
                         Due: {new Date(mod.dueDate).toLocaleDateString()} • Document:{' '}
-                        <Link to={`/documents/${mod.document.id}`} className="text-mactech-blue hover:underline">
+                        <Link to={`/documents/${mod.document.id}`} className="text-primary hover:underline">
                           {mod.document.documentId} v{mod.document.versionMajor}.{mod.document.versionMinor}
                         </Link>
                       </p>
                     </div>
                     <Link
                       to={`/documents/${mod.document.id}`}
-                      className="inline-flex items-center justify-center gap-2 rounded-md border border-surface-border bg-surface-elevated px-3 py-1.5 text-sm font-medium text-gray-200 transition-colors hover:bg-surface-overlay focus:outline-none focus-visible:ring-2 focus-visible:ring-mactech-blue"
+                      className="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-gray-200 transition-colors hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       View document
                     </Link>

@@ -137,17 +137,17 @@ export function QmsAgentChatPanel({
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-surface-border bg-surface-overlay/40 p-3">
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-secondary/40 p-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-medium text-gray-300">Assistant</p>
         <span className="text-[10px] uppercase tracking-wide text-gray-600">Intake only</span>
       </div>
-      <div className="max-h-[42vh] min-h-[180px] space-y-2 overflow-y-auto rounded border border-surface-border bg-surface-elevated/80 p-2">
+      <div className="max-h-[42vh] min-h-[180px] space-y-2 overflow-y-auto rounded border border-border bg-card/80 p-2">
         {messages.map((m, i) => (
           <div
             key={i}
             className={`rounded-lg px-2.5 py-2 text-sm ${
-              m.role === 'user' ? 'ml-6 bg-mactech-blue/15 text-gray-100' : 'mr-4 bg-surface-overlay text-gray-200'
+              m.role === 'user' ? 'ml-6 bg-primary/15 text-gray-100' : 'mr-4 bg-secondary text-gray-200'
             }`}
           >
             <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
@@ -165,7 +165,7 @@ export function QmsAgentChatPanel({
           onChange={(e) => setInput(e.target.value)}
           rows={2}
           placeholder={mode === 'suggest' ? 'Describe the change you want…' : 'Describe the workflow you need…'}
-          className="min-h-[44px] flex-1 resize-y rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+          className="min-h-[44px] flex-1 resize-y rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();

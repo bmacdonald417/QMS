@@ -90,7 +90,7 @@ export function SignatureCanvas({ onSignatureChange, width = 400, height = 200 }
         ref={canvasRef}
         width={width}
         height={height}
-        className="border-2 border-surface-border rounded-lg cursor-crosshair bg-white"
+        className="border-2 border-border rounded-lg cursor-crosshair bg-white"
         onMouseDown={startDrawing}
         onMouseMove={draw}
         onMouseUp={stopDrawing}

@@ -44,7 +44,7 @@ const RELEASEABLE_STATUSES = new Set([
 // shared with the rest of the QMS surfaces (release readiness, governance manifest).
 function statusBadgeClass(status: string): string {
   if (status === 'EFFECTIVE' || status === 'APPROVED') {
-    return 'bg-compliance-green-muted text-compliance-green ring-1 ring-inset ring-compliance-green/30';
+    return 'bg-success/15 text-success ring-1 ring-inset ring-success/30';
   }
   if (
     status === 'IN_REVIEW' ||
@@ -52,10 +52,10 @@ function statusBadgeClass(status: string): string {
     status === 'PENDING_APPROVAL' ||
     status === 'PENDING_QUALITY_RELEASE'
   ) {
-    return 'bg-compliance-amber/10 text-compliance-amber ring-1 ring-inset ring-compliance-amber/30';
+    return 'bg-warning/10 text-warning ring-1 ring-inset ring-warning/30';
   }
   // DRAFT and anything else
-  return 'bg-surface-overlay text-gray-400 ring-1 ring-inset ring-surface-border';
+  return 'bg-secondary text-gray-400 ring-1 ring-inset ring-border';
 }
 
 export function SystemGovernanceRelease() {
@@ -138,7 +138,7 @@ export function SystemGovernanceRelease() {
       {error && (
         <div
           role="alert"
-          className="rounded-md border border-compliance-red/30 bg-compliance-red/10 px-4 py-2 text-sm text-compliance-red"
+          className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive"
         >
           {error}
         </div>
@@ -160,7 +160,7 @@ export function SystemGovernanceRelease() {
         <button
           type="button"
           onClick={selectAll}
-          className="rounded-md border border-surface-border bg-surface-elevated px-2.5 py-1 text-xs text-gray-300 transition hover:border-mactech-blue/40 hover:bg-surface-overlay hover:text-gray-100"
+          className="rounded-md border border-border bg-card px-2.5 py-1 text-xs text-gray-300 transition hover:border-primary/40 hover:bg-secondary hover:text-gray-100"
         >
           Select all visible
         </button>
@@ -168,7 +168,7 @@ export function SystemGovernanceRelease() {
           type="button"
           onClick={clearAll}
           disabled={selected.size === 0}
-          className="rounded-md border border-surface-border bg-surface-elevated px-2.5 py-1 text-xs text-gray-300 transition hover:border-mactech-blue/40 hover:bg-surface-overlay hover:text-gray-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-surface-border disabled:hover:bg-surface-elevated disabled:hover:text-gray-300"
+          className="rounded-md border border-border bg-card px-2.5 py-1 text-xs text-gray-300 transition hover:border-primary/40 hover:bg-secondary hover:text-gray-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border disabled:hover:bg-card disabled:hover:text-gray-300"
         >
           Clear
         </button>
@@ -185,8 +185,8 @@ export function SystemGovernanceRelease() {
 
       <Card padding="none">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-surface-border">
-            <thead className="bg-surface-overlay">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-secondary">
               <tr>
                 <th scope="col" className="w-10 px-3 py-3"></th>
                 <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">Code</th>
@@ -195,7 +195,7 @@ export function SystemGovernanceRelease() {
                 <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">Tagged controls</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-border">
+            <tbody className="divide-y divide-border">
               {loading && (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
@@ -219,8 +219,8 @@ export function SystemGovernanceRelease() {
                       onClick={() => toggle(d.id)}
                       className={`cursor-pointer transition-colors ${
                         isSelected
-                          ? 'bg-mactech-blue-muted hover:bg-mactech-blue-muted/80'
-                          : 'hover:bg-surface-overlay'
+                          ? 'bg-primary/15 hover:bg-primary/80'
+                          : 'hover:bg-secondary'
                       }`}
                     >
                       <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
@@ -229,7 +229,7 @@ export function SystemGovernanceRelease() {
                           checked={isSelected}
                           onChange={() => toggle(d.id)}
                           aria-label={`Select ${d.code}`}
-                          className="h-4 w-4 cursor-pointer rounded border-surface-border bg-surface-overlay text-mactech-blue accent-mactech-blue focus:ring-2 focus:ring-mactech-blue focus:ring-offset-0"
+                          className="h-4 w-4 cursor-pointer rounded border-border bg-secondary text-primary accent-primary focus:ring-2 focus:ring-ring focus:ring-offset-0"
                         />
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-gray-200">{d.code}</td>
@@ -255,7 +255,7 @@ export function SystemGovernanceRelease() {
                             d.tags.map((t) => (
                               <span
                                 key={t.controlId}
-                                className="inline-flex items-center rounded-full bg-mactech-blue-muted px-2 py-0.5 font-mono text-[10px] font-medium text-mactech-blue ring-1 ring-inset ring-mactech-blue/20"
+                                className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[10px] font-medium text-primary ring-1 ring-inset ring-primary/20"
                               >
                                 {t.controlId}
                               </span>

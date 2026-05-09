@@ -522,15 +522,15 @@ export function CAPADetail() {
       subtitle={capa.title}
       backLink={{ label: 'Back to CAPA list', href: '/capas' }}
     >
-      {error && <p className="mb-3 text-sm text-compliance-red">{error}</p>}
+      {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
 
-      <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-[var(--surface-border)] pb-3">
+      <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-border pb-3">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`rounded px-3 py-1.5 text-sm font-medium transition ${activeTab === tab.id ? 'bg-[var(--mactech-blue)] text-white' : 'text-gray-400 hover:bg-[var(--surface-elevated)] hover:text-gray-200'}`}
+            className={`rounded px-3 py-1.5 text-sm font-medium transition ${activeTab === tab.id ? 'bg-primary text-white' : 'text-gray-400 hover:bg-card hover:text-gray-200'}`}
           >
             {tab.label}
           </button>
@@ -597,7 +597,7 @@ export function CAPADetail() {
             <ul className="space-y-3">
               {rcaDraft.fiveWhys.length === 0 && <li className="text-gray-500 text-sm">No steps yet. Add a row for each &quot;why&quot;.</li>}
               {rcaDraft.fiveWhys.map((row, idx) => (
-                <li key={idx} className="rounded border border-[var(--surface-border)] p-3 space-y-2">
+                <li key={idx} className="rounded border border-border p-3 space-y-2">
                   <div className="text-xs text-gray-500">Level {row.level}</div>
                   <Input
                     label="Question (optional)"
@@ -618,7 +618,7 @@ export function CAPADetail() {
                         setRcaDraft({ ...rcaDraft, fiveWhys: next });
                       }}
                       rows={2}
-                      className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+                      className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
                     />
                   </div>
                   <Input
@@ -658,7 +658,7 @@ export function CAPADetail() {
             <ul className="space-y-3">
               {rcaDraft.fishbone.causes.length === 0 && <li className="text-gray-500 text-sm">No causes yet.</li>}
               {rcaDraft.fishbone.causes.map((row, idx) => (
-                <li key={idx} className="rounded border border-[var(--surface-border)] p-3 space-y-2">
+                <li key={idx} className="rounded border border-border p-3 space-y-2">
                   <div>
                     <label className="label-caps block mb-1">Category</label>
                     <select
@@ -668,7 +668,7 @@ export function CAPADetail() {
                         next[idx] = { ...row, category: e.target.value };
                         setRcaDraft({ ...rcaDraft, fishbone: { ...rcaDraft.fishbone, causes: next } });
                       }}
-                      className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+                      className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
                     >
                       {rcaDraft.fishbone.categories.map((c) => (
                         <option key={c} value={c}>{c}</option>
@@ -685,7 +685,7 @@ export function CAPADetail() {
                         setRcaDraft({ ...rcaDraft, fishbone: { ...rcaDraft.fishbone, causes: next } });
                       }}
                       rows={2}
-                      className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+                      className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
                     />
                   </div>
                   <Input
@@ -726,9 +726,9 @@ export function CAPADetail() {
                   <label className="label-caps block mb-1">Link type</label>
                   <Input value={newLinkType} onChange={(e) => setNewLinkType(e.target.value)} placeholder="e.g. AFFECTED_SOP, REVISED_SOP, REFERENCE" />
                 </div>
-                <ul className="max-h-40 overflow-auto border border-[var(--surface-border)] rounded text-sm">
+                <ul className="max-h-40 overflow-auto border border-border rounded text-sm">
                   {docResults.map((d) => (
-                    <li key={d.id} className="flex justify-between items-center px-2 py-1 border-b border-[var(--surface-border)]">
+                    <li key={d.id} className="flex justify-between items-center px-2 py-1 border-b border-border">
                       <span className="truncate">{d.documentId}: {d.title}</span>
                       <Button type="button" variant="secondary" disabled={linkBusy} onClick={() => addDocumentLink(d.id)}>Link</Button>
                     </li>
@@ -745,7 +745,7 @@ export function CAPADetail() {
           <ul className="space-y-3">
             {capa.tasks.length === 0 && <li className="text-gray-500">No tasks yet.</li>}
             {capa.tasks.map((t) => (
-              <li key={t.id} className="rounded border border-[var(--surface-border)] p-3">
+              <li key={t.id} className="rounded border border-border p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-medium">{t.title}</span>
                   <Badge variant={t.status === 'COMPLETED' ? 'success' : 'warning'}>{t.status}</Badge>
@@ -764,13 +764,13 @@ export function CAPADetail() {
           <ul className="space-y-2">
             {capa.attachments?.length === 0 && <li className="text-gray-500">No attachments.</li>}
             {capa.attachments?.map((a) => (
-              <li key={a.id} className="flex items-center justify-between rounded border border-[var(--surface-border)] p-2">
+              <li key={a.id} className="flex items-center justify-between rounded border border-border p-2">
                 <span>{a.fileAsset.filename}</span>
                 {!a.fileAsset.isDeleted && (
                   <button
                     type="button"
                     onClick={() => downloadFile(a.fileAsset.id, a.fileAsset.filename)}
-                    className="text-[var(--mactech-blue)] hover:underline"
+                    className="text-primary hover:underline"
                   >
                     Download
                   </button>
@@ -785,7 +785,7 @@ export function CAPADetail() {
         <Card>
           <ul className="space-y-2">
             {capa.history.map((h) => (
-              <li key={h.id} className="border-l-2 border-[var(--surface-border)] pl-3 py-1">
+              <li key={h.id} className="border-l-2 border-border pl-3 py-1">
                 <span className="font-medium">{h.action}</span>
                 <span className="text-gray-500"> — {h.user.firstName} {h.user.lastName}</span>
                 <span className="text-gray-500 text-sm"> {new Date(h.timestamp).toLocaleString()}</span>
@@ -806,15 +806,15 @@ export function CAPADetail() {
               const docId = isOutgoingDoc ? l.targetId : isIncomingDoc ? l.sourceId : null;
               const label = docId && docTitles[docId] ? docTitles[docId] : `${l.targetType} ${l.targetId}`;
               return (
-                <li key={l.id} className="flex flex-wrap items-center gap-2 text-sm rounded border border-[var(--surface-border)] p-2">
+                <li key={l.id} className="flex flex-wrap items-center gap-2 text-sm rounded border border-border p-2">
                   <span className="text-gray-500">{l.linkType}</span>
                   {docId && canViewDocs ? (
-                    <Link to={`/documents/${docId}`} className="text-[var(--mactech-blue)] hover:underline">{label}</Link>
+                    <Link to={`/documents/${docId}`} className="text-primary hover:underline">{label}</Link>
                   ) : (
                     <span>{l.sourceType} → {l.targetType} ({l.linkType})</span>
                   )}
                   {l.targetType === 'CAPA' && l.targetId !== capa.id && (
-                    <Link to={`/capas/${l.targetId}`} className="text-[var(--mactech-blue)] hover:underline">CAPA record</Link>
+                    <Link to={`/capas/${l.targetId}`} className="text-primary hover:underline">CAPA record</Link>
                   )}
                 </li>
               );
@@ -831,7 +831,7 @@ export function CAPADetail() {
               <ul className="mt-2 space-y-2">
                 {capa.signatures.length === 0 && <li className="text-gray-500">None yet.</li>}
                 {capa.signatures.map((s) => (
-                  <li key={s.id} className="text-sm border-l-2 border-[var(--surface-border)] pl-2">
+                  <li key={s.id} className="text-sm border-l-2 border-border pl-2">
                     <div className="font-medium">{s.signatureMeaning.replace(/_/g, ' ')}: {s.signer.firstName} {s.signer.lastName}</div>
                     <div className="text-gray-500">{new Date(s.signedAt).toLocaleString()}</div>
                     {s.signatureReason && <p className="text-gray-400 mt-1">{s.signatureReason}</p>}
@@ -878,14 +878,14 @@ export function CAPADetail() {
           </>
         }
       >
-        {submitError && <p className="mb-2 text-sm text-compliance-red">{submitError}</p>}
+        {submitError && <p className="mb-2 text-sm text-destructive">{submitError}</p>}
         <div className="space-y-3">
           <div>
             <label className="label-caps block mb-1">New status</label>
             <select
               value={transitionTo}
               onChange={(e) => setTransitionTo(e.target.value)}
-              className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+              className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
             >
               <option value="">Select…</option>
               {['OPEN', 'CONTAINMENT', 'INVESTIGATION', 'RCA_COMPLETE', 'PLAN_APPROVAL', 'IMPLEMENTATION', 'EFFECTIVENESS_CHECK', 'PENDING_CLOSURE', 'CLOSED', 'CANCELLED'].map((s) => (
@@ -900,7 +900,7 @@ export function CAPADetail() {
               onChange={(e) => setReason(e.target.value)}
               placeholder="Required for audit trail"
               rows={3}
-              className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+              className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
             />
           </div>
           {showRcaWaiver && (
@@ -911,7 +911,7 @@ export function CAPADetail() {
                 onChange={(e) => setRcaWaiverReason(e.target.value)}
                 placeholder="If you cannot complete structured RCA plus ROOT_CAUSE_ANALYSIS task, document waiver here."
                 rows={3}
-                className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+                className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
               />
             </div>
           )}
@@ -930,13 +930,13 @@ export function CAPADetail() {
           </>
         }
       >
-        {submitError && <p className="mb-2 text-sm text-compliance-red">{submitError}</p>}
+        {submitError && <p className="mb-2 text-sm text-destructive">{submitError}</p>}
         <label className="label-caps block mb-1">Reason for update *</label>
         <textarea
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           rows={3}
-          className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+          className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
           placeholder="Required for audit trail"
         />
       </Modal>
@@ -953,14 +953,14 @@ export function CAPADetail() {
           </>
         }
       >
-        {submitError && <p className="mb-2 text-sm text-compliance-red">{submitError}</p>}
+        {submitError && <p className="mb-2 text-sm text-destructive">{submitError}</p>}
         <div className="space-y-3">
           <div>
             <label className="label-caps block mb-1">Source type</label>
             <select
               value={sourceDraft.sourceType}
               onChange={(e) => setSourceDraft({ ...sourceDraft, sourceType: e.target.value })}
-              className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+              className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
             >
               {SOURCE_TYPE_OPTIONS.map((o) => (
                 <option key={o.value || 'empty'} value={o.value}>{o.label}</option>
@@ -978,7 +978,7 @@ export function CAPADetail() {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={2}
-              className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+              className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
             />
           </div>
         </div>
@@ -997,7 +997,7 @@ export function CAPADetail() {
           </>
         }
       >
-        {submitError && <p className="mb-2 text-sm text-compliance-red">{submitError}</p>}
+        {submitError && <p className="mb-2 text-sm text-destructive">{submitError}</p>}
         <p className="text-sm text-gray-500 mb-3">Enter the reason for your signature and your password if e-sign is required for plan approval.</p>
         <div className="space-y-3">
           <div>
@@ -1006,7 +1006,7 @@ export function CAPADetail() {
               value={approveSignReason}
               onChange={(e) => setApproveSignReason(e.target.value)}
               rows={3}
-              className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+              className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
             />
           </div>
           <div>
@@ -1034,7 +1034,7 @@ export function CAPADetail() {
           </>
         }
       >
-        {submitError && <p className="mb-2 text-sm text-compliance-red">{submitError}</p>}
+        {submitError && <p className="mb-2 text-sm text-destructive">{submitError}</p>}
         <div className="space-y-3">
           <div>
             <label className="label-caps block mb-1">Reason for signature / closure *</label>
@@ -1042,7 +1042,7 @@ export function CAPADetail() {
               value={closeSignReason}
               onChange={(e) => setCloseSignReason(e.target.value)}
               rows={3}
-              className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+              className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
             />
           </div>
           <label className="flex items-center gap-2 text-sm text-gray-300">
@@ -1060,7 +1060,7 @@ export function CAPADetail() {
                 value={closeEffectivenessJustification}
                 onChange={(e) => setCloseEffectivenessJustification(e.target.value)}
                 rows={3}
-                className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+                className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
               />
             </div>
           )}

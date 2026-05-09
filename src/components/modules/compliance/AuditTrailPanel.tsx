@@ -28,7 +28,7 @@ export function AuditTrailPanel({
           {entries.map((entry) => (
             <li
               key={entry.id}
-              className="text-xs border-l-2 border-surface-border pl-3 py-1"
+              className="text-xs border-l-2 border-border pl-3 py-1"
             >
               <span className="text-gray-400">{entry.timestamp}</span>
               <span className="text-gray-500 mx-1">·</span>

@@ -177,7 +177,7 @@ export function CmmcEvidencePage() {
                       )}
                     </Button>
                   </div>
-                  <div className="font-mono text-xs text-gray-300 bg-surface-elevated p-3 rounded break-all">
+                  <div className="font-mono text-xs text-gray-300 bg-card p-3 rounded break-all">
                     {evidence.revision.signingHash}
                   </div>
                 </div>
@@ -204,7 +204,7 @@ export function CmmcEvidencePage() {
                     )}
                   </Button>
                 </div>
-                <div className="font-mono text-xs text-gray-300 bg-surface-elevated p-3 rounded break-all">
+                <div className="font-mono text-xs text-gray-300 bg-card p-3 rounded break-all">
                   {evidence.revision.contentHash}
                 </div>
               </div>

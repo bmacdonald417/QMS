@@ -131,14 +131,14 @@ export function SystemReference() {
       }}
     >
       <div className="space-y-4">
-        <div className="flex gap-2 border-b border-surface-border">
+        <div className="flex gap-2 border-b border-border">
           {(['departments', 'sites', 'jobTitles'] as const).map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
               className={`border-b-2 px-4 py-2 text-sm font-medium ${
-                activeTab === tab ? 'border-mactech-blue text-mactech-blue' : 'border-transparent text-gray-400 hover:text-gray-200'
+                activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-200'
               }`}
             >
               {tab === 'departments' ? 'Departments' : tab === 'sites' ? 'Sites' : 'Job titles'}
@@ -179,13 +179,13 @@ export function SystemReference() {
         }
       >
         <div className="space-y-4">
-          {addError && <p className="text-compliance-red text-sm">{addError}</p>}
+          {addError && <p className="text-destructive text-sm">{addError}</p>}
           <Input label="Name" value={addName} onChange={(e) => setAddName(e.target.value)} placeholder="Required" />
           {(addModal === 'department' || addModal === 'site') && (
             <Input label="Code (optional)" value={addCode} onChange={(e) => setAddCode(e.target.value)} placeholder="e.g. HQ, ENG" />
           )}
           <label className="flex items-center gap-2 text-sm text-gray-300">
-            <input type="checkbox" checked={addActive} onChange={(e) => setAddActive(e.target.checked)} className="rounded border-surface-border" />
+            <input type="checkbox" checked={addActive} onChange={(e) => setAddActive(e.target.checked)} className="rounded border-border" />
             Active
           </label>
         </div>

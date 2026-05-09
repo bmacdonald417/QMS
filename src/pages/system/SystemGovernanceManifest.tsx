@@ -117,7 +117,7 @@ export function SystemGovernanceManifest() {
           value={jsonText}
           onChange={(e) => setJsonText(e.target.value)}
           rows={14}
-          className="w-full rounded-md border border-surface-border bg-surface-elevated px-3 py-2 font-mono text-xs text-gray-200"
+          className="w-full rounded-md border border-border bg-card px-3 py-2 font-mono text-xs text-gray-200"
           placeholder='{"schema":"mactech-governance-manifest.v1", ...}'
         />
       </div>
@@ -127,7 +127,7 @@ export function SystemGovernanceManifest() {
           type="button"
           disabled={loading}
           onClick={runPreview}
-          className="rounded-md bg-mactech-blue px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
         >
           Preview
         </button>
@@ -135,7 +135,7 @@ export function SystemGovernanceManifest() {
           type="button"
           disabled={loading}
           onClick={runIngest}
-          className="rounded-md border border-surface-border bg-surface-elevated px-4 py-2 text-sm font-medium text-gray-200 hover:bg-surface-overlay disabled:opacity-50"
+          className="rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-gray-200 hover:bg-secondary disabled:opacity-50"
         >
           Ingest manifest
         </button>
@@ -145,7 +145,7 @@ export function SystemGovernanceManifest() {
       {ingestErr && <p className="text-sm text-red-400">{ingestErr}</p>}
 
       {preview && (
-        <div className="rounded-lg border border-surface-border bg-surface-elevated p-4 text-sm text-gray-200">
+        <div className="rounded-lg border border-border bg-card p-4 text-sm text-gray-200">
           <p className="font-medium text-gray-100">Preview</p>
           <ul className="mt-2 list-inside list-disc space-y-1 text-gray-300">
             <li>Documents in manifest: {preview.documents_in_manifest}</li>
@@ -165,7 +165,7 @@ export function SystemGovernanceManifest() {
       )}
 
       {ingestResult != null && (
-        <div className="rounded-lg border border-surface-border bg-surface-elevated p-4">
+        <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-sm font-medium text-gray-100">Ingest result</p>
           <pre className="mt-2 max-h-96 overflow-auto text-xs text-gray-300">{JSON.stringify(ingestResult, null, 2)}</pre>
         </div>

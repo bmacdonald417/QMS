@@ -93,13 +93,13 @@ export function DocTOC({ content, className = '' }: DocTOCProps) {
                 e.preventDefault();
                 scrollToHeading(heading.id);
               }}
-              className={`block text-sm py-1 px-2 rounded hover:bg-surface-elevated transition-colors ${
+              className={`block text-sm py-1 px-2 rounded hover:bg-card transition-colors ${
                 heading.level === 1
                   ? 'font-semibold text-white'
                   : heading.level === 2
                   ? 'text-gray-200 pl-4'
                   : 'text-gray-400 pl-8'
-              } ${activeId === heading.id ? 'bg-surface-elevated text-mactech-blue' : ''}`}
+              } ${activeId === heading.id ? 'bg-card text-primary' : ''}`}
             >
               {heading.text}
             </a>

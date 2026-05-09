@@ -44,7 +44,7 @@ export function MyTasks() {
 
   return (
     <PageShell title="My Tasks" subtitle="Document assignments and CAPA tasks assigned to you">
-      {error && <p className="mb-3 text-sm text-compliance-red">{error}</p>}
+      {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
       <Card padding="none">
         <Table
           columns={columns}

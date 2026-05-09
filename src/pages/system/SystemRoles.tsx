@@ -68,7 +68,7 @@ export function SystemRoles() {
           <h2 className="mb-4 text-lg text-white">Permission codes</h2>
           <ul className="space-y-1 text-sm text-gray-300">
             {permissions.map((p) => (
-              <li key={p.id}><code className="rounded bg-surface-overlay px-1">{p.code}</code></li>
+              <li key={p.id}><code className="rounded bg-secondary px-1">{p.code}</code></li>
             ))}
           </ul>
         </Card>

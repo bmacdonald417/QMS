@@ -87,7 +87,7 @@ export function CmmcAdminPage() {
       header: 'Status',
       render: (doc) => (
         <select
-          className="rounded border border-surface-border bg-surface-elevated px-2 py-1 text-sm text-gray-100"
+          className="rounded border border-border bg-card px-2 py-1 text-sm text-gray-100"
           value={doc.status}
           onChange={(e) => updateStatus(doc.code, e.target.value)}
         >
@@ -127,7 +127,7 @@ export function CmmcAdminPage() {
           </div>
 
           {syncResult && (
-            <div className="mt-4 p-4 bg-surface-elevated rounded-lg">
+            <div className="mt-4 p-4 bg-card rounded-lg">
               <div className="text-sm text-gray-300">
                 <div>Processed: {syncResult.summary?.processed || 0}</div>
                 <div>Created: {syncResult.summary?.created || 0}</div>

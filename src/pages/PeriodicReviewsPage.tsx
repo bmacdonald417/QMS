@@ -68,14 +68,14 @@ export function PeriodicReviewsPage() {
               {reviews.map((r) => (
                 <li
                   key={r.id}
-                  className="rounded-lg border border-surface-border bg-surface-overlay p-4"
+                  className="rounded-lg border border-border bg-secondary p-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2">
                         <Link
                           to={`/documents/${r.document.id}`}
-                          className="font-medium text-mactech-blue hover:underline"
+                          className="font-medium text-primary hover:underline"
                         >
                           {r.document.documentId} v{r.document.versionMajor}.{r.document.versionMinor} – {stripMarkdownFormatting(r.document.title)}
                         </Link>
@@ -97,7 +97,7 @@ export function PeriodicReviewsPage() {
                             type="date"
                             value={nextReviewDateInput}
                             onChange={(e) => setNextReviewDateInput(e.target.value)}
-                            className="rounded border border-surface-border bg-surface-elevated px-2 py-1.5 text-sm text-gray-100"
+                            className="rounded border border-border bg-card px-2 py-1.5 text-sm text-gray-100"
                           />
                           <Button
                             size="sm"

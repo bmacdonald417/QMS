@@ -55,7 +55,7 @@ export function CAPANew() {
     >
       <Card>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <p className="text-sm text-compliance-red">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <div>
             <label className="label-caps block mb-1">Title *</label>
             <Input
@@ -73,7 +73,7 @@ export function CAPANew() {
               placeholder="Describe the issue and scope"
               required
               rows={4}
-              className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200 placeholder-gray-500"
+              className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200 placeholder-gray-500"
             />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -82,7 +82,7 @@ export function CAPANew() {
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as 'DRAFT' | 'OPEN')}
-                className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+                className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
               >
                 <option value="DRAFT">Draft</option>
                 <option value="OPEN">Open</option>
@@ -117,7 +117,7 @@ export function CAPANew() {
               <select
                 value={sourceType}
                 onChange={(e) => setSourceType(e.target.value)}
-                className="w-full rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-gray-200"
+                className="w-full rounded border border-border bg-card px-3 py-2 text-gray-200"
               >
                 <option value="">—</option>
                 <option value="INTERNAL">Internal</option>

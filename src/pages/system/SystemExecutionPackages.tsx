@@ -74,13 +74,13 @@ export function SystemExecutionPackages() {
         </div>
         <Link
           to="/system/qms-agent"
-          className="inline-flex items-center justify-center rounded-lg border border-surface-border bg-surface-elevated px-4 py-2 text-sm font-medium text-gray-200 hover:bg-surface-overlay"
+          className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-gray-200 hover:bg-secondary"
         >
           Back to QMS Agent
         </Link>
       </div>
 
-      {error && <p className="text-sm text-compliance-red">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Card padding="md" className="space-y-3">
         <h2 className="text-lg font-medium text-white">Filters</h2>
@@ -90,7 +90,7 @@ export function SystemExecutionPackages() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+              className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
             >
               <option value="">Any</option>
               <option value="DRAFT">DRAFT</option>
@@ -106,7 +106,7 @@ export function SystemExecutionPackages() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+              className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
             >
               <option value="">Any</option>
               <option value="UI_CHANGE">UI_CHANGE</option>
@@ -135,7 +135,7 @@ export function SystemExecutionPackages() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-surface-border text-left text-gray-500">
+                <tr className="border-b border-border text-left text-gray-500">
                   <th className="py-2 pr-2">Updated</th>
                   <th className="py-2 pr-2">Status</th>
                   <th className="py-2 pr-2">Type</th>
@@ -146,7 +146,7 @@ export function SystemExecutionPackages() {
               </thead>
               <tbody>
                 {items.map((row) => (
-                  <tr key={row.id} className="border-b border-surface-border text-gray-200">
+                  <tr key={row.id} className="border-b border-border text-gray-200">
                     <td className="py-2 pr-2 whitespace-nowrap">{new Date(row.updatedAt).toLocaleString()}</td>
                     <td className="py-2 pr-2">
                       <Badge variant="neutral">{row.status}</Badge>
@@ -157,7 +157,7 @@ export function SystemExecutionPackages() {
                     <td className="py-2 text-right">
                       <Link
                         to={`/system/qms-agent/execution-packages/${row.id}`}
-                        className="inline-flex items-center justify-center rounded-md border border-surface-border bg-surface-elevated px-3 py-1.5 text-sm font-medium text-gray-200 hover:bg-surface-overlay"
+                        className="inline-flex items-center justify-center rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-gray-200 hover:bg-secondary"
                       >
                         Open
                       </Link>

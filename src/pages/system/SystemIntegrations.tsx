@@ -172,7 +172,7 @@ export function SystemIntegrations() {
               <label className="label-caps text-gray-500">Scopes</label>
               <div className="mt-2 flex flex-wrap gap-2">
                 {VALID_SCOPES.map((s) => (
-                  <label key={s} className="flex items-center gap-2 rounded border border-surface-border px-3 py-1.5">
+                  <label key={s} className="flex items-center gap-2 rounded border border-border px-3 py-1.5">
                     <input
                       type="checkbox"
                       checked={createScopes.includes(s)}
@@ -183,7 +183,7 @@ export function SystemIntegrations() {
                 ))}
               </div>
             </div>
-            {createError && <p className="text-sm text-compliance-red">{createError}</p>}
+            {createError && <p className="text-sm text-destructive">{createError}</p>}
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setCreateModal(false)}>
                 Cancel
@@ -209,7 +209,7 @@ export function SystemIntegrations() {
               <div>
                 <label className="label-caps text-gray-500">Client ID</label>
                 <div className="mt-1 flex items-center gap-2">
-                  <code className="flex-1 rounded bg-surface-overlay px-2 py-1.5 text-sm">
+                  <code className="flex-1 rounded bg-secondary px-2 py-1.5 text-sm">
                     {newSecret.clientId}
                   </code>
                   <Button variant="secondary" size="sm" onClick={() => copyToClipboard(newSecret.clientId)}>
@@ -220,7 +220,7 @@ export function SystemIntegrations() {
               <div>
                 <label className="label-caps text-gray-500">Client Secret</label>
                 <div className="mt-1 flex items-center gap-2">
-                  <code className="flex-1 rounded bg-surface-overlay px-2 py-1.5 text-sm">
+                  <code className="flex-1 rounded bg-secondary px-2 py-1.5 text-sm">
                     {newSecret.clientSecret}
                   </code>
                   <Button variant="secondary" size="sm" onClick={() => copyToClipboard(newSecret.clientSecret)}>
@@ -252,7 +252,7 @@ export function SystemIntegrations() {
                     The new secret is shown only once. Copy it now and update your integration.
                   </p>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded bg-surface-overlay px-2 py-1.5 text-sm">
+                    <code className="flex-1 rounded bg-secondary px-2 py-1.5 text-sm">
                       {rotateSecret}
                     </code>
                     <Button variant="secondary" size="sm" onClick={() => copyToClipboard(rotateSecret)}>

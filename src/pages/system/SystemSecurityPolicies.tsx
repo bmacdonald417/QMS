@@ -164,7 +164,7 @@ export function SystemSecurityPolicies() {
           <select
             value={form.mfaPolicy ?? 'OPTIONAL'}
             onChange={(e) => setForm((f) => ({ ...f, mfaPolicy: e.target.value }))}
-            className="rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
+            className="rounded-lg border border-border bg-card px-3 py-2 text-gray-100"
           >
             <option value="OFF">Off</option>
             <option value="OPTIONAL">Optional</option>

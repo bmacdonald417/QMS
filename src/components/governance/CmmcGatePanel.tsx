@@ -157,7 +157,7 @@ export function CmmcGatePanel({ documentId, refreshKey, onWorkflowState }: CmmcG
   const isEffective = state.status === 'EFFECTIVE';
 
   return (
-    <Card padding="md" className="border-mactech-blue/40">
+    <Card padding="md" className="border-primary/40">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-lg text-white">CMMC Compliance Gate</h2>
         <span className="text-xs uppercase tracking-wider text-gray-500">
@@ -200,7 +200,7 @@ export function CmmcGatePanel({ documentId, refreshKey, onWorkflowState }: CmmcG
           </dt>
           <dd
             className={
-              isEffective ? 'text-emerald-400' : state.releaseReadyForCaller ? 'text-mactech-blue' : 'text-gray-400'
+              isEffective ? 'text-emerald-400' : state.releaseReadyForCaller ? 'text-primary' : 'text-gray-400'
             }
           >
             {isEffective
@@ -215,8 +215,8 @@ export function CmmcGatePanel({ documentId, refreshKey, onWorkflowState }: CmmcG
       </dl>
 
       {nextStep && (
-        <div className="mt-4 rounded-md border border-mactech-blue/40 bg-mactech-blue/5 px-3 py-2">
-          <p className="text-xs uppercase tracking-wider text-mactech-blue">Next required action</p>
+        <div className="mt-4 rounded-md border border-primary/40 bg-primary/5 px-3 py-2">
+          <p className="text-xs uppercase tracking-wider text-primary">Next required action</p>
           <p className="mt-0.5 text-sm text-gray-100">
             <span className="font-semibold">{stepLabel}</span> — {nextStep.message}
           </p>
@@ -236,7 +236,7 @@ export function CmmcGatePanel({ documentId, refreshKey, onWorkflowState }: CmmcG
       ) : null}
 
       {docNeedsSIA && (
-        <div className="mt-4 border-t border-surface-border pt-4">
+        <div className="mt-4 border-t border-border pt-4">
           <h3 className="mb-1 text-sm font-semibold text-white">
             Record Security Impact Analysis
           </h3>
@@ -259,10 +259,10 @@ export function CmmcGatePanel({ documentId, refreshKey, onWorkflowState }: CmmcG
                 placeholder="Controls touched: …
 Risks identified: …
 Mitigations: …"
-                className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-mactech-blue focus:outline-none"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-primary focus:outline-none"
               />
               {siaError && (
-                <p className="mt-2 text-sm text-compliance-red">{siaError}</p>
+                <p className="mt-2 text-sm text-destructive">{siaError}</p>
               )}
               {siaSuccess && (
                 <p className="mt-2 text-sm text-emerald-400">SIA recorded.</p>

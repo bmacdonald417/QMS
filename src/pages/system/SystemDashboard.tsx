@@ -50,7 +50,7 @@ export function SystemDashboard() {
         <p className="mt-1 text-gray-500">User administration, security policies, and compliance controls</p>
       </div>
 
-      {error && <p className="text-compliance-red text-sm">{error}</p>}
+      {error && <p className="text-destructive text-sm">{error}</p>}
 
       {stats && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -72,10 +72,10 @@ export function SystemDashboard() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cardLinks.map(({ path, label, icon: Icon, description }) => (
           <Link key={path} to={path}>
-            <Card padding="md" className="h-full transition-colors hover:border-mactech-blue/50">
+            <Card padding="md" className="h-full transition-colors hover:border-primary/50">
               <div className="flex items-start gap-4">
-                <div className="rounded-lg bg-surface-overlay p-3">
-                  <Icon className="h-6 w-6 text-mactech-blue" />
+                <div className="rounded-lg bg-secondary p-3">
+                  <Icon className="h-6 w-6 text-primary" />
                 </div>
                 <div>
                   <h2 className="font-medium text-white">{label}</h2>

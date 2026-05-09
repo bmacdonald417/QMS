@@ -36,7 +36,7 @@ export function TraceLink({ type, id, label, status }: TraceLinkProps) {
   return (
     <Link
       to={href}
-      className="inline-flex items-center gap-2 rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-200 hover:bg-surface-overlay hover:border-mactech-blue/50 transition-all duration-200"
+      className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-gray-200 hover:bg-secondary hover:border-primary/50 transition-all duration-200"
     >
       <span className="text-gray-500">{config.icon}</span>
       <span className="font-medium truncate max-w-[200px]">{label}</span>

@@ -85,15 +85,15 @@ export function SignPanel({
   const canSign = status !== 'RETIRED' && hasRevision && !userHasSigned;
 
   return (
-    <Card variant="bordered" padding="lg" className="sticky top-4 bg-surface-elevated">
+    <Card variant="bordered" padding="lg" className="sticky top-4 bg-card">
       <div className="flex items-center gap-2 mb-6">
-        <PenTool className="w-5 h-5 text-mactech-blue" />
+        <PenTool className="w-5 h-5 text-primary" />
         <h3 className="text-lg font-semibold text-white">Sign Document</h3>
       </div>
 
       {canSign ? (
         <div className="space-y-4">
-          <div className="p-4 bg-surface-overlay rounded-lg border border-surface-border">
+          <div className="p-4 bg-secondary rounded-lg border border-border">
             <p className="text-sm text-gray-300 mb-2">
               Sign this document to acknowledge your review and approval.
             </p>
@@ -113,7 +113,7 @@ export function SignPanel({
           </Button>
         </div>
       ) : (
-        <div className="p-4 bg-surface-overlay rounded-lg border border-surface-border">
+        <div className="p-4 bg-secondary rounded-lg border border-border">
           <div className="text-sm text-gray-400">
             {status === 'RETIRED' 
               ? '⚠️ Document is retired and cannot be signed' 
@@ -127,8 +127,8 @@ export function SignPanel({
       )}
 
       {userHasSigned && (
-        <div className="mt-4 p-3 bg-compliance-green/10 border border-compliance-green/30 rounded-lg">
-          <div className="flex items-center gap-2 text-compliance-green">
+        <div className="mt-4 p-3 bg-success/10 border border-success/30 rounded-lg">
+          <div className="flex items-center gap-2 text-success">
             <CheckCircle className="w-4 h-4" />
             <span className="text-sm font-medium">You have signed this document</span>
           </div>
@@ -136,11 +136,11 @@ export function SignPanel({
       )}
 
       {signatures.length > 0 && (
-        <div className="mt-8 pt-6 border-t border-surface-border">
+        <div className="mt-8 pt-6 border-t border-border">
           <h4 className="text-sm font-semibold text-gray-300 mb-4">Signature History</h4>
           <div className="space-y-4">
             {signatures.map((sig) => (
-              <div key={sig.id} className="p-3 bg-surface-overlay rounded-lg border border-surface-border">
+              <div key={sig.id} className="p-3 bg-secondary rounded-lg border border-border">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-white font-medium text-sm">
                     {sig.user.firstName} {sig.user.lastName}

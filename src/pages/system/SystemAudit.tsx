@@ -84,13 +84,13 @@ export function SystemAudit() {
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100"
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-gray-100"
           />
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100"
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-gray-100"
           />
           <Input
             placeholder="Action filter"
@@ -112,7 +112,7 @@ export function SystemAudit() {
             <>
               <Table columns={columns} data={logs} keyExtractor={(r) => r.id} emptyMessage="No audit entries." />
               {pagination.totalPages > 1 && (
-                <div className="flex justify-between border-t border-surface-border px-4 py-2">
+                <div className="flex justify-between border-t border-border px-4 py-2">
                   <span className="text-sm text-gray-500">Page {pagination.page} of {pagination.totalPages}</span>
                   <div className="flex gap-2">
                     <Button size="sm" variant="secondary" disabled={pagination.page <= 1} onClick={() => fetchLogs(pagination.page - 1)}>Previous</Button>

@@ -48,7 +48,7 @@ export function QualityHealthDashboard() {
   }, [token]);
 
   if (loading) return <PageShell title="Quality Health" subtitle="Loading..."><p className="text-gray-400">Loading metrics...</p></PageShell>;
-  if (error) return <PageShell title="Quality Health" subtitle=""><p className="text-compliance-red">{error}</p></PageShell>;
+  if (error) return <PageShell title="Quality Health" subtitle=""><p className="text-destructive">{error}</p></PageShell>;
   if (!metrics) return null;
 
   const statusEntries = Object.entries(metrics.documentsByStatus).filter(
@@ -67,7 +67,7 @@ export function QualityHealthDashboard() {
                 <Badge variant="danger" size="sm">Requires action</Badge>
               )}
             </div>
-            <Link to="/training" className="mt-2 inline-block text-sm text-mactech-blue hover:underline">
+            <Link to="/training" className="mt-2 inline-block text-sm text-primary hover:underline">
               View training
             </Link>
           </Card>
@@ -79,7 +79,7 @@ export function QualityHealthDashboard() {
                 <Badge variant="warning" size="sm">Due</Badge>
               )}
             </div>
-            <Link to="/periodic-reviews" className="mt-2 inline-block text-sm text-mactech-blue hover:underline">
+            <Link to="/periodic-reviews" className="mt-2 inline-block text-sm text-primary hover:underline">
               My reviews
             </Link>
           </Card>
@@ -97,7 +97,7 @@ export function QualityHealthDashboard() {
             <div className="mt-2 flex items-baseline gap-2">
               <span className="text-2xl font-semibold text-white">{metrics.documentsNearingReview.length}</span>
             </div>
-            <Link to="/periodic-reviews" className="mt-2 inline-block text-sm text-mactech-blue hover:underline">
+            <Link to="/periodic-reviews" className="mt-2 inline-block text-sm text-primary hover:underline">
               View list
             </Link>
           </Card>
@@ -107,7 +107,7 @@ export function QualityHealthDashboard() {
           <h2 className="mb-4 text-lg text-white">Documents by Status</h2>
           <div className="flex flex-wrap gap-4">
             {statusEntries.map(([status, count]) => (
-              <div key={status} className="flex items-center gap-2 rounded-lg border border-surface-border bg-surface-elevated px-4 py-2">
+              <div key={status} className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2">
                 <span className="text-sm text-gray-300">{STATUS_LABELS[status] ?? status}</span>
                 <span className="text-lg font-semibold text-white">{count}</span>
               </div>
@@ -122,7 +122,7 @@ export function QualityHealthDashboard() {
           ) : (
             <ul className="space-y-2">
               {metrics.documentsNearingReview.map((doc) => (
-                <li key={doc.id} className="flex items-center justify-between rounded-lg border border-surface-border bg-surface-overlay px-3 py-2">
+                <li key={doc.id} className="flex items-center justify-between rounded-lg border border-border bg-secondary px-3 py-2">
                   <span className="text-gray-200">
                     {doc.documentId} v{doc.versionMajor}.{doc.versionMinor} – {stripMarkdownFormatting(doc.title)}
                   </span>
@@ -134,7 +134,7 @@ export function QualityHealthDashboard() {
                     )}
                     <Link
                       to={`/documents/${doc.id}`}
-                      className="inline-flex items-center justify-center gap-2 rounded-md border border-surface-border bg-surface-elevated px-3 py-1.5 text-sm font-medium text-gray-200 transition-colors hover:bg-surface-overlay focus:outline-none focus-visible:ring-2 focus-visible:ring-mactech-blue"
+                      className="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-gray-200 transition-colors hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       Open
                     </Link>

@@ -22,7 +22,7 @@ export function SystemManagementLayout() {
   return (
     <div className="flex gap-6">
       <nav className="w-52 flex-shrink-0">
-        <ul className="space-y-0.5 rounded-lg border border-surface-border bg-surface-elevated p-2">
+        <ul className="space-y-0.5 rounded-lg border border-border bg-card p-2">
           {navItems.map((item) => (
             <li key={item.to}>
               <NavLink
@@ -30,7 +30,7 @@ export function SystemManagementLayout() {
                 end={item.end}
                 className={({ isActive }) =>
                   `block rounded-md px-3 py-2 text-sm transition-colors ${
-                    isActive ? 'bg-mactech-blue-muted text-mactech-blue' : 'text-gray-400 hover:bg-surface-overlay hover:text-gray-200'
+                    isActive ? 'bg-primary/15 text-primary' : 'text-gray-400 hover:bg-secondary hover:text-gray-200'
                   }`
                 }
               >

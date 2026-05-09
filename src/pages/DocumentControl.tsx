@@ -152,7 +152,7 @@ export function DocumentControl() {
           checked={isSelected(row.id)}
           onChange={() => toggleSelected(row.id)}
           onClick={(e) => e.stopPropagation()}
-          className="rounded border-surface-border bg-surface-elevated text-mactech-blue focus:ring-mactech-blue"
+          className="rounded border-border bg-card text-primary focus:ring-ring"
           aria-label={`Select ${row.documentId}`}
         />
       ),
@@ -270,7 +270,7 @@ export function DocumentControl() {
                       key={idx}
                       type="button"
                       onClick={startEditing}
-                      className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-md bg-gray-600/20 text-gray-400 border border-gray-500/30 cursor-pointer hover:ring-1 hover:ring-mactech-blue/50 hover:text-gray-200"
+                      className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-md bg-gray-600/20 text-gray-400 border border-gray-500/30 cursor-pointer hover:ring-1 hover:ring-primary/50 hover:text-gray-200"
                     >
                       {tag}
                     </button>
@@ -279,7 +279,7 @@ export function DocumentControl() {
                   <button
                     type="button"
                     onClick={startEditing}
-                    className="text-gray-500 text-xs hover:text-mactech-blue hover:underline cursor-pointer text-left"
+                    className="text-gray-500 text-xs hover:text-primary hover:underline cursor-pointer text-left"
                   >
                     — Add tag
                   </button>
@@ -293,7 +293,7 @@ export function DocumentControl() {
                   <button
                     type="button"
                     onClick={startEditing}
-                    className="text-gray-400 hover:text-mactech-blue text-xs ml-0.5"
+                    className="text-gray-400 hover:text-primary text-xs ml-0.5"
                     title="Add or edit tags"
                     aria-label="Add or edit tags"
                   >
@@ -385,7 +385,7 @@ export function DocumentControl() {
         },
       ]}
     >
-      {error && <p className="mb-3 text-sm text-compliance-red">{error}</p>}
+      {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
       
       {/* Filters */}
       <Card padding="md" className="mb-4">
@@ -432,13 +432,13 @@ export function DocumentControl() {
 
           {/* Filter Options */}
           {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-surface-border">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-border">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Document Type</label>
                 <select
                   value={documentTypeFilter}
                   onChange={(e) => setDocumentTypeFilter(e.target.value)}
-                  className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="">All Types</option>
                   {documentTypes.map(({ value, label }) => (
@@ -452,7 +452,7 @@ export function DocumentControl() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="">All Statuses</option>
                   <option value="DRAFT">Draft</option>
@@ -479,7 +479,7 @@ export function DocumentControl() {
 
           {/* Results Count */}
           {hasActiveFilters && (
-            <div className="pt-2 border-t border-surface-border">
+            <div className="pt-2 border-t border-border">
               <p className="text-sm text-gray-400">
                 Showing {documents.length} document{documents.length !== 1 ? 's' : ''} matching filters
               </p>
@@ -550,7 +550,7 @@ export function DocumentControl() {
             <select
               value={documentType}
               onChange={(e) => setDocumentType(e.target.value)}
-              className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
             >
               {documentTypes.map(({ value, label }) => (
                 <option key={value} value={value}>{label}</option>
@@ -662,7 +662,7 @@ export function DocumentControl() {
                 const doc = sortedDocuments.find((d) => d.id === id);
                 setEditTagsValue((doc?.tags ?? []).join(', '));
               }}
-              className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-mactech-blue"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="">Select a document</option>
               {sortedDocuments.map((doc) => (

@@ -150,7 +150,7 @@ export function Approvals() {
       title="Approvals"
       subtitle="Review and approve documents. Open a task to complete your approval."
     >
-      {error && <p className="mb-3 text-sm text-compliance-red">{error}</p>}
+      {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
 
       <Card padding="md" className="mb-6">
         <h2 className="mb-3 text-lg font-semibold text-white">Pending approvals</h2>

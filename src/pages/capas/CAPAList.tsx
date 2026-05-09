@@ -125,13 +125,13 @@ export function CAPAList() {
           : undefined
       }
     >
-      {error && <p className="mb-3 text-sm text-compliance-red">{error}</p>}
+      {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded border border-[var(--surface-border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-gray-200"
+          className="rounded border border-border bg-card px-3 py-2 text-sm text-gray-200"
         >
           <option value="">All statuses</option>
           {STATUS_OPTIONS.map((s) => (
@@ -157,7 +157,7 @@ export function CAPAList() {
           emptyMessage={loading ? 'Loading…' : 'No CAPAs. Create one to get started.'}
         />
         {total > limit && (
-          <div className="flex items-center justify-between border-t border-[var(--surface-border)] px-4 py-2">
+          <div className="flex items-center justify-between border-t border-border px-4 py-2">
             <span className="text-sm text-gray-500">
               Page {page} of {Math.ceil(total / limit)}
             </span>

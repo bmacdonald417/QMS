@@ -69,7 +69,7 @@ export function SystemRetention() {
     <PageShell title="Retention & Backups" subtitle="Retention policies. Changes are audited.">
       <Card padding="md">
         <div className="space-y-4">
-          {error && <p className="text-compliance-red text-sm">{error}</p>}
+          {error && <p className="text-destructive text-sm">{error}</p>}
           <Input
             label="Audit log retention (years)"
             type="number"

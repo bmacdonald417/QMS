@@ -78,7 +78,7 @@ export function SearchPage() {
               {documents.map((doc) => (
                 <li
                   key={doc.id}
-                  className="rounded-lg border border-surface-border bg-surface-overlay p-4 transition hover:border-mactech-blue/50"
+                  className="rounded-lg border border-border bg-secondary p-4 transition hover:border-primary/50"
                 >
                   <Link to={`/documents/${doc.id}`} className="block">
                     <div className="flex flex-wrap items-start justify-between gap-2">
@@ -94,7 +94,7 @@ export function SearchPage() {
                             {doc.tags.map((tag) => (
                               <span
                                 key={tag}
-                                className="rounded bg-surface-elevated px-2 py-0.5 text-xs text-gray-400"
+                                className="rounded bg-card px-2 py-0.5 text-xs text-gray-400"
                               >
                                 {tag}
                               </span>
@@ -102,7 +102,7 @@ export function SearchPage() {
                           </div>
                         ) : null}
                       </div>
-                      <span className="text-sm text-mactech-blue">View →</span>
+                      <span className="text-sm text-primary">View →</span>
                     </div>
                   </Link>
                 </li>

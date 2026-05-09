@@ -160,13 +160,13 @@ export function SystemQmsAgent() {
         </div>
         <Link
           to="/system/qms-agent/execution-packages"
-          className="inline-flex items-center justify-center rounded-lg border border-surface-border bg-surface-elevated px-4 py-2 text-sm font-medium text-gray-200 hover:bg-surface-overlay"
+          className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-gray-200 hover:bg-secondary"
         >
           Execution packages
         </Link>
       </div>
 
-      {error && <p className="text-sm text-compliance-red">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Card padding="md" className="space-y-3">
         <h2 className="text-lg font-medium text-white">Filters</h2>
@@ -176,7 +176,7 @@ export function SystemQmsAgent() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+              className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
             >
               <option value="">Any</option>
               <option value="SUGGEST_UPDATE">Suggest update</option>
@@ -188,7 +188,7 @@ export function SystemQmsAgent() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+              className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
             >
               <option value="">Any</option>
               {STATUSES.map((s) => (
@@ -203,7 +203,7 @@ export function SystemQmsAgent() {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+              className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
             >
               <option value="">Any</option>
               <option value="LOW">LOW</option>
@@ -234,7 +234,7 @@ export function SystemQmsAgent() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-surface-border text-left text-gray-500">
+                <tr className="border-b border-border text-left text-gray-500">
                   <th className="py-2 pr-2">Created</th>
                   <th className="py-2 pr-2">Type</th>
                   <th className="py-2 pr-2">Status</th>
@@ -248,7 +248,7 @@ export function SystemQmsAgent() {
               </thead>
               <tbody>
                 {items.map((row) => (
-                  <tr key={row.id} className="border-b border-surface-border text-gray-200">
+                  <tr key={row.id} className="border-b border-border text-gray-200">
                     <td className="py-2 pr-2 whitespace-nowrap">{new Date(row.createdAt).toLocaleString()}</td>
                     <td className="py-2 pr-2">{row.type}</td>
                     <td className="py-2 pr-2">
@@ -262,7 +262,7 @@ export function SystemQmsAgent() {
                     </td>
                     <td className="py-2 pr-2 text-xs">
                       {row.executionPackage ? (
-                        <Link className="text-mactech-blue hover:underline" to={`/system/qms-agent/execution-packages/${row.executionPackage.id}`}>
+                        <Link className="text-primary hover:underline" to={`/system/qms-agent/execution-packages/${row.executionPackage.id}`}>
                           {row.executionPackage.status}
                         </Link>
                       ) : (
@@ -319,7 +319,7 @@ export function SystemQmsAgent() {
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value as (typeof STATUSES)[number])}
-                  className="rounded-lg border border-surface-border bg-surface-overlay px-2 py-1.5 text-sm text-gray-100"
+                  className="rounded-lg border border-border bg-secondary px-2 py-1.5 text-sm text-gray-100"
                 >
                   {STATUSES.map((s) => (
                     <option key={s} value={s}>
@@ -332,7 +332,7 @@ export function SystemQmsAgent() {
                   placeholder="Reason (optional)"
                   value={statusReason}
                   onChange={(e) => setStatusReason(e.target.value)}
-                  className="min-w-[12rem] flex-1 rounded-lg border border-surface-border bg-surface-overlay px-2 py-1.5 text-sm text-gray-100"
+                  className="min-w-[12rem] flex-1 rounded-lg border border-border bg-secondary px-2 py-1.5 text-sm text-gray-100"
                 />
                 <Button onClick={() => void applyStatus()} disabled={patching}>
                   {patching ? 'Saving…' : 'Update status'}
@@ -347,7 +347,7 @@ export function SystemQmsAgent() {
       >
         {detail != null ? (
           <div className="space-y-3 text-sm text-gray-300">
-            <pre className="max-h-[50vh] overflow-auto rounded border border-surface-border bg-surface-overlay p-3 text-xs">
+            <pre className="max-h-[50vh] overflow-auto rounded border border-border bg-secondary p-3 text-xs">
               {JSON.stringify(detail as Record<string, unknown>, null, 2)}
             </pre>
             <p className="text-xs text-gray-500">

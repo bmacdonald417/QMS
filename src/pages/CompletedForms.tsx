@@ -177,7 +177,7 @@ export function CompletedForms() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-compliance-red hover:text-compliance-red"
+                className="text-destructive hover:text-destructive"
                 disabled={deletingId === row.id}
                 onClick={async (e) => {
                   e.stopPropagation();
@@ -209,8 +209,8 @@ export function CompletedForms() {
       primaryAction={showNewFormButton ? { label: 'New Completed Form', onClick: () => setShowNewModal(true) } : undefined}
     >
       {error && (
-        <div className="mb-3 rounded-lg border border-compliance-red/30 bg-compliance-red/10 p-3">
-          <p className="text-sm text-compliance-red">{error}</p>
+        <div className="mb-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+          <p className="text-sm text-destructive">{error}</p>
           {error.includes('prisma') || error.includes('db push') || error.includes('schema') ? (
             <p className="mt-2 text-xs text-gray-400">
               In the project folder run: <code className="rounded bg-black/30 px-1">cd server && npx prisma db push</code>, then restart the server.
@@ -232,7 +232,7 @@ export function CompletedForms() {
             <select
               value={filters.status}
               onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
-              className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100"
             >
               <option value="">All</option>
               <option value="DRAFT">DRAFT</option>
@@ -273,7 +273,7 @@ export function CompletedForms() {
           emptyMessage="No form records. Create one from a template."
         />
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-surface-border px-4 py-2">
+          <div className="flex items-center justify-between border-t border-border px-4 py-2">
             <span className="text-sm text-gray-400">Total: {total}</span>
             <div className="flex gap-2">
               <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
@@ -301,13 +301,13 @@ export function CompletedForms() {
         }
       >
         <div className="space-y-4">
-          {createError && <p className="text-sm text-compliance-red">{createError}</p>}
+          {createError && <p className="text-sm text-destructive">{createError}</p>}
           <div>
             <label className="label-caps mb-1.5 block">Template (Effective Form)</label>
             <select
               value={selectedTemplateId}
               onChange={(e) => setSelectedTemplateId(e.target.value)}
-              className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100"
               disabled={templatesLoading}
             >
               <option value="">Select template</option>
@@ -326,7 +326,7 @@ export function CompletedForms() {
             <select
               value={relatedEntityType}
               onChange={(e) => setRelatedEntityType(e.target.value)}
-              className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100"
             >
               <option value="OTHER">Other</option>
               <option value="SOLICITATION">Solicitation</option>

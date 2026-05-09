@@ -91,7 +91,7 @@ export function RichTextEditor({
 
   return (
     <div
-      className={`rounded-lg border border-surface-border bg-surface-elevated overflow-hidden ${className}`}
+      className={`rounded-lg border border-border bg-card overflow-hidden ${className}`}
       style={{ minHeight }}
     >
       <EditorContent editor={editor} />

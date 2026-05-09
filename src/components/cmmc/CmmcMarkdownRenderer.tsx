@@ -51,39 +51,39 @@ const components = {
   code: ({ inline, children }: any) => {
     if (inline) {
       return (
-        <code className="bg-surface-elevated px-1.5 py-0.5 rounded text-sm font-mono text-mactech-blue">
+        <code className="bg-card px-1.5 py-0.5 rounded text-sm font-mono text-primary">
           {children}
         </code>
       );
     }
     return (
-      <code className="block bg-surface-elevated p-4 rounded-lg overflow-x-auto text-sm font-mono text-gray-200 mb-4">
+      <code className="block bg-card p-4 rounded-lg overflow-x-auto text-sm font-mono text-gray-200 mb-4">
         {children}
       </code>
     );
   },
   blockquote: ({ children }: any) => (
-    <blockquote className="border-l-4 border-mactech-blue pl-4 my-4 italic text-gray-300">
+    <blockquote className="border-l-4 border-primary pl-4 my-4 italic text-gray-300">
       {children}
     </blockquote>
   ),
   table: ({ children }: any) => (
     <div className="overflow-x-auto mb-4">
-      <table className="min-w-full border-collapse border border-surface-border">
+      <table className="min-w-full border-collapse border border-border">
         {children}
       </table>
     </div>
   ),
-  thead: ({ children }: any) => <thead className="bg-surface-elevated">{children}</thead>,
+  thead: ({ children }: any) => <thead className="bg-card">{children}</thead>,
   tbody: ({ children }: any) => <tbody>{children}</tbody>,
-  tr: ({ children }: any) => <tr className="border-b border-surface-border">{children}</tr>,
+  tr: ({ children }: any) => <tr className="border-b border-border">{children}</tr>,
   th: ({ children }: any) => (
-    <th className="border border-surface-border px-4 py-2 text-left font-semibold text-white">
+    <th className="border border-border px-4 py-2 text-left font-semibold text-white">
       {children}
     </th>
   ),
   td: ({ children }: any) => (
-    <td className="border border-surface-border px-4 py-2 text-gray-200">{children}</td>
+    <td className="border border-border px-4 py-2 text-gray-200">{children}</td>
   ),
   a: ({ href, children }: any) => {
     // Check if it's an internal document link
@@ -95,7 +95,7 @@ const components = {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-mactech-blue hover:text-mactech-blue/80 underline"
+        className="text-primary hover:text-primary/80 underline"
       >
         {children}
       </a>
@@ -105,7 +105,7 @@ const components = {
 
 export function CmmcMarkdownRenderer({ content, className = '' }: CmmcMarkdownRendererProps) {
   return (
-    <div className={`prose prose-invert prose-headings:text-white prose-p:text-gray-200 prose-a:text-mactech-blue prose-strong:text-white prose-code:text-mactech-blue max-w-none ${className}`}>
+    <div className={`prose prose-invert prose-headings:text-white prose-p:text-gray-200 prose-a:text-primary prose-strong:text-white prose-code:text-primary max-w-none ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeSlug, [rehypeAutolinkHeadings, { behavior: 'wrap' }]]}

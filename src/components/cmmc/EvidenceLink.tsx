@@ -14,7 +14,7 @@ export function EvidenceLink({ href, children }: EvidenceLinkProps) {
     return (
       <Link
         to={`/cmmc/docs/${href}`}
-        className="text-mactech-blue hover:text-mactech-blue/80 underline inline-flex items-center gap-1"
+        className="text-primary hover:text-primary/80 underline inline-flex items-center gap-1"
       >
         {children}
         <ExternalLink className="w-3 h-3" />
@@ -27,7 +27,7 @@ export function EvidenceLink({ href, children }: EvidenceLinkProps) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-mactech-blue hover:text-mactech-blue/80 underline inline-flex items-center gap-1"
+      className="text-primary hover:text-primary/80 underline inline-flex items-center gap-1"
     >
       {children}
       <ExternalLink className="w-3 h-3" />

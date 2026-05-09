@@ -204,7 +204,7 @@ export function CmmcDocumentRegistry() {
               <div>
                 <label className="label-caps block mb-2">Kind</label>
                 <select
-                  className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100"
                   value={kindFilter}
                   onChange={(e) => setKindFilter(e.target.value)}
                 >
@@ -220,7 +220,7 @@ export function CmmcDocumentRegistry() {
               <div>
                 <label className="label-caps block mb-2">Status</label>
                 <select
-                  className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
@@ -261,7 +261,7 @@ export function CmmcDocumentRegistry() {
                     {docs.map((doc) => (
                       <div
                         key={doc.code}
-                        className="flex items-center justify-between p-3 rounded-lg border border-surface-border hover:bg-surface-elevated cursor-pointer"
+                        className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-card cursor-pointer"
                         onClick={() => navigate(`/cmmc/docs/${doc.code}`)}
                       >
                         <div className="flex items-center gap-3">

@@ -239,7 +239,7 @@ export function QmsAgentFab() {
           setOpen(true);
           resetMessages();
         }}
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full border border-mactech-blue/40 bg-mactech-blue px-4 py-3 text-sm font-semibold text-white shadow-depth-lg transition hover:bg-mactech-blue-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-mactech-blue focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full border border-primary/40 bg-primary px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-haspopup="dialog"
         aria-expanded={open}
       >
@@ -255,23 +255,23 @@ export function QmsAgentFab() {
             aria-label="Close QMS Agent"
             onClick={() => setOpen(false)}
           />
-          <div className="relative flex h-full w-full max-w-2xl flex-col border-l border-surface-border bg-surface-elevated shadow-depth-lg">
-            <div className="flex items-center justify-between border-b border-surface-border px-4 py-3">
+          <div className="relative flex h-full w-full max-w-2xl flex-col border-l border-border bg-card shadow-lg">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <div className="flex items-center gap-2 text-white">
-                <Bot className="h-5 w-5 text-mactech-blue" />
+                <Bot className="h-5 w-5 text-primary" />
                 <span className="font-semibold">QMS Agent</span>
               </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded p-2 text-gray-400 hover:bg-surface-overlay hover:text-white"
+                className="rounded p-2 text-gray-400 hover:bg-secondary hover:text-white"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="flex gap-1 border-b border-surface-border px-3 py-2">
+            <div className="flex gap-1 border-b border-border px-3 py-2">
               <button
                 type="button"
                 onClick={() => {
@@ -279,7 +279,7 @@ export function QmsAgentFab() {
                   resetMessages();
                 }}
                 className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-2 text-xs font-medium ${
-                  mode === 'suggest' ? 'bg-mactech-blue/20 text-mactech-blue' : 'text-gray-400 hover:bg-surface-overlay'
+                  mode === 'suggest' ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:bg-secondary'
                 }`}
               >
                 <Wrench className="h-4 w-4" />
@@ -292,7 +292,7 @@ export function QmsAgentFab() {
                   resetMessages();
                 }}
                 className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-2 text-xs font-medium ${
-                  mode === 'workflow' ? 'bg-mactech-blue/20 text-mactech-blue' : 'text-gray-400 hover:bg-surface-overlay'
+                  mode === 'workflow' ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:bg-secondary'
                 }`}
               >
                 <GitBranch className="h-4 w-4" />
@@ -305,15 +305,15 @@ export function QmsAgentFab() {
                 Intake only: requests are logged and auditable. Chat is advisory until you submit the structured form — no
                 autonomous production changes.
               </p>
-              {error && <p className="text-sm text-compliance-red">{error}</p>}
-              {success && <p className="text-sm text-compliance-green">{success}</p>}
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              {success && <p className="text-sm text-success">{success}</p>}
 
-              <div className="flex gap-1 rounded-lg border border-surface-border bg-surface-overlay p-1">
+              <div className="flex gap-1 rounded-lg border border-border bg-secondary p-1">
                 <button
                   type="button"
                   onClick={() => setUiTab('assistant')}
                   className={`flex-1 rounded-md px-3 py-2 text-xs font-medium ${
-                    uiTab === 'assistant' ? 'bg-mactech-blue/25 text-mactech-blue' : 'text-gray-400 hover:bg-surface-elevated'
+                    uiTab === 'assistant' ? 'bg-primary/25 text-primary' : 'text-gray-400 hover:bg-card'
                   }`}
                 >
                   Assistant
@@ -322,7 +322,7 @@ export function QmsAgentFab() {
                   type="button"
                   onClick={() => setUiTab('form')}
                   className={`flex-1 rounded-md px-3 py-2 text-xs font-medium ${
-                    uiTab === 'form' ? 'bg-mactech-blue/25 text-mactech-blue' : 'text-gray-400 hover:bg-surface-elevated'
+                    uiTab === 'form' ? 'bg-primary/25 text-primary' : 'text-gray-400 hover:bg-card'
                   }`}
                 >
                   Form
@@ -347,7 +347,7 @@ export function QmsAgentFab() {
                 <Card padding="md" className="space-y-3">
                   <div>
                     <p className="label-caps mb-1 text-gray-500">Current route</p>
-                    <p className="rounded border border-surface-border bg-surface-overlay px-2 py-1.5 font-mono text-xs text-gray-300 break-all">
+                    <p className="rounded border border-border bg-secondary px-2 py-1.5 font-mono text-xs text-gray-300 break-all">
                       {routePath}
                     </p>
                   </div>
@@ -369,7 +369,7 @@ export function QmsAgentFab() {
                       value={suggest.description}
                       onChange={(e) => setSuggest((s) => ({ ...s, description: e.target.value }))}
                       rows={4}
-                      className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
                       placeholder="What should change?"
                     />
                   </div>
@@ -379,7 +379,7 @@ export function QmsAgentFab() {
                       value={suggest.businessReason}
                       onChange={(e) => setSuggest((s) => ({ ...s, businessReason: e.target.value }))}
                       rows={3}
-                      className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
                       placeholder="Why this matters for the QMS"
                     />
                   </div>
@@ -390,7 +390,7 @@ export function QmsAgentFab() {
                       onChange={(e) =>
                         setSuggest((s) => ({ ...s, priority: e.target.value as (typeof PRIORITIES)[number] }))
                       }
-                      className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
                     >
                       {PRIORITIES.map((p) => (
                         <option key={p} value={p}>
@@ -405,7 +405,7 @@ export function QmsAgentFab() {
                       type="file"
                       multiple
                       onChange={(e) => setSuggest((s) => ({ ...s, files: Array.from(e.target.files || []) }))}
-                      className="block w-full text-xs text-gray-400 file:mr-2 file:rounded file:border-0 file:bg-mactech-blue file:px-2 file:py-1 file:text-white"
+                      className="block w-full text-xs text-gray-400 file:mr-2 file:rounded file:border-0 file:bg-primary file:px-2 file:py-1 file:text-white"
                     />
                   </div>
                   <Button onClick={submitSuggest} disabled={submitting}>
@@ -427,7 +427,7 @@ export function QmsAgentFab() {
                       value={workflow.objective}
                       onChange={(e) => setWorkflow((w) => ({ ...w, objective: e.target.value }))}
                       rows={3}
-                      className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
                     />
                   </div>
                   <div>
@@ -436,7 +436,7 @@ export function QmsAgentFab() {
                       value={workflow.triggerEvent}
                       onChange={(e) => setWorkflow((w) => ({ ...w, triggerEvent: e.target.value }))}
                       rows={2}
-                      className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
                     />
                   </div>
                   <div>
@@ -445,7 +445,7 @@ export function QmsAgentFab() {
                       value={workflow.requiredRoles}
                       onChange={(e) => setWorkflow((w) => ({ ...w, requiredRoles: e.target.value }))}
                       rows={3}
-                      className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
                       placeholder={'Quality Manager\nDocument Owner'}
                     />
                   </div>
@@ -455,7 +455,7 @@ export function QmsAgentFab() {
                       value={workflow.approvalSteps}
                       onChange={(e) => setWorkflow((w) => ({ ...w, approvalSteps: e.target.value }))}
                       rows={3}
-                      className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
                     />
                   </div>
                   <div>
@@ -464,7 +464,7 @@ export function QmsAgentFab() {
                       value={workflow.notificationNeeds}
                       onChange={(e) => setWorkflow((w) => ({ ...w, notificationNeeds: e.target.value }))}
                       rows={2}
-                      className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
                     />
                   </div>
                   <div>
@@ -473,7 +473,7 @@ export function QmsAgentFab() {
                       value={workflow.auditTrailRequirements}
                       onChange={(e) => setWorkflow((w) => ({ ...w, auditTrailRequirements: e.target.value }))}
                       rows={2}
-                      className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
                     />
                   </div>
                   <div className="flex flex-col gap-2 text-sm text-gray-300">
@@ -501,7 +501,7 @@ export function QmsAgentFab() {
                       onChange={(e) =>
                         setWorkflow((w) => ({ ...w, outputType: e.target.value as (typeof OUTPUT_TYPES)[number] }))
                       }
-                      className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
                     >
                       {OUTPUT_TYPES.map((o) => (
                         <option key={o} value={o}>
@@ -516,7 +516,7 @@ export function QmsAgentFab() {
                       value={workflow.businessReason}
                       onChange={(e) => setWorkflow((w) => ({ ...w, businessReason: e.target.value }))}
                       rows={2}
-                      className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
                     />
                   </div>
                   <div>
@@ -526,7 +526,7 @@ export function QmsAgentFab() {
                       onChange={(e) =>
                         setWorkflow((w) => ({ ...w, priority: e.target.value as (typeof PRIORITIES)[number] }))
                       }
-                      className="w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-gray-100"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-gray-100"
                     >
                       {PRIORITIES.map((p) => (
                         <option key={p} value={p}>
@@ -541,7 +541,7 @@ export function QmsAgentFab() {
                       type="file"
                       multiple
                       onChange={(e) => setWorkflow((w) => ({ ...w, files: Array.from(e.target.files || []) }))}
-                      className="block w-full text-xs text-gray-400 file:mr-2 file:rounded file:border-0 file:bg-mactech-blue file:px-2 file:py-1 file:text-white"
+                      className="block w-full text-xs text-gray-400 file:mr-2 file:rounded file:border-0 file:bg-primary file:px-2 file:py-1 file:text-white"
                     />
                   </div>
                   <Button onClick={submitWorkflow} disabled={submitting}>

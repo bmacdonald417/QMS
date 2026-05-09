@@ -284,7 +284,7 @@ export function SystemUsers() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100"
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-gray-100"
           >
             <option value="">All statuses</option>
             <option value="ACTIVE">Active</option>
@@ -294,7 +294,7 @@ export function SystemUsers() {
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-gray-100"
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-gray-100"
           >
             <option value="">All roles</option>
             {roles.map((r) => (
@@ -308,7 +308,7 @@ export function SystemUsers() {
           </Button>
         </div>
 
-        {error && <p className="text-compliance-red text-sm">{error}</p>}
+        {error && <p className="text-destructive text-sm">{error}</p>}
 
         <Card padding="none">
           {loading ? (
@@ -322,7 +322,7 @@ export function SystemUsers() {
                 emptyMessage="No users found."
               />
               {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-surface-border px-4 py-2">
+                <div className="flex items-center justify-between border-t border-border px-4 py-2">
                   <span className="text-sm text-gray-500">
                     Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
                   </span>
@@ -393,7 +393,7 @@ export function SystemUsers() {
         }
       >
         <div className="space-y-4">
-          {addError && <p className="text-compliance-red text-sm">{addError}</p>}
+          {addError && <p className="text-destructive text-sm">{addError}</p>}
           <Input label="First name" value={addForm.firstName} onChange={(e) => setAddForm((f) => ({ ...f, firstName: e.target.value }))} />
           <Input label="Last name" value={addForm.lastName} onChange={(e) => setAddForm((f) => ({ ...f, lastName: e.target.value }))} />
           <Input label="Email" type="email" value={addForm.email} onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))} />
@@ -403,7 +403,7 @@ export function SystemUsers() {
             <select
               value={addForm.roleId}
               onChange={(e) => setAddForm((f) => ({ ...f, roleId: e.target.value }))}
-              className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-gray-100"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100"
             >
               <option value="">Select role</option>
               {(assignableRoles.length ? assignableRoles : roles).map((r) => (

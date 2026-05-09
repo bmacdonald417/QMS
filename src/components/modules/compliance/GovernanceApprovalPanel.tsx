@@ -72,7 +72,7 @@ export function GovernanceApprovalPanel({ approvalUrl, token, title = 'Governanc
     return (
       <Card padding="md">
         <h2 className="mb-2 text-lg text-white">{title}</h2>
-        <p className="text-sm text-compliance-red">{err}</p>
+        <p className="text-sm text-destructive">{err}</p>
       </Card>
     );
   }
@@ -92,12 +92,12 @@ export function GovernanceApprovalPanel({ approvalUrl, token, title = 'Governanc
   return (
     <Card padding="md">
       <h2 className="mb-3 text-lg text-white">{title}</h2>
-      <div className="space-y-3 rounded-lg border border-surface-border bg-surface-overlay p-3">
+      <div className="space-y-3 rounded-lg border border-border bg-secondary p-3">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-gray-200">Status</span>
           <span className={`rounded px-2 py-0.5 text-xs font-medium ${
-            variant === 'success' ? 'bg-compliance-green/20 text-compliance-green' :
-            variant === 'danger' ? 'bg-compliance-red/20 text-compliance-red' :
+            variant === 'success' ? 'bg-success/20 text-success' :
+            variant === 'danger' ? 'bg-destructive/20 text-destructive' :
             'bg-amber-500/20 text-amber-400'
           }`}>
             {status}
