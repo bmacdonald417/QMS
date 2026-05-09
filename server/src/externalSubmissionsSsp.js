@@ -95,9 +95,15 @@ router.post(
     const botUserId = await getCodexBridgeUserId();
 
     // Idempotency: same (org, ext_doc, sha256) → return existing.
+    // Prisma generates the compound-unique-key argument from concatenated
+    // field names (externalOrganizationId_externalDocumentId_payloadSha256)
+    // — the @@unique's `map:` only renames the DB constraint, not the
+    // client-side key. Found by reading prod logs after every POST 502'd
+    // with an unhandled PrismaClientValidationError ("Unknown argument
+    // external_submission_idempotency. Available: externalOrganizationId_…").
     const existing = await prisma.externalDocumentSubmission.findUnique({
       where: {
-        external_submission_idempotency: {
+        externalOrganizationId_externalDocumentId_payloadSha256: {
           externalOrganizationId: parsed.organization_id,
           externalDocumentId: parsed.ssp_document_id,
           payloadSha256: parsed.payload_sha256,
