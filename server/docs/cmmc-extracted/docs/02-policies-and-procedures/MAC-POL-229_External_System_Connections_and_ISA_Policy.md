@@ -101,8 +101,8 @@ The authoritative operational view of "which external systems is the CUI Enclave
 | `external_controls_committed` | Free text: what the counterparty has committed to in the ISA |
 | `isa_artifact_ref` | Document control identifier of the executed ISA / MOU / MOA |
 | `effective_date` | When the agreement took effect |
-| `expiry_date` | Scheduled review/renewal date (≤ 12 months from effective_date — see §6) |
-| `next_review_due` | Soft-due date for the annual review (typically 60 days before `expiry_date`) |
+| `expiry_date` | Scheduled review/renewal date (≤ 12 months from effective_date by default — see §5.7 for the AO-concurred exception path) |
+| `next_review_due` | Computed date 60 days before `expiry_date` (automated by the QMS register implementation as a derived field — not a manual entry — to prevent drift) |
 | `status` | `pending_activation`, `active`, `under_review`, `renewing`, `expired`, `terminated` |
 | `isso_signoff_at` / `isso_signoff_by` | Technical sign-off timestamp + user |
 | `ao_signoff_at` / `ao_signoff_by` | Authorization sign-off timestamp + user |
@@ -153,9 +153,13 @@ Every information exchange covered by this policy uses an executed agreement bui
 
 ### 5.5 Security controls each side commits to maintain — `[mandatory]`
 
-- MacTech-side controls: list relevant NIST SP 800-171 Rev. 2 control IDs MacTech commits to maintain for this connection (typically AC, IA, AU, SC family)
-- Counterparty controls: list the counterparty's stated security framework (FedRAMP Mod / FedRAMP High / NIST 800-171 / ISO 27001 / etc.) and any specific control commitments
-- For each side, the artifact reference (e.g. SSP, ATO letter, FedRAMP Authorization listing, SOC 2 Type II report, ISO certificate) supporting the commitment
+- MacTech-side controls: list relevant NIST SP 800-171 Rev. 2 control IDs MacTech commits to maintain for this connection (typically AC, IA, AU, SC family).
+- **Floor — required for every CUI-bearing connection:**
+  - **AC.L2-3.1.13** (employ cryptographic mechanisms to protect the confidentiality of remote access sessions) — applied to any remote access component of the connection.
+  - **SC.L2-3.13.8** (implement cryptographic mechanisms to prevent unauthorized disclosure of CUI during transmission unless otherwise protected by alternative physical safeguards) — applied to the CUI bytes in transit on the wire.
+  - These are the deterministic minimum the ISSO checks against during §4.1 step 3 review. ISAs that fail to commit to both are rejected.
+- Counterparty controls: list the counterparty's stated security framework (FedRAMP Mod / FedRAMP High / NIST 800-171 / ISO 27001 / etc.) and any specific control commitments.
+- For each side, the artifact reference (e.g. SSP, ATO letter, FedRAMP Authorization listing, SOC 2 Type II report, ISO certificate) supporting the commitment.
 
 ### 5.6 Incident response coordination — `[mandatory]`
 
@@ -166,10 +170,12 @@ Every information exchange covered by this policy uses an executed agreement bui
 
 ### 5.7 Periodic review and termination — `[mandatory]`
 
-- Annual review cadence (per §6 of this policy)
-- Conditions that trigger early review (per §6.2)
-- Termination procedure (per §7) and minimum notice window for unilateral termination
-- Disposition of CUI in transit at the time of termination
+- Annual review cadence (per §6 of this policy).
+- **Default expiration cap: 12 months from `effective_date`.** This is the safest audit story — every active connection has had a documented review within the last year.
+- **Exception path for established federal customers operating on multi-year ATO cycles (e.g. 3-year DoD ATO):** the agreement may set `expiry_date` up to the customer's ATO expiration provided **AO concurrence is recorded in writing** alongside the executed ISA, with explicit citation of the customer's ATO instrument and expiration date. Even under exception, the §6.3 annual review checklist still runs at 12-month intervals against `next_review_due`; only the formal renewal cycle stretches.
+- Conditions that trigger early review (per §6.2).
+- Termination procedure (per §7) and minimum notice window for unilateral termination.
+- Disposition of CUI in transit at the time of termination.
 
 ### 5.8 Signatories — `[mandatory]`
 
@@ -190,10 +196,13 @@ Both MacTech signatures are mandatory. Counterparty signatures are mandatory unl
 
 ### 5.10 Supporting documents — `[as applicable]`
 
-- Counterparty's Authorization to Operate (ATO) letter or FedRAMP Authorization listing
-- Counterparty's most recent SOC 2 Type II or equivalent assessment
-- Federal contract clause that authorizes the exchange (if applicable)
-- Diagrams illustrating the connection topology
+- Counterparty's Authorization to Operate (ATO) letter or FedRAMP Authorization listing.
+- **DoD CIO adjudication letter** — for federal customers, an adjudication-as-MET letter from the DoD CIO is the proper substitute for a FedRAMP/ATO listing per the CMMC L2 Assessment Guide v2.13 (page 10) adjudication path. Reference the letter by date and adjudicating CIO designation.
+- **DD Form 2875 (System Authorization Access Request)** — DoD's standard instrument for system-to-system access. Required when the connection is to a DoD customer system. Reference the executed form by control number and approving authority.
+- Counterparty's most recent SOC 2 Type II or equivalent assessment.
+- Federal contract clause that authorizes the exchange (if applicable).
+- User-level NDAs that accompany the system-level ISA (per §11.2).
+- Diagrams illustrating the connection topology.
 
 ---
 
@@ -247,6 +256,9 @@ The ISSO executes the following sequence for every termination, in order:
 1. **Notify the counterparty** in writing per the ISA's termination clause.
 2. **Drain in-flight exchanges** if a graceful drain is possible and the termination is not security-driven; otherwise hard-stop.
 3. **Remove network controls** at the boundary:
+
+**Security-driven termination — parallel hard-stop.** When termination is driven by an active or suspected security incident, steps 1–3 execute **in parallel within minutes**, not sequentially. The ISSO has standing authority to **suspend access immediately** (firewall rule pulled, credentials revoked) without waiting for AO sign-off; AO **countersignature converts the suspension to a permanent termination within 24 hours**. If the AO doesn't countersign within 24 hours, the ISSO either restores access (false alarm) or escalates to the next-level executive for authorization. The §7.2 sequential ordering applies only to non-security-driven terminations (expiry, business-end, planned migration).
+
    - Firewall: remove allow-list entries for the counterparty's source/destination IP ranges.
    - DNS: remove counterparty-specific DNS records the enclave was relying on.
    - VPN / mTLS: revoke certificates issued to the counterparty; revoke MacTech credentials issued for the connection.
@@ -347,17 +359,17 @@ The Rev. 3 control's selection menu (ISAs, IXSAs, MOUs/MOAs, SLAs, user agreemen
 - FAR 52.204-21 (b)(1)(iii)
 - DFARS 252.204-7012
 - E.O. 13556 — Controlled Unclassified Information (CUI Registry)
-- `MAC-IT-304_System_Security_Plan.md`
-- `MAC-IT-105_System_Boundary.md`
-- `MAC-IT-305_CUI_Data_Flow_Diagram.md`
-- `MAC-IT-306_CUI_Vault_Architecture_Diagram.md`
-- `MAC-SEC-302_FCI_and_CUI_Scope_and_Data_Boundary_Statement.md`
-- `MAC-SEC-312_Inherited_Control_Statement_Azure_Infrastructure_and_Physical_Security.md`
-- `MAC-POL-210_Access_Control_Policy.md`
-- `MAC-POL-215_Incident_Response_Policy.md`
-- `MAC-POL-217_Ongoing_Stakeholder_Requirements.md`
-- `MAC-POL-225_System_and_Communications_Protection_Policy.md`
-- `MAC-POL-227_Records_Retention_Policy.md` (planned, referenced by `MAC-SEC-312`)
+- `MAC-IT-304_System_Security_Plan.md` *(in QMS bundle)*
+- `MAC-IT-105_System_Boundary.md` *(in QMS bundle)*
+- `MAC-IT-305_CUI_Data_Flow_Diagram.md` *(in QMS bundle)*
+- `MAC-IT-306_CUI_Vault_Architecture_Diagram.md` *(in QMS bundle)*
+- `MAC-SEC-302_FCI_and_CUI_Scope_and_Data_Boundary_Statement.md` *(in QMS bundle)*
+- `MAC-SEC-312_Inherited_Control_Statement_Azure_Infrastructure_and_Physical_Security.md` *(file present at `docs/03-control-responsibility/`; **pending manifest registration** — not yet picked up by the bundle sync)*
+- `MAC-POL-210_Access_Control_Policy.md` *(in QMS bundle)*
+- `MAC-POL-215_Incident_Response_Policy.md` *(in QMS bundle)*
+- `MAC-POL-217_Ongoing_Stakeholder_Requirements.md` *(in QMS bundle)*
+- `MAC-POL-225_System_and_Communications_Protection_Policy.md` *(in QMS bundle)*
+- `MAC-POL-227_Records_Retention_Policy.md` *(**planned** — referenced by `MAC-SEC-312`; not yet authored)*
 - Microsoft Azure shared responsibility model: https://learn.microsoft.com/en-us/azure/security/fundamentals/shared-responsibility
 - Microsoft Azure Government compliance: https://learn.microsoft.com/en-us/azure/azure-government/compliance/
 
@@ -368,3 +380,4 @@ The Rev. 3 control's selection menu (ISAs, IXSAs, MOUs/MOAs, SLAs, user agreemen
 | Version | Date | Author | Summary |
 |---|---|---|---|
 | 1.0 | 2026-05-10 | Patrick Caruso | Initial release. Establishes external-system connection governance and ISA/MOU/MOA workflow for the MacTech CUI Enclave. Maps to AC.L2-3.1.20 (Rev. 2) and §3.12.5 (Rev. 3 forward-looking). Names the `external_system_connections` operational register that holds per-connection rows. |
+| 1.0a | 2026-05-10 | Patrick Caruso | Pre-release polish pass (no contract changes; all amendments tightened existing language): §4.4 `next_review_due` clarified as a register-automated computed field (not manual). §5.5 added explicit floor controls AC.L2-3.1.13 + SC.L2-3.13.8 for every CUI-bearing connection. §5.7 default 12-month expiration cap retained; added AO-concurred exception path for established federal customer multi-year ATO cycles. §5.10 added DoD CIO adjudication letter and DD Form 2875 (System Authorization Access Request) as supporting-document options for federal customers. §7.2 added parallel hard-stop sequence for security-driven terminations (ISSO suspends immediately; AO countersigns within 24h to convert to permanent termination). §12 references annotated with bundle-presence vs. planned-vs-pending-registration status. |
