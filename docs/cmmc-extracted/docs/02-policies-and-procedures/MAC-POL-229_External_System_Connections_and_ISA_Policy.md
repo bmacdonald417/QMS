@@ -364,7 +364,7 @@ The Rev. 3 control's selection menu (ISAs, IXSAs, MOUs/MOAs, SLAs, user agreemen
 - `MAC-IT-305_CUI_Data_Flow_Diagram.md` *(in QMS bundle)*
 - `MAC-IT-306_CUI_Vault_Architecture_Diagram.md` *(in QMS bundle)*
 - `MAC-SEC-302_FCI_and_CUI_Scope_and_Data_Boundary_Statement.md` *(in QMS bundle)*
-- `MAC-SEC-312_Inherited_Control_Statement_Azure_Infrastructure_and_Physical_Security.md` *(file present at `docs/03-control-responsibility/`; **pending manifest registration** — not yet picked up by the bundle sync)*
+- `MAC-SEC-312_Inherited_Control_Statement_Azure_Infrastructure_and_Physical_Security.md` *(in QMS bundle)*
 - `MAC-POL-210_Access_Control_Policy.md` *(in QMS bundle)*
 - `MAC-POL-215_Incident_Response_Policy.md` *(in QMS bundle)*
 - `MAC-POL-217_Ongoing_Stakeholder_Requirements.md` *(in QMS bundle)*
