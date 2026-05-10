@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { PageShell } from '../PageShell';
+import { useEffect, useState } from 'react';
 import { Card, Button, Table } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/lib/api';
@@ -63,6 +62,13 @@ export function CmmcAdminPage() {
     }
   };
 
+  // Auto-load the document registry on mount so the admin sees the current
+  // state without having to click Sync first.
+  useEffect(() => {
+    fetchDocuments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
   const updateStatus = async (code: string, status: string) => {
     if (!token) return;
 
@@ -102,10 +108,15 @@ export function CmmcAdminPage() {
   ];
 
   return (
-    <PageShell
-      title="CMMC Admin"
-      subtitle="Manage CMMC document registry and sync"
-    >
+    <div className="mx-auto max-w-6xl space-y-5 p-6">
+      <header>
+        <h1 className="text-2xl font-semibold text-gray-100">CMMC bundle admin</h1>
+        <p className="mt-1 text-sm leading-relaxed text-gray-400">
+          Sync CMMC documents from the on-disk bundle (<code className="text-gray-300">docs/cmmc-extracted/</code>)
+          into the QMS <code className="text-gray-300">cmmc_documents</code> table. Each manifest entry becomes a CmmcDocument row;
+          the markdown file becomes the body. New entries land as DRAFT — walk them through to EFFECTIVE in Document Control.
+        </p>
+      </header>
       <div className="space-y-6">
         {/* Sync Section */}
         <Card>
@@ -157,6 +168,6 @@ export function CmmcAdminPage() {
           )}
         </Card>
       </div>
-    </PageShell>
+    </div>
   );
 }

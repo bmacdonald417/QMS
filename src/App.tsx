@@ -53,6 +53,7 @@ import DocumentByCodeRedirect from '@/pages/DocumentByCodeRedirect';
 import DocumentView from '@/pages/DocumentView';
 import DocumentByCodeViewRedirect from '@/pages/DocumentByCodeViewRedirect';
 import CmmcControlTags from '@/pages/CmmcControlTags';
+import { CmmcAdminPage } from '@/pages/cmmc';
 import { AppProvider } from '@/context/AppContext';
 import { AuthProvider } from '@/context/AuthContext';
 
@@ -111,6 +112,7 @@ function AppRoutes() {
             <Route path="release-readiness" element={<SystemReleaseReadiness />} />
             <Route path="governance-release" element={<SystemGovernanceRelease />} />
             <Route path="external-submissions" element={<SystemExternalSubmissions />} />
+            <Route path="cmmc-admin" element={<CmmcAdminPage />} />
           </Route>
           <Route path="team-documents" element={<Navigate to="/documents" replace />} />
           <Route path="team-training" element={<TeamTraining />} />
