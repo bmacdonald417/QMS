@@ -550,19 +550,28 @@ export function DocumentDetail() {
           <div className="ml-auto flex items-center gap-1" role="progressbar" aria-label="Document workflow progress">
             {workflowSteps.map((step, i) => (
               <span key={step.key} className="flex items-center gap-1">
-                <span
-                  className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors duration-150 ${
+                <button
+                  type="button"
+                  onClick={() => {
+                    document.getElementById('cmmc-gate-panel')?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'start',
+                    });
+                  }}
+                  className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors duration-150 hover:ring-1 hover:ring-primary/40 focus:outline-none focus:ring-2 focus:ring-ring ${
                     step.current
                       ? 'bg-primary/20 text-primary ring-1 ring-primary/40'
                       : step.completed
-                        ? 'bg-success/15 text-success'
-                        : 'text-gray-500'
+                        ? 'bg-success/15 text-success hover:bg-success/25'
+                        : 'text-gray-500 hover:text-gray-300'
                   }`}
                   aria-current={step.current ? 'step' : undefined}
+                  aria-label={`${step.label} — jump to compliance gate`}
+                  title="Jump to CMMC Compliance Gate"
                 >
                   {step.completed ? <Check className="h-3 w-3" aria-hidden /> : null}
                   {step.label}
-                </span>
+                </button>
                 {i < workflowSteps.length - 1 && (
                   <span className="text-gray-600" aria-hidden>|</span>
                 )}
@@ -705,13 +714,18 @@ export function DocumentDetail() {
           Approval, Sign as Approver, Release Document). Replaced the four
           scattered approval Cards that previously lived here. Server
           enforces all role + SoD gates on each transition; this panel
-          only routes the UI based on what /workflow-state reports. */}
+          only routes the UI based on what /workflow-state reports.
+          The id below is the scroll target for the workflow stepper
+          chips in the header — clicking Draft/Review/Approval/Released
+          jumps the user here. */}
       {doc.status !== 'EFFECTIVE' && doc.status !== 'OBSOLETE' && (
-        <CmmcGatePanel
-          documentId={doc.id}
-          refreshKey={cmmcRefreshKey}
-          onTransition={fetchDocument}
-        />
+        <div id="cmmc-gate-panel" className="scroll-mt-6">
+          <CmmcGatePanel
+            documentId={doc.id}
+            refreshKey={cmmcRefreshKey}
+            onTransition={fetchDocument}
+          />
+        </div>
       )}
 
       {canRevise && (
