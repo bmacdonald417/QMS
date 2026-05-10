@@ -27,6 +27,9 @@ interface SubmissionRow {
   payloadSha256: string;
   controlsMappedCount: number;
   submittedAt: string;
+  // Top-level author from the inbound payload. Null when the submitting
+  // system didn't carry an individual author block — falls back to "Trust Codex".
+  submitter: { displayName: string; email: string } | null;
   rejectedAt: string | null;
   rejectedBy: { id: string; firstName: string; lastName: string } | null;
   rejectionReason: string | null;
@@ -158,6 +161,7 @@ export function SystemExternalSubmissions() {
                 <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">Version</th>
                 <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">Status</th>
                 <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">QMS Doc</th>
+                <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">Submitted by</th>
                 <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">Controls</th>
                 <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">Submitted</th>
                 <th scope="col" className="w-32 px-4 py-3"></th>
@@ -166,14 +170,14 @@ export function SystemExternalSubmissions() {
             <tbody className="divide-y divide-border">
               {loading && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-500">
+                  <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-500">
                     Loading…
                   </td>
                 </tr>
               )}
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-500">
+                  <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-500">
                     No submissions match.
                   </td>
                 </tr>
@@ -212,6 +216,16 @@ export function SystemExternalSubmissions() {
                           </a>
                         ) : (
                           <span className="italic text-gray-500">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {r.submitter ? (
+                          <div>
+                            <div className="text-gray-200">{r.submitter.displayName}</div>
+                            <div className="mt-0.5 text-[10px] text-gray-500">{r.submitter.email}</div>
+                          </div>
+                        ) : (
+                          <span className="italic text-gray-500">Trust Codex</span>
                         )}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-400">

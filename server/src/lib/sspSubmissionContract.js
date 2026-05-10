@@ -11,9 +11,14 @@
 import { createHash } from 'node:crypto';
 
 const HEX64_RE = /^[0-9a-f]{64}$/;
-const REQUIRED_SIGNOFF_KINDS = ['isso', 'system_owner', 'authorizing_official'];
+// Recognized signoff kinds. signoffs is now optional (0+); when present, every
+// entry's data_hash must equal payload_sha256, but kind uniqueness and the
+// "all three present" rule are NOT enforced — the QMS Reviewer/Approver/
+// Quality Release chain is the source of truth, not this provenance array.
+const ACCEPTED_SIGNOFF_KINDS = new Set(['isso', 'system_owner', 'authorizing_official']);
 const SUPPORTED_BRIDGE_VERSIONS = new Set(['1']);
 const MIN_CONTROLS_MAPPED = 100;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Validate an inbound SSP submission payload against the seven contract gates.
@@ -22,12 +27,16 @@ const MIN_CONTROLS_MAPPED = 100;
  * Gates:
  *   1. payload_sha256 is exactly 64 lowercase hex characters
  *   2. canonical_json_sha256 === payload_sha256
- *   3. signoffs[] contains exactly the three kinds (isso, system_owner,
- *      authorizing_official)
- *   4. every signoff.data_hash === payload_sha256
+ *   3. signoffs is an array (0+ entries; QMS Reviewer/Approver/Quality
+ *      Release chain is the source of truth — Codex sigs, when present, are
+ *      preserved as provenance only)
+ *   4. every signoff (when present) has data_hash === payload_sha256 and a
+ *      recognized kind
  *   5. controls_mapped.length >= 100 (sanity check; CMMC L2 covers 110)
  *   6. recompute sha256(base64-decode(pdf_base64)) === pdf_sha256
  *   7. bridge_version is "1" (or absent — defaults to "1" for backwards-compat)
+ *   8. author (when present) has display_name + email; email must be
+ *      well-formed; QMS "Submitted by" UI reads from this
  *
  * @param {object} parsed - JSON-parsed inbound body
  * @returns {{ok: true} | {ok: false, errors: Array<{field: string, message: string}>}}
@@ -108,23 +117,20 @@ export function validateSspSubmission(parsed) {
     }
   }
 
-  // Gates 3 + 4: signoffs
+  // Gates 3 + 4: signoffs (0+; per-entry validation when present)
   if (!Array.isArray(parsed.signoffs)) {
-    push('signoffs', 'Must be an array');
+    push('signoffs', 'Must be an array (may be empty)');
   } else {
-    const kinds = parsed.signoffs.map((s) => s?.kind).filter((k) => typeof k === 'string');
-    for (const required of REQUIRED_SIGNOFF_KINDS) {
-      if (!kinds.includes(required)) {
-        push(`signoffs[kind=${required}]`, 'Required signoff kind missing');
-      }
-    }
-    if (kinds.length !== REQUIRED_SIGNOFF_KINDS.length) {
-      push('signoffs', `Exactly ${REQUIRED_SIGNOFF_KINDS.length} signoffs required (one of each kind)`);
-    }
     parsed.signoffs.forEach((s, i) => {
       if (!s || typeof s !== 'object') {
         push(`signoffs[${i}]`, 'Must be an object');
         return;
+      }
+      if (typeof s.kind !== 'string' || !ACCEPTED_SIGNOFF_KINDS.has(s.kind)) {
+        push(
+          `signoffs[${i}].kind`,
+          `Unrecognized kind. Accepted: ${[...ACCEPTED_SIGNOFF_KINDS].join(', ')}`,
+        );
       }
       if (typeof s.data_hash !== 'string' || !HEX64_RE.test(s.data_hash)) {
         push(`signoffs[${i}].data_hash`, 'Must be exactly 64 lowercase hex characters');
@@ -138,6 +144,21 @@ export function validateSspSubmission(parsed) {
         push(`signoffs[${i}].signed_at`, 'Required ISO timestamp string missing');
       }
     });
+  }
+
+  // Gate 8: author (optional). When present, both display_name and email
+  // are required. QMS surfaces these in the External Submissions admin UI.
+  if (parsed.author !== undefined && parsed.author !== null) {
+    if (typeof parsed.author !== 'object' || Array.isArray(parsed.author)) {
+      push('author', 'Must be an object when present');
+    } else {
+      if (typeof parsed.author.display_name !== 'string' || parsed.author.display_name.trim().length === 0) {
+        push('author.display_name', 'Required string field missing');
+      }
+      if (typeof parsed.author.email !== 'string' || !EMAIL_RE.test(parsed.author.email)) {
+        push('author.email', 'Must be a well-formed email address');
+      }
+    }
   }
 
   // Gate 5: controls_mapped >= 100
@@ -195,7 +216,8 @@ export function deriveSubmissionStatusFromDocument(documentStatus, rejectedAt) {
 
 export const __test_internals = {
   HEX64_RE,
-  REQUIRED_SIGNOFF_KINDS,
+  ACCEPTED_SIGNOFF_KINDS,
   SUPPORTED_BRIDGE_VERSIONS,
   MIN_CONTROLS_MAPPED,
+  EMAIL_RE,
 };

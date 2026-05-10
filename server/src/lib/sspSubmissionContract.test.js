@@ -25,6 +25,9 @@ const PAYLOAD_HASH = 'a'.repeat(64);
 const ALL_110_CONTROLS = Array.from({ length: 110 }, (_, i) => `3.${Math.floor(i / 30) + 1}.${(i % 30) + 1}`);
 
 function makeValidPayload(overrides = {}) {
+  // Default-valid payload uses signoffs:[] (the new Codex auto-submit shape)
+  // and includes a top-level author. Tests that exercise legacy 3-signoff
+  // payloads override .signoffs explicitly.
   return {
     submission_id: '00000000-0000-0000-0000-000000000001',
     organization_id: 'org-uuid',
@@ -38,26 +41,11 @@ function makeValidPayload(overrides = {}) {
     bridge_version: '1',
     tally: { controls_covered: 110 },
     controls_mapped: ALL_110_CONTROLS,
-    signoffs: [
-      {
-        kind: 'isso',
-        signer_display_name: 'Patrick Caruso',
-        data_hash: PAYLOAD_HASH,
-        signed_at: '2026-05-09T09:00:00Z',
-      },
-      {
-        kind: 'system_owner',
-        signer_display_name: 'James Adams',
-        data_hash: PAYLOAD_HASH,
-        signed_at: '2026-05-09T09:10:00Z',
-      },
-      {
-        kind: 'authorizing_official',
-        signer_display_name: 'Brian MacDonald',
-        data_hash: PAYLOAD_HASH,
-        signed_at: '2026-05-09T09:20:00Z',
-      },
-    ],
+    signoffs: [],
+    author: {
+      display_name: 'Patrick Caruso',
+      email: 'patrick@welcometothetribe.com',
+    },
     artifacts: {
       pdf_base64: PDF_B64,
       pdf_sha256: PDF_SHA,
@@ -66,6 +54,14 @@ function makeValidPayload(overrides = {}) {
     },
     ...overrides,
   };
+}
+
+function threeLegacySignoffs() {
+  return [
+    { kind: 'isso',                 signer_display_name: 'Patrick Caruso',  data_hash: PAYLOAD_HASH, signed_at: '2026-05-09T09:00:00Z' },
+    { kind: 'system_owner',         signer_display_name: 'James Adams',     data_hash: PAYLOAD_HASH, signed_at: '2026-05-09T09:10:00Z' },
+    { kind: 'authorizing_official', signer_display_name: 'Brian MacDonald', data_hash: PAYLOAD_HASH, signed_at: '2026-05-09T09:20:00Z' },
+  ];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -110,36 +106,52 @@ function testGate2HashMismatch() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Gate 3: signoffs must have all three kinds
+// Gate 3: signoffs is an array (0+; QMS chain is the source of truth)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function testGate3MissingAo() {
-  const p = makeValidPayload();
-  p.signoffs = p.signoffs.filter((s) => s.kind !== 'authorizing_official');
-  const r = validateSspSubmission(p);
+function testGate3EmptyArrayOk() {
+  // The new auto-submit default — Codex generates the SSP without its own
+  // sign-chain because the QMS Reviewer/Approver/Quality Release chain is the
+  // authority. Empty array MUST pass.
+  const r = validateSspSubmission(makeValidPayload({ signoffs: [] }));
+  assert(r.ok, `empty signoffs should pass; got ${JSON.stringify(r)}`);
+  console.log('  gate 3 (empty signoffs accepted): OK');
+}
+
+function testGate3ThreeLegacySignoffsOk() {
+  // Legacy 3-signoff payload still passes — the contract accepts but no
+  // longer requires Codex sigs.
+  const r = validateSspSubmission(makeValidPayload({ signoffs: threeLegacySignoffs() }));
+  assert(r.ok, `legacy 3-signoff payload should still pass; got ${JSON.stringify(r)}`);
+  console.log('  gate 3 (legacy 3-signoff still accepted): OK');
+}
+
+function testGate3NotAnArrayRejected() {
+  const r = validateSspSubmission(makeValidPayload({ signoffs: 'not an array' }));
+  assert(!r.ok && r.errors.some((e) => e.field === 'signoffs'), 'non-array signoffs rejected');
+  console.log('  gate 3 (non-array signoffs): OK');
+}
+
+function testGate3UnknownKindRejected() {
+  const r = validateSspSubmission(makeValidPayload({
+    signoffs: [{ kind: 'inspector_general', signer_display_name: 'X', data_hash: PAYLOAD_HASH, signed_at: '2026-05-09T09:00:00Z' }],
+  }));
   assert(
-    !r.ok && r.errors.some((e) => e.field.includes('authorizing_official')),
-    'missing AO rejected',
+    !r.ok && r.errors.some((e) => e.field === 'signoffs[0].kind'),
+    'unknown signoff kind rejected',
   );
-  console.log('  gate 3 (missing AO): OK');
-}
-
-function testGate3DuplicateKind() {
-  const p = makeValidPayload();
-  p.signoffs.push({ ...p.signoffs[0] }); // duplicate isso
-  const r = validateSspSubmission(p);
-  assert(!r.ok, 'duplicate signoff rejected');
-  console.log('  gate 3 (duplicate kind): OK');
+  console.log('  gate 3 (unknown kind rejected): OK');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Gate 4: every signoff.data_hash === payload_sha256
+// Gate 4: every signoff.data_hash === payload_sha256 (when present)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function testGate4SignoffHashDrift() {
-  const p = makeValidPayload();
-  p.signoffs[1].data_hash = 'c'.repeat(64);
-  const r = validateSspSubmission(p);
+  // Legacy-style 3-signoff payload with one drifted hash — must reject.
+  const sigs = threeLegacySignoffs();
+  sigs[1].data_hash = 'c'.repeat(64);
+  const r = validateSspSubmission(makeValidPayload({ signoffs: sigs }));
   assert(
     !r.ok && r.errors.some((e) => e.field.startsWith('signoffs[1].data_hash')),
     'signoff hash drift rejected',
@@ -191,6 +203,53 @@ function testGate7MissingVersionDefaultsToOne() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Gate 8: author (optional)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function testGate8AuthorAbsentOk() {
+  const p = makeValidPayload();
+  delete p.author;
+  const r = validateSspSubmission(p);
+  assert(r.ok, `missing author should pass (optional); got ${JSON.stringify(r)}`);
+  console.log('  gate 8 (author absent OK): OK');
+}
+
+function testGate8AuthorPresentOk() {
+  // makeValidPayload() includes author by default; just confirm.
+  const r = validateSspSubmission(makeValidPayload());
+  assert(r.ok, 'author present (well-formed) should pass');
+  console.log('  gate 8 (author present OK): OK');
+}
+
+function testGate8AuthorMissingDisplayNameRejected() {
+  const r = validateSspSubmission(
+    makeValidPayload({ author: { email: 'patrick@welcometothetribe.com' } }),
+  );
+  assert(
+    !r.ok && r.errors.some((e) => e.field === 'author.display_name'),
+    'author without display_name rejected',
+  );
+  console.log('  gate 8 (author missing display_name): OK');
+}
+
+function testGate8AuthorMalformedEmailRejected() {
+  const r = validateSspSubmission(
+    makeValidPayload({ author: { display_name: 'X', email: 'not-an-email' } }),
+  );
+  assert(
+    !r.ok && r.errors.some((e) => e.field === 'author.email'),
+    'author with malformed email rejected',
+  );
+  console.log('  gate 8 (author malformed email): OK');
+}
+
+function testGate8AuthorNotObjectRejected() {
+  const r = validateSspSubmission(makeValidPayload({ author: 'patrick' }));
+  assert(!r.ok && r.errors.some((e) => e.field === 'author'), 'string author rejected');
+  console.log('  gate 8 (author wrong shape): OK');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Status derivation
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -216,13 +275,20 @@ const tests = [
   testGate1ShortHash,
   testGate1UppercaseHash,
   testGate2HashMismatch,
-  testGate3MissingAo,
-  testGate3DuplicateKind,
+  testGate3EmptyArrayOk,
+  testGate3ThreeLegacySignoffsOk,
+  testGate3NotAnArrayRejected,
+  testGate3UnknownKindRejected,
   testGate4SignoffHashDrift,
   testGate5TooFewControls,
   testGate6PdfHashMismatch,
   testGate7UnsupportedVersion,
   testGate7MissingVersionDefaultsToOne,
+  testGate8AuthorAbsentOk,
+  testGate8AuthorPresentOk,
+  testGate8AuthorMissingDisplayNameRejected,
+  testGate8AuthorMalformedEmailRejected,
+  testGate8AuthorNotObjectRejected,
   testDeriveStatus,
 ];
 

@@ -46,6 +46,19 @@ if (!fs.existsSync(EXT_SUBMISSIONS_DIR)) {
   fs.mkdirSync(EXT_SUBMISSIONS_DIR, { recursive: true });
 }
 
+/**
+ * Pull `{ displayName, email }` out of a stored payload's top-level `author`
+ * field. Returns null when the inbound submission carried no author block,
+ * which is valid (the QMS UI shows "Trust Codex" as the fallback).
+ */
+function extractSubmitter(payloadJson) {
+  if (!payloadJson || typeof payloadJson !== 'object') return null;
+  const a = payloadJson.author;
+  if (!a || typeof a !== 'object') return null;
+  if (typeof a.display_name !== 'string' || typeof a.email !== 'string') return null;
+  return { displayName: a.display_name, email: a.email };
+}
+
 /** Resolve the codex-bridge bot user's id. Cached after first lookup. */
 let cachedBotUserId = null;
 async function getCodexBridgeUserId() {
@@ -201,18 +214,37 @@ router.post(
             controls_mapped: parsed.controls_mapped,
           },
         );
+        const submitterLine =
+          parsed.author && typeof parsed.author === 'object' && parsed.author.display_name
+            ? `**Submitted by:** ${parsed.author.display_name} <${parsed.author.email}>  `
+            : `**Submitted by:** Trust Codex (no individual author recorded)  `;
+        const signoffsLines =
+          Array.isArray(parsed.signoffs) && parsed.signoffs.length > 0
+            ? [
+                '',
+                '### Codex sign-offs (provenance — preserved as evidence)',
+                '',
+                ...parsed.signoffs.map(
+                  (s) => `- **${s.kind}** — ${s.signer_display_name}${s.signer_title ? ` (${s.signer_title})` : ''} on ${s.signed_at}`,
+                ),
+              ]
+            : [
+                '',
+                '### Codex sign-offs',
+                '',
+                '_None recorded on the inbound submission. The QMS Reviewer / Approver / Quality_',
+                '_Release chain below is the source of truth for sign-off on this record._',
+              ];
         const provenanceFooter = [
           '',
           '---',
           '',
-          '## Provenance — Codex signoffs preserved as evidence',
+          '## Provenance — submission origin and signoffs',
           '',
           `**Source:** Trust Codex (https://codex.mactechsolutionsllc.com)  `,
+          submitterLine,
           `**Submission ID:** \`${parsed.submission_id}\`  `,
-          '',
-          ...parsed.signoffs.map(
-            (s) => `- **${s.kind}** — ${s.signer_display_name} (${s.signer_title}) on ${s.signed_at}`,
-          ),
+          ...signoffsLines,
           '',
           '## QMS release chain',
           '',
@@ -388,6 +420,10 @@ router.get(
         payloadSha256: s.payloadSha256,
         controlsMappedCount: Array.isArray(s.controlsMapped) ? s.controlsMapped.length : 0,
         submittedAt: s.submittedAt,
+        // Top-level author from the inbound payload (optional). The QMS UI
+        // shows this as "Submitted by" — falls back to "Trust Codex" when
+        // the inbound submission didn't carry an individual author.
+        submitter: extractSubmitter(s.payloadJson),
         rejectedAt: s.rejectedAt,
         rejectedBy: s.rejectedBy,
         rejectionReason: s.rejectionReason,
@@ -444,6 +480,7 @@ router.get(
         submission: {
           ...submission,
           status: deriveSubmissionStatusFromDocument(submission.qmsDocument?.status, submission.rejectedAt),
+          submitter: extractSubmitter(submission.payloadJson),
         },
       });
     } catch (err) {
