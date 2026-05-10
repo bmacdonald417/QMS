@@ -6,16 +6,12 @@ import { DocumentContentRender } from '@/components/DocumentContentRender';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { GovernanceApprovalPanel } from '@/components/modules/compliance/GovernanceApprovalPanel';
 import { ReleaseToCodexButton } from '@/components/governance/ReleaseToCodexButton';
-import { CmmcGatePanel, type CmmcWorkflowState } from '@/components/governance/CmmcGatePanel';
+import { CmmcGatePanel } from '@/components/governance/CmmcGatePanel';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest, apiUrl } from '@/lib/api';
 import { stripMarkdownFormatting, formatRelativeTime } from '@/lib/format';
 import { useDocumentTypes } from '@/hooks/useDocumentTypes';
-import {
-  REVIEW_QUESTIONS,
-  type ReviewAnswerValue,
-  type ReviewResponsesPayload,
-} from '@/lib/reviewQuestions';
+import { type ReviewResponsesPayload } from '@/lib/reviewQuestions';
 import { Info, Check } from 'lucide-react';
 
 interface UserRef {
@@ -129,22 +125,8 @@ export function DocumentDetail() {
   const [title, setTitle] = useState('');
   const [documentType, setDocumentType] = useState('SOP');
   const [content, setContent] = useState('');
-  const [reviewComment, setReviewComment] = useState('');
-  const [reviewAnswers, setReviewAnswers] = useState<Record<string, { value: ReviewAnswerValue; comments: string }>>(
-    () => Object.fromEntries(REVIEW_QUESTIONS.map((q) => [q.id, { value: 'no' as ReviewAnswerValue, comments: '' }]))
-  );
-  const [submitComment, setSubmitComment] = useState('');
-  const [reviewerIds, setReviewerIds] = useState<string[]>([]);
-  const [approverId, setApproverId] = useState('');
-
-  const [passwordModal, setPasswordModal] = useState<null | 'approve' | 'release' | 'review'>(null);
-  const [pendingReviewDecision, setPendingReviewDecision] = useState<
-    null | 'APPROVED' | 'APPROVED_WITH_COMMENTS' | 'REQUIRES_REVISION'
-  >(null);
-  const [reviewFooterError, setReviewFooterError] = useState('');
-  const [signaturePassword, setSignaturePassword] = useState('');
-  const [signatureComment, setSignatureComment] = useState('');
-  const [signatureError, setSignatureError] = useState('');
+  // Approval-flow state (review answers / decision / signature password,
+  // submit-for-review reviewer/approver picks) all moved to CmmcGatePanel.
   const [showReviseModal, setShowReviseModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
@@ -164,22 +146,13 @@ export function DocumentDetail() {
   const [linkSearchLoading, setLinkSearchLoading] = useState(false);
   const [statusTooltipVisible, setStatusTooltipVisible] = useState(false);
   const [workflowDetailsOpen, setWorkflowDetailsOpen] = useState(false);
-  // CMMC gate state — populated by CmmcGatePanel via onWorkflowState. Used
-  // to disable the Quality Release button + show the gate reason on hover.
-  const [cmmcState, setCmmcState] = useState<CmmcWorkflowState | null>(null);
-  // Bumped after successful approve/release/SIA-record so CmmcGatePanel
-  // re-fetches /workflow-state.
+  // Bumped after fetchDocument() so CmmcGatePanel re-fetches /workflow-state
+  // when the parent doc reloads (e.g. another tab signed it). The panel also
+  // self-refreshes immediately after each in-panel transition; this catches
+  // out-of-band changes.
   const [cmmcRefreshKey, setCmmcRefreshKey] = useState(0);
   const workflowDetailsRef = useRef<HTMLDivElement>(null);
   const linkDropdownRef = useRef<HTMLDivElement>(null);
-  const reviewCommentTextareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const focusReviewComments = () => {
-    requestAnimationFrame(() => {
-      reviewCommentTextareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      reviewCommentTextareaRef.current?.focus();
-    });
-  };
 
   useEffect(() => {
     if (!workflowDetailsOpen) return;
@@ -273,27 +246,9 @@ export function DocumentDetail() {
       .catch(() => setUsers([]));
   }, [token]);
 
-  const pendingMyReview = useMemo(
-    () =>
-      doc?.assignments?.find(
-        (a) => a.assignedToId === user?.id && a.assignmentType === 'REVIEW' && a.status === 'PENDING'
-      ),
-    [doc, user?.id]
-  );
-  const pendingMyApproval = useMemo(
-    () =>
-      doc?.assignments?.find(
-        (a) => a.assignedToId === user?.id && a.assignmentType === 'APPROVAL' && a.status === 'PENDING'
-      ),
-    [doc, user?.id]
-  );
-  const pendingMyRelease = useMemo(
-    () =>
-      doc?.assignments?.find(
-        (a) => a.assignedToId === user?.id && a.assignmentType === 'QUALITY_RELEASE' && a.status === 'PENDING'
-      ),
-    [doc, user?.id]
-  );
+  // pendingMy{Review,Approval,Release} predicates moved to CmmcGatePanel,
+  // sourced from /workflow-state.callerHasPending{Review,Approval} and the
+  // releaseReadyForCaller flag.
 
   // All hooks must run before any early return (React rules of hooks)
   const statusTooltipContent = useMemo(() => {
@@ -399,9 +354,7 @@ export function DocumentDetail() {
 
   const isAuthor = user?.id === doc.authorId;
   const canEdit = isAuthor && (doc.status === 'DRAFT' || doc.status === 'IN_REVIEW');
-  const canSubmitReview = isAuthor && doc.status === 'DRAFT';
-  const canApprove = !!pendingMyApproval && doc.status === 'AWAITING_APPROVAL';
-  const canRelease = (!!pendingMyRelease || user?.roleName === 'System Admin') && doc.status === 'APPROVED';
+  // canSubmitReview / canApprove / canRelease all moved into CmmcGatePanel.
   const canRevise = doc.status === 'EFFECTIVE';
   const canDelete = user?.permissions?.includes('document:delete');
 
@@ -745,279 +698,20 @@ export function DocumentDetail() {
         )}
       </Card>
 
-      {canSubmitReview && (
-        <Card padding="md">
-          <h2 className="mb-4 text-lg text-white">Submit for Review</h2>
-          <p className="mb-3 text-sm text-gray-500">Select reviewers and one approver.</p>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label className="label-caps mb-1.5 block">Reviewers</label>
-              <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-border p-3">
-                {reviewers.map((reviewer) => (
-                  <label key={reviewer.id} className="flex items-center gap-2 text-sm text-gray-300">
-                    <input
-                      type="checkbox"
-                      checked={reviewerIds.includes(reviewer.id)}
-                      onChange={(e) =>
-                        setReviewerIds((prev) =>
-                          e.target.checked
-                            ? [...new Set([...prev, reviewer.id])]
-                            : prev.filter((value) => value !== reviewer.id)
-                        )
-                      }
-                    />
-                    {reviewer.firstName} {reviewer.lastName} ({reviewer.roleName})
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="label-caps mb-1.5 block">Approver</label>
-              <select
-                value={approverId}
-                onChange={(e) => setApproverId(e.target.value)}
-                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Select approver</option>
-                {approvers.map((approver) => (
-                  <option key={approver.id} value={approver.id}>
-                    {approver.firstName} {approver.lastName} ({approver.roleName})
-                  </option>
-                ))}
-              </select>
-              <div className="mt-3">
-                <label className="label-caps mb-1.5 block">Comments</label>
-                <textarea
-                  value={submitComment}
-                  onChange={(e) => setSubmitComment(e.target.value)}
-                  rows={4}
-                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-            </div>
-          </div>
-          <div className="mt-4">
-            <Button
-              onClick={async () => {
-                if (!token) return;
-                await apiRequest(`/api/documents/${doc.id}/submit-review`, {
-                  token,
-                  method: 'POST',
-                  body: { reviewerIds, approverId, comments: submitComment },
-                });
-                setReviewerIds([]);
-                setApproverId('');
-                setSubmitComment('');
-                await fetchDocument();
-              }}
-            >
-              Submit for Review
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {pendingMyReview && (
-        <Card padding="md">
-          <h2 className="mb-2 text-lg text-white">Review Decision</h2>
-          {doc.status !== 'IN_REVIEW' && (
-            <p className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-              This document is not in &quot;In Review&quot; status, but you still have a pending review assignment.
-              You can complete your review below; contact a system administrator if the workflow looks incorrect.
-            </p>
-          )}
-          <p className="mb-3 text-sm text-gray-400">
-            Completing review records a digital signature (password required), same as approval and quality release.
-            Use <strong className="font-medium text-gray-300">Approve</strong> when you have no general comments; use{' '}
-            <strong className="font-medium text-gray-300">Approve with Comments</strong> when you need to add notes (the
-            review comments field is required). <strong className="font-medium text-gray-300">Requires Revision</strong>{' '}
-            always requires review comments explaining what must change. If any checklist answer is &quot;Yes&quot;, you
-            must choose Requires Revision.
-          </p>
-          <div className="mb-4 space-y-4">
-            {REVIEW_QUESTIONS.map((q) => (
-              <div key={q.id} className="rounded-lg border border-border bg-card/50 p-3">
-                <p className="mb-2 text-sm font-medium text-gray-200">{q.label}</p>
-                <div className="flex flex-wrap items-center gap-4">
-                  <label className="flex items-center gap-2 text-sm text-gray-300">
-                    <input
-                      type="radio"
-                      name={`review-${q.id}`}
-                      checked={reviewAnswers[q.id]?.value === 'no'}
-                      onChange={() =>
-                        setReviewAnswers((prev) => ({
-                          ...prev,
-                          [q.id]: { ...prev[q.id], value: 'no', comments: prev[q.id]?.comments ?? '' },
-                        }))
-                      }
-                      className="rounded border-border text-primary focus:ring-ring"
-                    />
-                    No
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-300">
-                    <input
-                      type="radio"
-                      name={`review-${q.id}`}
-                      checked={reviewAnswers[q.id]?.value === 'yes'}
-                      onChange={() =>
-                        setReviewAnswers((prev) => ({
-                          ...prev,
-                          [q.id]: { ...prev[q.id], value: 'yes', comments: prev[q.id]?.comments ?? '' },
-                        }))
-                      }
-                      className="rounded border-border text-primary focus:ring-ring"
-                    />
-                    Yes
-                  </label>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Optional comment for this question"
-                  value={reviewAnswers[q.id]?.comments ?? ''}
-                  onChange={(e) =>
-                    setReviewAnswers((prev) => ({
-                      ...prev,
-                      [q.id]: { ...prev[q.id], value: prev[q.id]?.value ?? 'no', comments: e.target.value },
-                    }))
-                  }
-                  className="mt-2 w-full rounded border border-border bg-card px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-            ))}
-          </div>
-          <label className="label-caps mb-1.5 block" htmlFor="review-comments-field">
-            Review comments
-          </label>
-          <textarea
-            id="review-comments-field"
-            ref={reviewCommentTextareaRef}
-            rows={4}
-            value={reviewComment}
-            onChange={(e) => {
-              setReviewComment(e.target.value);
-              if (reviewFooterError) setReviewFooterError('');
-            }}
-            className={`w-full rounded-lg border bg-card px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring ${
-              reviewFooterError
-                ? 'border-destructive ring-2 ring-destructive/40'
-                : 'border-border'
-            }`}
-            placeholder="Optional for Approve. Required for Approve with Comments and Requires revision."
-            aria-describedby={reviewFooterError ? 'review-footer-error' : undefined}
-            aria-invalid={!!reviewFooterError}
-          />
-          {Object.values(reviewAnswers).some((a) => a?.value === 'yes') && (
-            <p className="mt-2 text-sm text-amber-400">
-              Corrections required: please use Requires Revision and add comments for the author.
-            </p>
-          )}
-          {reviewFooterError && (
-            <p
-              id="review-footer-error"
-              className="mt-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-red-200"
-              role="alert"
-            >
-              {reviewFooterError}
-            </p>
-          )}
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button
-              disabled={Object.values(reviewAnswers).some((a) => a?.value === 'yes')}
-              onClick={() => {
-                setReviewFooterError('');
-                setPendingReviewDecision('APPROVED');
-                setPasswordModal('review');
-                setSignaturePassword('');
-                setSignatureError('');
-              }}
-            >
-              Approve
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={Object.values(reviewAnswers).some((a) => a?.value === 'yes')}
-              onClick={() => {
-                if (!reviewComment.trim()) {
-                  setReviewFooterError(
-                    'Add text to Review comments above before Approve with Comments (per-question notes are not enough).'
-                  );
-                  focusReviewComments();
-                  return;
-                }
-                setReviewFooterError('');
-                setPendingReviewDecision('APPROVED_WITH_COMMENTS');
-                setPasswordModal('review');
-                setSignaturePassword('');
-                setSignatureError('');
-              }}
-            >
-              Approve with Comments
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                if (!reviewComment.trim()) {
-                  setReviewFooterError(
-                    'Add review comments explaining what needs revision before continuing.'
-                  );
-                  focusReviewComments();
-                  return;
-                }
-                setReviewFooterError('');
-                setPendingReviewDecision('REQUIRES_REVISION');
-                setPasswordModal('review');
-                setSignaturePassword('');
-                setSignatureError('');
-              }}
-            >
-              Requires Revision
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {/* CMMC L2 compliance gate — surfaces SIA / signature / release
-          requirements. Always render above the approval/release cards so
-          authors and reviewers see the gate even when they can't act. */}
+      {/* CMMC L2 compliance gate — single approval surface.
+          Renders gate state (signatures collected, SIA recorded, release
+          readiness) AND the action button for the next-required step
+          (Submit for Review, Sign as Reviewer, Record SIA, Submit for
+          Approval, Sign as Approver, Release Document). Replaced the four
+          scattered approval Cards that previously lived here. Server
+          enforces all role + SoD gates on each transition; this panel
+          only routes the UI based on what /workflow-state reports. */}
       {doc.status !== 'EFFECTIVE' && doc.status !== 'OBSOLETE' && (
         <CmmcGatePanel
           documentId={doc.id}
           refreshKey={cmmcRefreshKey}
-          onWorkflowState={setCmmcState}
+          onTransition={fetchDocument}
         />
-      )}
-
-      {canApprove && (
-        <Card padding="md">
-          <h2 className="mb-2 text-lg text-white">Approval</h2>
-          <p className="mb-3 text-sm text-gray-400">
-            Approval requires password re-entry and records a 21 CFR Part 11 digital signature.
-          </p>
-          <Button onClick={() => setPasswordModal('approve')}>Approve Document</Button>
-        </Card>
-      )}
-
-      {canRelease && (
-        <Card padding="md">
-          <h2 className="mb-2 text-lg text-white">Quality Release</h2>
-          <p className="mb-3 text-sm text-gray-400">
-            Final quality release requires password re-entry and records digital signature evidence.
-          </p>
-          {cmmcState && !cmmcState.releaseReadyForCaller ? (
-            <>
-              <Button variant="success" disabled title={cmmcState.releaseGateReason ?? ''}>
-                Release Document
-              </Button>
-              <p className="mt-2 text-xs text-amber-400">
-                Blocked: {cmmcState.releaseGateReason ?? 'CMMC L2 release gate not satisfied'}
-              </p>
-            </>
-          ) : (
-            <Button variant="success" onClick={() => setPasswordModal('release')}>
-              Release Document
-            </Button>
-          )}
-        </Card>
       )}
 
       {canRevise && (
@@ -1544,147 +1238,7 @@ export function DocumentDetail() {
         </div>
       </Modal>
 
-      <Modal
-        isOpen={passwordModal !== null}
-        onClose={() => {
-          setPasswordModal(null);
-          setPendingReviewDecision(null);
-          setSignaturePassword('');
-          setSignatureComment('');
-          setSignatureError('');
-          setReviewFooterError('');
-        }}
-        title={
-          passwordModal === 'review'
-            ? 'Complete Review (Digital Signature)'
-            : passwordModal === 'approve'
-              ? 'Approve Document (Digital Signature)'
-              : 'Quality Release (Digital Signature)'
-        }
-        footer={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setPasswordModal(null);
-                setPendingReviewDecision(null);
-                setSignaturePassword('');
-                setSignatureComment('');
-                setReviewFooterError('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={async () => {
-                if (!token || !passwordModal) return;
-                setSignatureError('');
-                try {
-                  if (passwordModal === 'review') {
-                    if (!pendingReviewDecision) {
-                      setSignatureError('No review action selected.');
-                      return;
-                    }
-                    if (pendingReviewDecision === 'APPROVED_WITH_COMMENTS' && !reviewComment.trim()) {
-                      setPasswordModal(null);
-                      setPendingReviewDecision(null);
-                      setSignaturePassword('');
-                      setSignatureError('');
-                      setReviewFooterError(
-                        'Add text to Review comments before Approve with Comments, then try again.'
-                      );
-                      focusReviewComments();
-                      return;
-                    }
-                    if (pendingReviewDecision === 'REQUIRES_REVISION' && !reviewComment.trim()) {
-                      setPasswordModal(null);
-                      setPendingReviewDecision(null);
-                      setSignaturePassword('');
-                      setSignatureError('');
-                      setReviewFooterError('Add review comments before Requires Revision, then try again.');
-                      focusReviewComments();
-                      return;
-                    }
-                    const reviewResponses: ReviewResponsesPayload = {
-                      answers: REVIEW_QUESTIONS.map((q) => ({
-                        questionId: q.id,
-                        value: reviewAnswers[q.id]?.value ?? 'no',
-                        comments: reviewAnswers[q.id]?.comments || undefined,
-                      })),
-                    };
-                    await apiRequest(`/api/documents/${doc.id}/review`, {
-                      token,
-                      method: 'POST',
-                      body: {
-                        password: signaturePassword,
-                        decision: pendingReviewDecision,
-                        comments: reviewComment,
-                        reviewResponses,
-                      },
-                    });
-                    setReviewComment('');
-                    setReviewAnswers(
-                      Object.fromEntries(
-                        REVIEW_QUESTIONS.map((q) => [q.id, { value: 'no' as ReviewAnswerValue, comments: '' }])
-                      )
-                    );
-                  } else {
-                    await apiRequest(
-                      passwordModal === 'approve'
-                        ? `/api/documents/${doc.id}/approve`
-                        : `/api/documents/${doc.id}/quality-release`,
-                      {
-                        token,
-                        method: 'POST',
-                        body: { password: signaturePassword, comments: signatureComment },
-                      }
-                    );
-                  }
-                  setPasswordModal(null);
-                  setPendingReviewDecision(null);
-                  setSignaturePassword('');
-                  setSignatureComment('');
-                  await fetchDocument();
-                } catch (err) {
-                  setSignatureError(err instanceof Error ? err.message : 'Request failed');
-                }
-              }}
-            >
-              Sign & Submit
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          {signatureError && (
-            <p className="text-sm text-destructive">{signatureError}</p>
-          )}
-          {passwordModal === 'review' && (
-            <p className="text-sm text-gray-400">
-              {pendingReviewDecision === 'APPROVED'
-                ? 'General review comments are optional for Approve. Use your account password to sign.'
-                : 'The review comments you entered above will be stored with your signature. Use your account password to sign.'}
-            </p>
-          )}
-          <Input
-            label="Password"
-            type="password"
-            value={signaturePassword}
-            onChange={(e) => setSignaturePassword(e.target.value)}
-          />
-          {passwordModal !== 'review' && (
-            <div>
-              <label className="label-caps mb-1.5 block">Comment</label>
-              <textarea
-                value={signatureComment}
-                onChange={(e) => setSignatureComment(e.target.value)}
-                rows={4}
-                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-          )}
-        </div>
-      </Modal>
+
     </div>
   );
 }

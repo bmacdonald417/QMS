@@ -51,6 +51,20 @@ export async function loadDocumentForLifecycle(id) {
           signedAt: true,
         },
       },
+      // Surfaced for the /workflow-state handler so the UI can decide
+      // which action button to render for the current caller (e.g. only
+      // show "Sign as Reviewer" when this user has a pending REVIEW
+      // assignment). Server endpoints still enforce gates on each
+      // transition; this is purely UI-routing data.
+      assignments: {
+        where: { status: 'PENDING' },
+        select: {
+          id: true,
+          assignmentType: true,
+          assignedToId: true,
+          status: true,
+        },
+      },
     },
   });
 }

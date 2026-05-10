@@ -1065,12 +1065,14 @@ async function submitForReviewHandler(req, res) {
 
     const document = await prisma.document.findUnique({ where: { id: req.params.id } });
     if (!document) return res.status(404).json({ error: 'Document not found' });
-    if (document.authorId !== req.user.id) {
-      return res.status(403).json({ error: 'Only the author can submit for review' });
-    }
     if (document.status !== 'DRAFT') {
       return res.status(400).json({ error: 'Only Draft documents can be submitted for review' });
     }
+    // SoD gate is enforced below by filtering reviewer ids against req.user.id
+    // (a submitter cannot also be a reviewer). Authorship is no longer a gate
+    // here — bridge-authored docs (codex-bridge bot) wouldn't be releasable
+    // otherwise, since the bot has no UI session. Any user with
+    // document:create may submit a DRAFT for review.
 
     const uniqueReviewers = [...new Set(reviewerIds.filter(Boolean))].filter((id) => id !== req.user.id);
     if (!uniqueReviewers.length) {
@@ -1144,9 +1146,6 @@ async function submitForReviewHandler(req, res) {
 
 // POST /api/documents/:id/submit-review
 router.post('/:id/submit-review', requirePermission('document:create'), submitForReviewHandler);
-
-// Backward-compatible alias
-router.post('/:id/submit', requirePermission('document:create'), submitForReviewHandler);
 
 // POST /api/documents/:id/review
 router.post('/:id/review', requirePermission('document:review'), async (req, res) => {
@@ -1817,6 +1816,19 @@ router.get('/:id/workflow-state', async (req, res) => {
     if (!document) return res.status(404).json({ error: 'Document not found' });
     const next = nextRequiredAction(document);
     const releaseGate = gateForRelease(document, req.user?.id ?? '');
+    const callerId = req.user?.id ?? '';
+    // Caller-specific assignment flags. The CmmcGatePanel uses these to
+    // decide whether to render the action button for the current step
+    // (e.g. only show "Sign as Reviewer" when the user has a pending
+    // REVIEW assignment). Server endpoints still enforce gates; this is
+    // purely UI-routing data.
+    const assignments = document.assignments ?? [];
+    const callerHasPendingReview = assignments.some(
+      (a) => a.assignmentType === 'REVIEW' && a.status === 'PENDING' && a.assignedToId === callerId,
+    );
+    const callerHasPendingApproval = assignments.some(
+      (a) => a.assignmentType === 'APPROVAL' && a.status === 'PENDING' && a.assignedToId === callerId,
+    );
     res.json({
       status: document.status,
       hasSIA: Boolean(document.securityImpactAnalysis?.trim()),
@@ -1833,6 +1845,9 @@ router.get('/:id/workflow-state', async (req, res) => {
       // disabling the Release button with the right tooltip.
       releaseReadyForCaller: releaseGate.ok,
       releaseGateReason: releaseGate.ok ? null : releaseGate.reason,
+      // Caller-specific UI routing flags (server gates still enforced)
+      callerHasPendingReview,
+      callerHasPendingApproval,
     });
   } catch (err) {
     console.error('Document workflow-state error:', err);
@@ -1840,17 +1855,80 @@ router.get('/:id/workflow-state', async (req, res) => {
   }
 });
 
+// POST /api/documents/:id/submit-for-approval
+//
+// Manual transition IN_REVIEW → AWAITING_APPROVAL when the auto-flip in
+// /review didn't fire (rare edge case: SIA recorded before the last
+// reviewer signature, or assignment cleanup leaves a doc with reviewer
+// signatures but no PENDING review assignments). Idempotent on already-
+// AWAITING_APPROVAL state.
+router.post(
+  '/:id/submit-for-approval',
+  requirePermission('document:review'),
+  async (req, res) => {
+    try {
+      const document = await loadDocumentForLifecycle(req.params.id);
+      if (!document) return res.status(404).json({ error: 'Document not found' });
+      if (document.status === 'AWAITING_APPROVAL' || document.status === 'PENDING_APPROVAL') {
+        return res.json({ ok: true, status: document.status, idempotent: true });
+      }
+      if (document.status !== 'IN_REVIEW') {
+        return res.status(400).json({
+          error: `Cannot submit for approval — document status is ${document.status}, expected IN_REVIEW`,
+        });
+      }
+      const reviewerSigCount = (document.signatures ?? []).filter((s) =>
+        /^reviewer$|^review$/i.test(s.signatureMeaning),
+      ).length;
+      if (reviewerSigCount < 1) {
+        return res.status(400).json({
+          error: 'At least one Reviewer signature is required before submitting for approval.',
+        });
+      }
+      if (!document.securityImpactAnalysis?.trim()) {
+        return res.status(400).json({
+          error:
+            'Security Impact Analysis (CMMC CM.L2-3.4.4) must be recorded before submitting for approval.',
+        });
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.document.update({
+          where: { id: document.id },
+          data: { status: 'AWAITING_APPROVAL' },
+        });
+        await tx.documentHistory.create({
+          data: {
+            documentId: document.id,
+            userId: req.user.id,
+            action: 'Submitted for Approval',
+            details: { reviewerSigCount, hasSIA: true },
+          },
+        });
+      });
+
+      const auditCtx = getAuditContext(req);
+      await createAuditLog({
+        userId: req.user.id,
+        action: 'DOCUMENT_SUBMITTED_FOR_APPROVAL',
+        entityType: DOCUMENT_ENTITY,
+        entityId: document.id,
+        beforeValue: { status: 'IN_REVIEW' },
+        afterValue: { status: 'AWAITING_APPROVAL' },
+        ...auditCtx,
+      });
+
+      res.json({ ok: true, status: 'AWAITING_APPROVAL' });
+    } catch (err) {
+      console.error('Submit for approval error:', err);
+      res.status(500).json({ error: 'Failed to submit for approval' });
+    }
+  },
+);
+
 // POST /api/documents/:id/quality-release
 router.post(
   '/:id/quality-release',
-  requireRoles('Quality Manager', 'System Admin'),
-  requirePermission('document:release'),
-  qualityReleaseHandler
-);
-
-// Backward-compatible alias
-router.post(
-  '/:id/release',
   requireRoles('Quality Manager', 'System Admin'),
   requirePermission('document:release'),
   qualityReleaseHandler
