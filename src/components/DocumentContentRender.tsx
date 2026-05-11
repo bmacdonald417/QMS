@@ -10,32 +10,37 @@ const ALLOWED_TAGS = [
 /**
  * Remove Related Documents and signature/document-control sections from content.
  * These are shown via Where Used and PDF approval/signature blocks instead.
+ *
+ * Boundary lookahead: `<h[1-6][\s>]` matches the next heading whether it carries
+ * attributes (`<h2 class="...">`) or is bare (`<h2>`). The previous form
+ * `<h[1-6]\s` required whitespace and silently swallowed the entire body when
+ * the next heading was bare — symptom: EFFECTIVE doc renders as a blank box.
  */
 function stripRelatedDocumentsAndSignatureSections(html: string): string {
   if (!html?.trim()) return html;
   let out = html;
   out = out.replace(
-    /<h[1-6][^>]*>\s*(?:\d+\.\s*)?Related\s+Documents\s*<\/h[1-6]>[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    /<h[1-6][^>]*>\s*(?:\d+\.\s*)?Related\s+Documents\s*<\/h[1-6]>[\s\S]*?(?=<h[1-6][\s>]|$)/gi,
     ''
   );
   out = out.replace(
-    /<h[1-6][^>]*>\s*(?:\d+\.\s*)?Document\s+control\s*<\/h[1-6]>[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    /<h[1-6][^>]*>\s*(?:\d+\.\s*)?Document\s+control\s*<\/h[1-6]>[\s\S]*?(?=<h[1-6][\s>]|$)/gi,
     ''
   );
   out = out.replace(
-    /<h[1-6][^>]*>\s*(?:Signature\s*&?\s*evidence|Signature|Approval)[\s\S]*?<\/h[1-6]>[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    /<h[1-6][^>]*>\s*(?:Signature\s*&?\s*evidence|Signature|Approval)[\s\S]*?<\/h[1-6]>[\s\S]*?(?=<h[1-6][\s>]|$)/gi,
     ''
   );
   out = out.replace(
-    /<h[1-6][^>]*>\s*Appendix\s+[A-Z]:\s*Related\s+Documents[\s\S]*?<\/h[1-6]>[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    /<h[1-6][^>]*>\s*Appendix\s+[A-Z]:\s*Related\s+Documents[\s\S]*?<\/h[1-6]>[\s\S]*?(?=<h[1-6][\s>]|$)/gi,
     ''
   );
   out = out.replace(
-    /<(p|div|table)[^>]*>[\s\S]*?Prepared\s+By[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    /<(p|div|table)[^>]*>[\s\S]*?Prepared\s+By[\s\S]*?(?=<h[1-6][\s>]|$)/gi,
     ''
   );
   out = out.replace(
-    /<(p|div)[^>]*>[\s\S]*?<strong>\s*Prepared\s+By\s*<\/strong>[\s\S]*?(?=<h[1-6]\s|$)/gi,
+    /<(p|div)[^>]*>[\s\S]*?<strong>\s*Prepared\s+By\s*<\/strong>[\s\S]*?(?=<h[1-6][\s>]|$)/gi,
     ''
   );
   return out.replace(/\n{3,}/g, '\n\n').trim();
