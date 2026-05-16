@@ -83,6 +83,10 @@ async function main() {
       } else {
         const latestRevision = existing.revisions[0];
         const contentChanged = !latestRevision || latestRevision.contentHash !== contentHash;
+        const newEffectiveDate = parseEffectiveDate(fileMetadata.date);
+        const effectiveDateChanged =
+          newEffectiveDate !== null &&
+          existing.effectiveDate?.getTime() !== newEffectiveDate.getTime();
 
         if (contentChanged) {
           await prisma.cmmcRevision.create({
@@ -98,16 +102,26 @@ async function main() {
               manifestHash,
             },
           });
-          const newEffectiveDate = parseEffectiveDate(fileMetadata.date);
-          if (newEffectiveDate && existing.effectiveDate?.getTime() !== newEffectiveDate.getTime()) {
-            await prisma.cmmcDocument.update({
-              where: { id: existing.id },
-              data: { effectiveDate: newEffectiveDate },
-            });
-          }
           summary.updated++;
           console.log(`  ~ ${manifestDoc.code} — new revision`);
-        } else {
+        }
+
+        // Update effectiveDate independently of content change. The HTTP
+        // route conflates the two (CMMC bug: a header-only date fix never
+        // updates effectiveDate because extractMarkdownBody trims the
+        // header off before hashing). Here we treat them as independent.
+        if (effectiveDateChanged) {
+          await prisma.cmmcDocument.update({
+            where: { id: existing.id },
+            data: { effectiveDate: newEffectiveDate },
+          });
+          if (!contentChanged) {
+            summary.updated++;
+            console.log(`  ~ ${manifestDoc.code} — effective date set to ${newEffectiveDate.toISOString().slice(0, 10)}`);
+          }
+        }
+
+        if (!contentChanged && !effectiveDateChanged) {
           summary.unchanged++;
         }
 
