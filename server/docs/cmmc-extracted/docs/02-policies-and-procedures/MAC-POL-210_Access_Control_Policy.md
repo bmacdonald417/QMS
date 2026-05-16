@@ -309,22 +309,37 @@ The following items are not required for CMMC Level 2 but represent potential fu
 
 **Requirement:** Separate the duties of individuals to reduce the risk of malevolent activity without collusion.
 
-**Implementation:**
-- Separation of Duties Matrix established
-- Administrative functions separated from audit functions
-- User account management separated from security assessment
-- System administration separated from security monitoring
+**Authoritative artifacts.** Separation of Duties for 3.1.4 is split across two complementary QMS documents:
 
-**Separation Controls:**
-- SoD matrix documents role conflicts and separation requirements
-- Compensating controls implemented where full separation not possible
-- Audit logs monitor for separation violations
+- **`MAC-POL-235_Separation_of_Duties_Policy.md`** — the parent policy. Workflow-level personnel SoD across MacTech (code changes, ISA, risk assessments, QMS Doc Control, PIM activation, maintenance, access provisioning, audit log review). Names the canonical role labels (Requester / Implementer / Approver / Auditor) and the universal incompatible-duty pairs.
+- **`MAC-SOP-235_Separation_of_Duties_Matrix.md`** v2.0 — the Windows Server 2025 enclave operational appendix to MAC-POL-235. Defines the 10 named administrative roles (R1–R10), the 10×10 P/C/A conflict matrix, AD/Entra group mapping, Windows Server 2025 tiered admin / PIM / JEA / GPO / WDAC enforcement architecture, compensating-control catalog, preventive (provisioning-time) and detective (continuous-scan) workflows, and quarterly attestation procedure.
+
+Both documents are hash-pinned via Doc Control. On release of either, Trust Codex auto-seeds a `sod_matrix_review` register entry as the operational evidence of review.
+
+**Implementation summary (full detail in MAC-SOP-235):**
+- 10 roles (R1–R10) with explicit duty descriptions and AD/Entra group mappings.
+- Microsoft tiered admin model (T0/T1/T2) with Authentication Policy Silos and Protected Users enforcement.
+- Just-Enough-Administration (JEA) endpoints with role-capability files signed by R2 (Security Administrator).
+- PIM/PAM eligible-vs-active separation with MFA, time-boxing, and approval chains.
+- GPO "Deny logon" enforcement blocking prohibited combinations at the OS level.
+- WDAC/AppLocker policies authored exclusively by R2; not modifiable by R1.
+- Windows Event Forwarding to an independent audit collector in R3's span of control, write-once storage.
+- Application-layer RBAC inside Vault apps and Trust Codex for R6/R8/R9 (no OS logon rights).
+
+**Enforcement workflows:**
+- **Preventive** — Trust Codex provisioning API rejects matrix violations before AD group changes commit (fail-open with detective backstop; 4-hour SLA for P-cell remediation).
+- **Detective** — Trust Codex scheduled scan ingests AD/Entra exports and writes `sod_finding` records for any drift; aged findings escalate to the CISO.
+- **Attestation** — Quarterly attestation signed by role owners in Trust Codex; mirrored to QMS as a controlled record.
+
+**Cross-walks:** AC.L2-3.1.5 (least privilege) and AU.L2-3.3.1 (auditable events) — see MAC-SOP-235 §8.
 
 **Evidence:**
-- Separation of Duties Matrix: `MAC-SOP-235_Separation_of_Duties_Matrix.md`
+- Separation of Duties Matrix: `MAC-SOP-235_Separation_of_Duties_Matrix.md` (v2.0+, Windows Server 2025 enclave scope)
 - Access Control Policy: This document
+- Trust Codex `sod_matrix` register (entries seeded on MAC-SOP-235 release and on each quarterly attestation)
+- Trust Codex `sod_findings` register (detective-scan output)
 
-**Status:** ⚠️ Partially Satisfied (SoD matrix created, separation enhanced per Phase 5)
+**Status:** ✅ Implemented (MAC-SOP-235 v2.0 establishes full R1–R10 enforcement architecture for the Windows Server 2025 CUI Vault)
 
 ---
 
