@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Badge, Input } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/lib/api';
-import { RefreshCw, Search, Package } from 'lucide-react';
+import { RefreshCw, Search, Package, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Document {
@@ -43,6 +44,7 @@ const KIND_LABEL: Record<string, string> = {
 
 export function CmmcAdminPage() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ summary?: { processed?: number; created?: number; updated?: number; unchanged?: number; errors?: string[] } } | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -82,20 +84,6 @@ export function CmmcAdminPage() {
       alert(msg);
     } finally {
       setSyncing(false);
-    }
-  };
-
-  const updateStatus = async (code: string, status: string) => {
-    if (!token) return;
-    try {
-      await apiRequest(`/api/cmmc/documents/${code}/status`, {
-        token,
-        method: 'PATCH',
-        body: { status },
-      });
-      fetchDocuments();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to update status');
     }
   };
 
@@ -187,13 +175,22 @@ export function CmmcAdminPage() {
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kind</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Review cadence</th>
+                <th className="w-8" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((doc) => (
-                <tr key={doc.id} className="hover:bg-secondary/40 transition-colors">
-                  <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground whitespace-nowrap">{doc.code}</td>
-                  <td className="px-4 py-2.5 font-medium truncate max-w-xs">{doc.title}</td>
+                <tr
+                  key={doc.id}
+                  className="hover:bg-secondary/40 transition-colors cursor-pointer group"
+                  onClick={() => navigate(`/documents/by-code/${encodeURIComponent(doc.code)}`)}
+                >
+                  <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                    {doc.code}
+                  </td>
+                  <td className="px-4 py-2.5 font-medium truncate max-w-xs">
+                    {doc.title}
+                  </td>
                   <td className="px-4 py-2.5">
                     <span className="inline-block rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
                       {KIND_LABEL[doc.kind] ?? doc.kind}
@@ -204,18 +201,11 @@ export function CmmcAdminPage() {
                       {STATUS_LABEL[doc.status] ?? doc.status}
                     </Badge>
                   </td>
-                  <td className="px-4 py-2.5">
-                    <select
-                      className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                      value={doc.status}
-                      onChange={(e) => updateStatus(doc.code, e.target.value)}
-                      aria-label={`Status for ${doc.code}`}
-                    >
-                      <option value="DRAFT">Draft</option>
-                      <option value="IN_REVIEW">In Review</option>
-                      <option value="EFFECTIVE">Effective</option>
-                      <option value="RETIRED">Retired</option>
-                    </select>
+                  <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                    {doc.reviewCadence ?? '—'}
+                  </td>
+                  <td className="pr-3 text-muted-foreground">
+                    <ChevronRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </td>
                 </tr>
               ))}
