@@ -306,6 +306,7 @@ router.post('/documents/sync', requireRoles('System Admin', 'Admin', 'System Adm
       processed: 0,
       created: 0,
       updated: 0,
+      unchanged: 0,
       errors: [],
     };
 
@@ -363,6 +364,15 @@ router.post('/documents/sync', requireRoles('System Admin', 'Admin', 'System Adm
           const latestRevision = existing.revisions[0];
           const contentChanged = !latestRevision || latestRevision.contentHash !== contentHash;
 
+          // Compute effectiveDate change independently of content change.
+          // A header-only date fix (e.g. adding **Date:** to a doc) does not alter the body
+          // hash, so gating effectiveDate updates on contentChanged causes silent drift.
+          // This mirrors the logic in server/scripts/sync-cmmc-documents.js.
+          const newEffectiveDate = parseEffectiveDate(fileMetadata.date);
+          const effectiveDateChanged =
+            newEffectiveDate !== null &&
+            existing.effectiveDate?.getTime() !== newEffectiveDate.getTime();
+
           if (contentChanged) {
             // Create new revision
             await prisma.cmmcRevision.create({
@@ -378,16 +388,23 @@ router.post('/documents/sync', requireRoles('System Admin', 'Admin', 'System Adm
                 manifestHash,
               },
             });
-            // Mirror the new revision's date onto the parent doc so the codex contract
-            // reads a fresh effective_date without having to re-derive from cmmc_revisions.
-            const newEffectiveDate = parseEffectiveDate(fileMetadata.date);
-            if (newEffectiveDate && existing.effectiveDate?.getTime() !== newEffectiveDate.getTime()) {
-              await prisma.cmmcDocument.update({
-                where: { id: existing.id },
-                data: { effectiveDate: newEffectiveDate },
-              });
-            }
             summary.updated++;
+          }
+
+          // Update effectiveDate independently of content change.
+          if (effectiveDateChanged) {
+            await prisma.cmmcDocument.update({
+              where: { id: existing.id },
+              data: { effectiveDate: newEffectiveDate },
+            });
+            // Only count as updated if content didn't already claim the increment.
+            if (!contentChanged) {
+              summary.updated++;
+            }
+          }
+
+          if (!contentChanged && !effectiveDateChanged) {
+            summary.unchanged++;
           }
 
           // Update document metadata if needed

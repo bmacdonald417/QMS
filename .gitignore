@@ -31,3 +31,9 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated governance manifests (local test / dev artifacts; not committed)
+governance-manifest*.json
+
+# Prisma migrate artifacts — QMS uses db push, not prisma migrate
+server/prisma/migrations/

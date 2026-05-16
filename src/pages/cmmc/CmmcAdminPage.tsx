@@ -143,6 +143,7 @@ export function CmmcAdminPage() {
                 <div>Processed: {syncResult.summary?.processed || 0}</div>
                 <div>Created: {syncResult.summary?.created || 0}</div>
                 <div>Updated: {syncResult.summary?.updated || 0}</div>
+                <div>Unchanged: {syncResult.summary?.unchanged || 0}</div>
                 {syncResult.summary?.errors?.length > 0 && (
                   <div className="mt-2 text-red-400">
                     Errors: {syncResult.summary.errors.length}
