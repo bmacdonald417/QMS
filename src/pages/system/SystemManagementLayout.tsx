@@ -17,7 +17,6 @@ const navItems = [
   { to: '/system/release-readiness', end: false, label: 'Release readiness' },
   { to: '/system/governance-release', end: false, label: 'Bulk release to Codex' },
   { to: '/system/external-submissions', end: false, label: 'External submissions' },
-  { to: '/system/cmmc-admin', end: false, label: 'CMMC bundle (sync)' },
 ];
 
 export function SystemManagementLayout() {

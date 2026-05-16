@@ -19,6 +19,7 @@ import {
   LayoutGrid,
   BookOpen,
   ListChecks,
+  Package,
 } from 'lucide-react';
 
 export interface SidebarItem {
@@ -47,6 +48,7 @@ const icons = {
   cmmcOverview: <LayoutGrid className="h-4 w-4" />,
   cmmcDocuments: <BookOpen className="h-4 w-4" />,
   cmmcControls: <ListChecks className="h-4 w-4" />,
+  cmmcBundle: <Package className="h-4 w-4" />,
 };
 
 // Items shown in the CMMC section for admin/quality roles.
@@ -67,6 +69,7 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
       return [
         { path: '/', label: 'Dashboard', icon: icons.dashboard },
         { path: '/documents', label: 'Document Control', icon: icons.documents },
+        { path: '/documents/cmmc-bundle', label: 'CMMC Bundle', icon: icons.cmmcBundle },
         { path: '/search', label: 'Search', icon: icons.search },
         { path: '/change-control', label: 'Change Control', icon: icons.changeControl },
         { path: '/capas', label: 'CAPA', icon: icons.capa },
@@ -82,6 +85,7 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
         { path: '/system', label: 'System Management', icon: icons.system },
         { path: '/dashboard', label: 'Quality Health', icon: icons.qualityHealth },
         { path: '/documents', label: 'Document Control', icon: icons.documents },
+        { path: '/documents/cmmc-bundle', label: 'CMMC Bundle', icon: icons.cmmcBundle },
         { path: '/search', label: 'Search', icon: icons.search },
         { path: '/training', label: 'Training', icon: icons.training },
         { path: '/periodic-reviews', label: 'Periodic Reviews', icon: icons.periodicReviews },

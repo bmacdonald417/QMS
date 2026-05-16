@@ -26,6 +26,7 @@ const PATH_TO_GROUP: Record<string, string> = {
   '/my-tasks': 'Workspace',
 
   '/documents': 'Quality',
+  '/documents/cmmc-bundle': 'Quality',
   '/training': 'Quality',
   '/team-training': 'Quality',
   '/team-documents': 'Quality',

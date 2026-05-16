@@ -54,6 +54,7 @@ import DocumentView from '@/pages/DocumentView';
 import DocumentByCodeViewRedirect from '@/pages/DocumentByCodeViewRedirect';
 import CmmcControlTags from '@/pages/CmmcControlTags';
 import { CmmcAdminPage, CmmcSection, CmmcOverview, CmmcDocuments, CmmcControlIndex } from '@/pages/cmmc';
+import { DocumentsSection } from '@/pages/documents/DocumentsSection';
 import { AppProvider } from '@/context/AppContext';
 import { AuthProvider } from '@/context/AuthContext';
 
@@ -76,7 +77,10 @@ function AppRoutes() {
           <Route index element={<ExecutiveDashboard />} />
           <Route path="dashboard" element={<QualityHealthDashboard />} />
           <Route path="search" element={<SearchPage />} />
-          <Route path="documents" element={<DocumentControl />} />
+          <Route path="documents" element={<DocumentsSection />}>
+            <Route index element={<DocumentControl />} />
+            <Route path="cmmc-bundle" element={<CmmcAdminPage />} />
+          </Route>
           <Route path="documents/by-code/:documentId" element={<DocumentByCodeRedirect />} />
           <Route path="cmmc/control-tags" element={<CmmcControlTags />} />
           <Route path="cmmc" element={<CmmcSection />}>
@@ -117,7 +121,6 @@ function AppRoutes() {
             <Route path="release-readiness" element={<SystemReleaseReadiness />} />
             <Route path="governance-release" element={<SystemGovernanceRelease />} />
             <Route path="external-submissions" element={<SystemExternalSubmissions />} />
-            <Route path="cmmc-admin" element={<CmmcAdminPage />} />
           </Route>
           <Route path="team-documents" element={<Navigate to="/documents" replace />} />
           <Route path="team-training" element={<TeamTraining />} />
