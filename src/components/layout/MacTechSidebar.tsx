@@ -42,10 +42,14 @@ const PATH_TO_GROUP: Record<string, string> = {
   '/equipment': 'Compliance',
   '/suppliers': 'Compliance',
 
+  '/cmmc': 'CMMC L2',
+  '/cmmc/documents': 'CMMC L2',
+  '/cmmc/controls': 'CMMC L2',
+
   '/system': 'Admin',
 };
 
-const GROUP_ORDER = ['Workspace', 'Quality', 'Compliance', 'Admin'];
+const GROUP_ORDER = ['Workspace', 'Quality', 'Compliance', 'CMMC L2', 'Admin'];
 
 function buildGroups(items: SidebarItem[]): NavGroup[] {
   const buckets = new Map<string, SidebarItem[]>();

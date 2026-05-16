@@ -53,7 +53,7 @@ import DocumentByCodeRedirect from '@/pages/DocumentByCodeRedirect';
 import DocumentView from '@/pages/DocumentView';
 import DocumentByCodeViewRedirect from '@/pages/DocumentByCodeViewRedirect';
 import CmmcControlTags from '@/pages/CmmcControlTags';
-import { CmmcAdminPage } from '@/pages/cmmc';
+import { CmmcAdminPage, CmmcSection, CmmcOverview, CmmcDocuments, CmmcControlIndex } from '@/pages/cmmc';
 import { AppProvider } from '@/context/AppContext';
 import { AuthProvider } from '@/context/AuthContext';
 
@@ -79,6 +79,11 @@ function AppRoutes() {
           <Route path="documents" element={<DocumentControl />} />
           <Route path="documents/by-code/:documentId" element={<DocumentByCodeRedirect />} />
           <Route path="cmmc/control-tags" element={<CmmcControlTags />} />
+          <Route path="cmmc" element={<CmmcSection />}>
+            <Route index element={<CmmcOverview />} />
+            <Route path="documents" element={<CmmcDocuments />} />
+            <Route path="controls" element={<CmmcControlIndex />} />
+          </Route>
           <Route path="documents/:id" element={<DocumentDetail />} />
           <Route path="training" element={<TrainingCompetency />} />
           <Route path="periodic-reviews" element={<PeriodicReviewsPage />} />

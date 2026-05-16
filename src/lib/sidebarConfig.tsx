@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   GitBranch,
   Shield,
+  ShieldCheck,
   Wrench,
   Truck,
   Settings,
@@ -15,6 +16,9 @@ import {
   CalendarCheck,
   HeartPulse,
   FileCheck,
+  LayoutGrid,
+  BookOpen,
+  ListChecks,
 } from 'lucide-react';
 
 export interface SidebarItem {
@@ -40,7 +44,17 @@ const icons = {
   periodicReviews: <CalendarCheck className="h-4 w-4" />,
   qualityHealth: <HeartPulse className="h-4 w-4" />,
   completedForms: <FileCheck className="h-4 w-4" />,
+  cmmcOverview: <LayoutGrid className="h-4 w-4" />,
+  cmmcDocuments: <BookOpen className="h-4 w-4" />,
+  cmmcControls: <ListChecks className="h-4 w-4" />,
 };
+
+// Items shown in the CMMC section for admin/quality roles.
+const CMMC_ITEMS: SidebarItem[] = [
+  { path: '/cmmc',           label: 'Overview',       icon: icons.cmmcOverview },
+  { path: '/cmmc/documents', label: 'CMMC Documents', icon: icons.cmmcDocuments },
+  { path: '/cmmc/controls',  label: 'Control Index',  icon: icons.cmmcControls },
+];
 
 /**
  * Role-based sidebar navigation. Matches backend role names.
@@ -59,6 +73,7 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
         { path: '/audits', label: 'Audits', icon: icons.audits },
         { path: '/system', label: 'System Management', icon: icons.system },
         { path: '/completed-forms', label: 'Completed Forms', icon: icons.completedForms },
+        ...CMMC_ITEMS,
       ];
     case 'Quality Manager':
     case 'Quality':
@@ -77,6 +92,7 @@ export function getSidebarItemsForRole(roleName: string): SidebarItem[] {
         { path: '/risk', label: 'Risk Management', icon: icons.risk },
         { path: '/equipment', label: 'Equipment & Assets', icon: icons.equipment },
         { path: '/completed-forms', label: 'Completed Forms', icon: icons.completedForms },
+        ...CMMC_ITEMS,
       ];
     case 'Manager':
       return [

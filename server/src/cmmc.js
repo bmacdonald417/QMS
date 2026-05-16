@@ -779,4 +779,86 @@ router.patch('/documents/:code/status', requireRoles('System Admin', 'Admin', 'S
   }
 });
 
+/**
+ * GET /api/cmmc/section/coverage
+ * CMMC section — coverage data for the dedicated CMMC section UI.
+ * Returns all EFFECTIVE lifecycle documents with their CMMC control tags,
+ * grouped by NIST SP 800-171 domain. Accessible to Admin and Quality roles
+ * (read-only; no mutations here).
+ */
+router.get('/section/coverage', async (req, res) => {
+  try {
+    const orgId = getMacTechOrgId();
+
+    const docs = await prisma.document.findMany({
+      where: { organizationId: orgId, status: 'EFFECTIVE' },
+      orderBy: { documentId: 'asc' },
+      select: {
+        id: true,
+        documentId: true,
+        title: true,
+        documentType: true,
+        versionMajor: true,
+        versionMinor: true,
+        effectiveDate: true,
+        releasedAt: true,
+        cmmcControlTags: {
+          select: { controlId: true, coverageNote: true },
+          orderBy: { controlId: 'asc' },
+        },
+      },
+    });
+
+    // Domain metadata — NIST SP 800-171 Rev 2 families
+    const DOMAINS = [
+      { id: 'AC', prefix: '3.1', name: 'Access Control',                   controlCount: 22 },
+      { id: 'AT', prefix: '3.2', name: 'Awareness & Training',             controlCount: 3  },
+      { id: 'AU', prefix: '3.3', name: 'Audit & Accountability',           controlCount: 9  },
+      { id: 'CM', prefix: '3.4', name: 'Configuration Management',         controlCount: 9  },
+      { id: 'IA', prefix: '3.5', name: 'Identification & Authentication',  controlCount: 11 },
+      { id: 'IR', prefix: '3.6', name: 'Incident Response',                controlCount: 3  },
+      { id: 'MA', prefix: '3.7', name: 'Maintenance',                      controlCount: 6  },
+      { id: 'MP', prefix: '3.8', name: 'Media Protection',                 controlCount: 9  },
+      { id: 'PS', prefix: '3.9', name: 'Personnel Security',               controlCount: 2  },
+      { id: 'PE', prefix: '3.10', name: 'Physical Protection',             controlCount: 6  },
+      { id: 'RA', prefix: '3.11', name: 'Risk Assessment',                 controlCount: 3  },
+      { id: 'CA', prefix: '3.12', name: 'Security Assessment',             controlCount: 4  },
+      { id: 'SC', prefix: '3.13', name: 'System & Comms Protection',       controlCount: 16 },
+      { id: 'SI', prefix: '3.14', name: 'System & Info Integrity',         controlCount: 7  },
+    ];
+
+    // Build flat doc rows with controls list
+    const docRows = docs.map((d) => ({
+      id: d.id,
+      documentId: d.documentId,
+      title: d.title,
+      documentType: d.documentType,
+      version: `${d.versionMajor}.${d.versionMinor}`,
+      effectiveDate: d.effectiveDate ?? d.releasedAt,
+      controls: d.cmmcControlTags.map((t) => t.controlId),
+    }));
+
+    // Per-domain: which docs cover it
+    const domainStats = DOMAINS.map((domain) => {
+      const covering = docRows.filter((d) =>
+        d.controls.some((c) => c.startsWith(domain.prefix + '.')),
+      );
+      return {
+        ...domain,
+        documentCount: covering.length,
+        documentIds: covering.map((d) => d.documentId),
+      };
+    });
+
+    res.json({
+      totalEffectiveDocs: docRows.length,
+      domains: domainStats,
+      documents: docRows,
+    });
+  } catch (error) {
+    console.error('Error fetching CMMC section coverage:', error);
+    res.status(500).json({ error: 'Failed to fetch CMMC coverage data' });
+  }
+});
+
 export default router;
