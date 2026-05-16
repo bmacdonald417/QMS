@@ -8,8 +8,8 @@ const tabs = [
 
 export function DocumentsSection() {
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div className="border-b border-border bg-background px-6">
+    <div>
+      <div className="border-b border-border -mx-4 md:-mx-8 px-4 md:px-8 mb-6">
         <nav className="flex gap-0" aria-label="Document Control tabs">
           {tabs.map((tab) => (
             <NavLink
@@ -30,9 +30,7 @@ export function DocumentsSection() {
           ))}
         </nav>
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        <Outlet />
-      </div>
+      <Outlet />
     </div>
   );
 }
