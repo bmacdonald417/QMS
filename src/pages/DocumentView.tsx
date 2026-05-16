@@ -231,11 +231,46 @@ export default function DocumentView() {
 
   return (
     <div className="min-h-screen bg-gray-50 print:bg-white">
-      {/* Print + light-theme overrides */}
+      {/* Screen + print styles */}
       <style>{`
+        /* ── Screen ───────────────────────────────────── */
+        .doc-body table { border-collapse: collapse; width: 100%; margin: 1.25em 0; font-size: 0.875em; overflow-x: auto; display: block; }
+        .doc-body thead { background: #f8fafc; }
+        .doc-body th, .doc-body td { border: 1px solid #cbd5e1; padding: 8px 14px; text-align: left; vertical-align: top; }
+        .doc-body th { font-weight: 600; color: #1e293b; background: #f1f5f9; white-space: nowrap; }
+        .doc-body td { color: #334155; word-break: break-word; }
+        .doc-body tbody tr:nth-child(even) { background: #f8fafc; }
+        .doc-body tbody tr:hover { background: #eff6ff; }
+        .doc-body code:not(pre code) { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px; padding: 0.1em 0.4em; font-size: 0.82em; color: #0f172a; }
+        .doc-body pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1em 1.25em; overflow-x: auto; font-size: 0.82em; line-height: 1.6; }
+        .doc-body blockquote { border-left: 3px solid #94a3b8; padding: 0.5em 1em; margin-left: 0; background: #f8fafc; border-radius: 0 6px 6px 0; color: #475569; }
+        .doc-body ul, .doc-body ol { padding-left: 1.5em; margin: 0.5em 0; }
+        .doc-body ul { list-style-type: disc; }
+        .doc-body ol { list-style-type: decimal; }
+        .doc-body li { margin: 0.3em 0; }
+        .doc-body hr { border-color: #e2e8f0; }
+        .doc-body h1 { font-size: 1.5em; font-weight: 700; color: #0f172a; margin: 1.5em 0 0.5em; }
+        .doc-body h2 { font-size: 1.25em; font-weight: 600; color: #1e293b; margin: 1.25em 0 0.4em; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25em; }
+        .doc-body h3 { font-size: 1.1em; font-weight: 600; color: #1e293b; margin: 1em 0 0.35em; }
+        .doc-body h4, .doc-body h5, .doc-body h6 { font-weight: 600; color: #334155; margin: 0.75em 0 0.25em; }
+        .doc-body p { margin: 0.6em 0; line-height: 1.7; color: #1e293b; }
+        .doc-body strong { color: #0f172a; }
+        .doc-body a { color: #2563eb; text-decoration: underline; }
+
+        /* ── Print / PDF ──────────────────────────────── */
         @media print {
           .no-print { display: none !important; }
-          body { background: white !important; }
+          body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .doc-body table { display: table; width: 100%; font-size: 0.8em; }
+          .doc-body th, .doc-body td { border: 1px solid #64748b !important; padding: 6px 10px !important; }
+          .doc-body th { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .doc-body tbody tr:nth-child(even) { background: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .doc-body pre, .doc-body code { font-size: 0.75em; background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .doc-body blockquote { background: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .doc-body h1, .doc-body h2, .doc-body h3 { page-break-after: avoid; }
+          table, figure { page-break-inside: avoid; }
+          p { orphans: 3; widows: 3; }
+          .doc-body h2 { border-bottom: 1px solid #94a3b8; }
         }
       `}</style>
 
@@ -332,13 +367,13 @@ export default function DocumentView() {
           <section className="px-10 py-10 print:px-0">
             {looksLikeHtml ? (
               <div
-                className="prose prose-slate max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-a:text-primary prose-strong:text-gray-900 prose-table:text-sm prose-th:bg-gray-50 prose-td:align-top print:text-black"
+                className="doc-body max-w-none text-sm leading-relaxed"
                 dangerouslySetInnerHTML={{
                   __html: DOMPurify.sanitize(contentTrimmed, { ALLOWED_TAGS: ALLOWED_HTML_TAGS }),
                 }}
               />
             ) : contentTrimmed ? (
-              <div className="prose prose-slate max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-a:text-primary prose-strong:text-gray-900 prose-table:text-sm prose-th:bg-gray-50 prose-td:align-top print:text-black">
+              <div className="doc-body max-w-none text-sm leading-relaxed">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeSlug, [rehypeAutolinkHeadings, { behavior: 'wrap' }]]}

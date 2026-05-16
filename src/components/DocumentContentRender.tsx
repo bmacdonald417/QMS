@@ -1,4 +1,5 @@
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import DOMPurify from 'dompurify';
 
 const ALLOWED_TAGS = [
@@ -92,8 +93,27 @@ export function DocumentContentRender({ content, className = '' }: DocumentConte
     );
   }
   return (
-    <div className={`prose prose-invert max-w-none break-words prose-p:text-gray-200 prose-headings:text-white ${className}`}>
-      <ReactMarkdown>{content}</ReactMarkdown>
-    </div>
+    <>
+      <div className={`document-content prose prose-invert max-w-none break-words prose-p:text-gray-200 prose-headings:text-white prose-strong:text-gray-100 prose-code:text-gray-200 prose-blockquote:text-gray-300 ${className}`}>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+      </div>
+      <style>{`
+        .document-content table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.875em; }
+        .document-content thead tr { background: rgba(255,255,255,0.08); }
+        .document-content th, .document-content td { border: 1px solid #374151; padding: 8px 12px; text-align: left; vertical-align: top; overflow-wrap: break-word; word-break: break-word; }
+        .document-content th { font-weight: 600; color: #f9fafb; background: rgba(255,255,255,0.06); }
+        .document-content td { color: #e5e7eb; }
+        .document-content tbody tr:hover { background: rgba(255,255,255,0.03); }
+        .document-content ul, .document-content ol { margin: 0.5em 0 0.5em 1.5em; padding-left: 1em; }
+        .document-content ul { list-style-type: disc; }
+        .document-content ol { list-style-type: decimal; }
+        .document-content li { margin: 0.25em 0; display: list-item; }
+        .document-content code:not(pre code) { background: rgba(255,255,255,0.1); border-radius: 3px; padding: 0.1em 0.35em; font-size: 0.85em; }
+        .document-content pre { background: rgba(0,0,0,0.3); border: 1px solid #374151; border-radius: 6px; padding: 1em; overflow-x: auto; }
+        .document-content blockquote { border-left: 3px solid #4b5563; padding-left: 1em; margin-left: 0; color: #9ca3af; }
+        .document-content hr { border-color: #374151; }
+        .document-content overflow-wrap: break-word; word-wrap: break-word;
+      `}</style>
+    </>
   );
 }
