@@ -6,6 +6,7 @@ import {
   getIntegrationTokenFromRequest,
   verifyIntegrationToken,
 } from './integrations/auth.js';
+import { resolveRequestOrgId } from './lib/orgScope.js';
 import {
   sendAuditLogAsync,
   shouldFireAuditOnce,
@@ -226,6 +227,15 @@ export async function authMiddleware(req, res, next) {
     roleName: user.role?.name,
     permissions: flattenPermissions(user.role),
   };
+
+  // Resolve the QMS organization for this request and attach to req.organizationId.
+  // Route handlers read req.organizationId directly — no per-handler async lookup needed.
+  try {
+    req.organizationId = await resolveRequestOrgId(req);
+  } catch (err) {
+    console.error('[auth] org resolution failed:', err.message);
+    return res.status(403).json({ error: 'Unable to resolve organization for this request.' });
+  }
 
   // Forward a deduped session-opened event to the central Identity hub.
   // Fire-and-forget; never blocks the request, never throws upstream.

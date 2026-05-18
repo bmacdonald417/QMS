@@ -9,7 +9,6 @@ import { validateReviewResponses } from './lib/reviewQuestions.js';
 import { generateDocumentPdf } from './pdf.js';
 import { getNextChangeId } from './changeControls.js';
 import { computeQmsHash, getRecordVersion } from './governance.js';
-import { getMacTechOrgId } from './lib/orgScope.js';
 import {
   loadDocumentForLifecycle,
   gateForRecordSIA,
@@ -542,7 +541,7 @@ router.get('/by-code/:documentId', async (req, res) => {
     const code = String(req.params.documentId || '').trim();
     if (!code) return res.status(400).json({ error: 'documentId is required' });
 
-    const orgId = getMacTechOrgId();
+    const orgId = req.organizationId;
     const row = await prisma.document.findFirst({
       where: { documentId: code, organizationId: orgId },
       select: { id: true, documentId: true, title: true, status: true },
@@ -888,7 +887,7 @@ router.post('/', requirePermission('document:create'), async (req, res) => {
         content: typeof content === 'string' ? content : '',
         tags,
         authorId: req.user.id,
-        organizationId: getMacTechOrgId(),
+        organizationId: req.organizationId,
         revisions: {
           create: {
             versionMajor: 1,
@@ -1969,7 +1968,7 @@ router.post('/:id/revise', requirePermission('document:create'), async (req, res
         content: source.content || '',
         authorId: req.user.id,
         // Inherit org from the doc being revised; falls through to the helper if source predates the column.
-        organizationId: source.organizationId || getMacTechOrgId(),
+        organizationId: source.organizationId || req.organizationId,
         supersedesDocumentId: source.id,
         revisions: {
           create: {

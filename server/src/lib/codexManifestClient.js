@@ -35,13 +35,24 @@ const REQUEST_TIMEOUT_MS = 15_000;
  * @property {number} attempts
  */
 
-async function singleAttempt(envelope, baseUrl) {
+async function singleAttempt(envelope, baseUrl, clerkJwt) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
   try {
+    const headers = { 'Content-Type': 'application/json' };
+    // Priority 1: Clerk JWT forwarded from the user's session (automatic multi-org)
+    // Priority 2: CODEX_ORG_TOKEN env var (service-account style)
+    // Priority 3: no header (legacy slug='mactech' fallback in Codex)
+    if (clerkJwt) {
+      headers['Authorization'] = `Bearer ${clerkJwt}`;
+    } else {
+      const orgToken = process.env.CODEX_ORG_TOKEN;
+      if (orgToken) headers['Authorization'] = `Bearer ${orgToken}`;
+    }
+
     const res = await fetch(`${baseUrl}/api/integrations/qms-manifest/ingest`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(envelope),
       signal: ctrl.signal,
     });
@@ -77,7 +88,10 @@ async function singleAttempt(envelope, baseUrl) {
  * Push a signed manifest envelope to codex with retry-on-5xx.
  *
  * @param {object} envelope - the v1.1 envelope from buildQmsGovernanceManifest
- * @param {{ baseUrl?: string }} [opts]
+ * @param {{ baseUrl?: string, clerkJwt?: string }} [opts]
+ *   clerkJwt: the user's Clerk session JWT forwarded from the request. When
+ *   present, Codex resolves the org from the JWT's org_id claim — fully
+ *   automatic multi-org routing, no CODEX_ORG_TOKEN needed.
  * @returns {Promise<CodexPushResult>}
  */
 export async function pushManifestToCodex(envelope, opts = {}) {
@@ -88,8 +102,10 @@ export async function pushManifestToCodex(envelope, opts = {}) {
   let lastError = 'no attempt made';
   let lastHttpStatus;
 
+  const clerkJwt = opts.clerkJwt ?? null;
+
   for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {
-    const result = await singleAttempt(envelope, baseUrl);
+    const result = await singleAttempt(envelope, baseUrl, clerkJwt);
 
     if (result.ok) {
       const status =

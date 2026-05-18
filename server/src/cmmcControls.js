@@ -15,7 +15,6 @@ import {
   verifyIntegrationToken,
 } from './integrations/auth.js';
 import { SCOPES } from './integrations/scopes.js';
-import { getMacTechOrgId } from './lib/orgScope.js';
 import {
   mapDocKind,
   mapCmmcKind,
@@ -182,8 +181,7 @@ export function mapCmmcDocumentRow(c, orgId, now) {
 // federation: one DB query per source for an arbitrary set of control_ids
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function fetchDocsForControls(controlIds) {
-  const orgId = getMacTechOrgId();
+async function fetchDocsForControls(controlIds, orgId) {
   const now = new Date();
 
   // qms_managed
@@ -278,7 +276,7 @@ router.get('/controls/:controlId/documents', async (req, res) => {
   const controlId = parsed.data;
 
   try {
-    const byControl = await fetchDocsForControls([controlId]);
+    const byControl = await fetchDocsForControls([controlId], req.organizationId);
     const documents = byControl.get(controlId) ?? [];
     const body = {
       control_id: controlId,
@@ -311,7 +309,7 @@ router.get('/controls/documents', async (req, res) => {
   const controlIds = parsed.data.control_ids;
 
   try {
-    const byControl = await fetchDocsForControls(controlIds);
+    const byControl = await fetchDocsForControls(controlIds, req.organizationId);
     const body = {
       // Order matches request (spec: "Order matches request").
       controls: controlIds.map((id) => ({

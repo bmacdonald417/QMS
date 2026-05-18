@@ -34,7 +34,6 @@ import {
   deriveSubmissionStatusFromDocument,
 } from './lib/sspSubmissionContract.js';
 import { renderSspCanonicalToMarkdown } from './lib/renderSspCanonicalToMarkdown.js';
-import { getMacTechOrgId } from './lib/orgScope.js';
 
 const router = express.Router();
 
@@ -105,7 +104,7 @@ router.post(
         .json({ error: 'invalid_payload', details: validation.errors });
     }
 
-    const orgId = getMacTechOrgId();
+    const orgId = req.organizationId;
     const botUserId = await getCodexBridgeUserId();
 
     // Idempotency: same (org, ext_doc, sha256) → return existing.

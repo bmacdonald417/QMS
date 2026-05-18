@@ -16,7 +16,6 @@ import {
   computeSigningHash,
   verifySigningHash,
 } from './lib/cmmc/hashing.js';
-import { getMacTechOrgId } from './lib/orgScope.js';
 
 const router = express.Router();
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
@@ -342,7 +341,7 @@ router.post('/documents/sync', requireRoles('System Admin', 'Admin', 'System Adm
               qmsDocType: manifestDoc.qms_doc_type,
               reviewCadence: manifestDoc.review_cadence || null,
               status: 'DRAFT',
-              organizationId: getMacTechOrgId(),
+              organizationId: req.organizationId,
               effectiveDate: parseEffectiveDate(fileMetadata.date),
               revisions: {
                 create: {
@@ -788,7 +787,7 @@ router.patch('/documents/:code/status', requireRoles('System Admin', 'Admin', 'S
  */
 router.get('/section/coverage', async (req, res) => {
   try {
-    const orgId = getMacTechOrgId();
+    const orgId = req.organizationId;
 
     const docs = await prisma.document.findMany({
       where: { organizationId: orgId, status: 'EFFECTIVE' },

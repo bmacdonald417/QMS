@@ -511,8 +511,12 @@ router.post(
         },
       });
 
-      // Push.
-      const push = await pushManifestToCodex(manifest);
+      // Push. Forward the user's Clerk JWT so Codex can resolve the org
+      // automatically by org_id claim — no CODEX_ORG_TOKEN env var needed.
+      const rawAuth = req.headers['authorization'] ?? '';
+      const clerkJwt =
+        rawAuth.startsWith('Bearer eyJ') ? rawAuth.slice(7) : undefined;
+      const push = await pushManifestToCodex(manifest, { clerkJwt });
 
       // Stamp run with push outcome.
       await prisma.governanceManifestRun.update({

@@ -14,7 +14,6 @@ import express from 'express';
 import { prisma } from './db.js';
 import { requireRoles } from './auth.js';
 import { createAuditLog, getAuditContext } from './audit.js';
-import { getMacTechOrgId } from './lib/orgScope.js';
 import {
   GOVERNANCE_CONTROLS,
   GOVERNANCE_CONTROLS_VERSION,
@@ -39,7 +38,7 @@ router.get('/controls', requireRoles(...ADMIN_ROLES), (req, res) => {
 // single-page render budget. Add server-side pagination if it grows.
 router.get('/documents', requireRoles(...ADMIN_ROLES), async (req, res) => {
   try {
-    const orgId = getMacTechOrgId();
+    const orgId = req.organizationId;
 
     const [docs, cmmcDocs] = await Promise.all([
       prisma.document.findMany({
@@ -126,7 +125,7 @@ router.post('/', requireRoles(...ADMIN_ROLES), async (req, res) => {
     : null;
 
   try {
-    const orgId = getMacTechOrgId();
+    const orgId = req.organizationId;
 
     if (source === 'qms_managed') {
       // Belt-and-suspenders: confirm the doc belongs to this tenant.
