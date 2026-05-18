@@ -19,6 +19,7 @@ import {
   mapIccRoleToQmsRole,
   INTERNAL_MACTECH_SENTINEL,
 } from './lib/iccRoleMapping.js';
+import { ensureOrganizationMembership } from './lib/qms-agent/organization-context.js';
 
 const QMS_APP_KEY = 'quality';
 
@@ -233,8 +234,18 @@ export async function authMiddleware(req, res, next) {
   try {
     req.organizationId = await resolveRequestOrgId(req);
   } catch (err) {
+    const status = err.statusCode === 403 ? 403 : 403;
     console.error('[auth] org resolution failed:', err.message);
-    return res.status(403).json({ error: 'Unable to resolve organization for this request.' });
+    return res.status(status).json({ error: err.message || 'Unable to resolve organization for this request.' });
+  }
+
+  // Ensure this user has a membership row for the resolved org. Idempotent —
+  // no-ops on subsequent requests once the row exists.
+  try {
+    await ensureOrganizationMembership({ organizationId: req.organizationId, userId: user.id });
+  } catch (err) {
+    // Non-fatal: log but don't block the request. The user row already exists.
+    console.warn('[auth] ensureOrganizationMembership failed:', err.message);
   }
 
   // Forward a deduped session-opened event to the central Identity hub.

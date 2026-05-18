@@ -73,10 +73,21 @@ export async function resolveRequestOrgId(req) {
     return org.id;
   }
 
-  // Fallback: integration token or internal user without an active Clerk org.
+  // Clerk-authenticated user with no active organization — reject rather than
+  // silently fall through to the MacTech default. The frontend is responsible
+  // for ensuring an org is selected before making API calls.
+  if (req.clerkPayload) {
+    throw Object.assign(
+      new Error('No active organization in session. Select an organization in the QMS before proceeding.'),
+      { statusCode: 403 },
+    );
+  }
+
+  // No Clerk payload at all (integration token, internal tooling).
+  // Fall back to the global default org.
   if (!_defaultOrgId) {
     throw new Error(
-      'No org context: JWT has no org_id claim and MACTECH_DEFAULT_ORG_ID is not set.'
+      'No org context: MACTECH_DEFAULT_ORG_ID is not set.'
     );
   }
   req._qmsOrgId = _defaultOrgId;

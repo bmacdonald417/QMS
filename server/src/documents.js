@@ -213,8 +213,8 @@ router.get('/', requirePermission('document:view'), async (req, res) => {
     const tagsParam = typeof req.query.tags === 'string' ? req.query.tags.trim() : '';
     const searchQuery = typeof req.query.search === 'string' ? req.query.search.trim() : '';
     
-    const where = {};
-    
+    const where = { organizationId: req.organizationId };
+
     // Form template filter
     if (typeFilter === 'form-template') {
       where.documentType = 'FORM';
@@ -291,7 +291,7 @@ router.get('/search', requirePermission('document:view'), async (req, res) => {
       ? tagsParam.split(',').map((t) => t.trim()).filter(Boolean)
       : [];
 
-    const conditions = [];
+    const conditions = [{ organizationId: req.organizationId }];
     if (tagsFilter.length) {
       conditions.push({ tags: { hasEvery: tagsFilter } });
     }
@@ -304,7 +304,7 @@ router.get('/search', requirePermission('document:view'), async (req, res) => {
         ],
       });
     }
-    const where = conditions.length ? (conditions.length === 1 ? conditions[0] : { AND: conditions }) : undefined;
+    const where = { AND: conditions };
 
     const documents = await prisma.document.findMany({
       where,

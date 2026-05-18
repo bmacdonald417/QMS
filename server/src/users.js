@@ -3,11 +3,14 @@ import { prisma } from './db.js';
 
 const router = express.Router();
 
-// GET /api/users (for assignment pickers) — only ACTIVE users (inactive cannot be selected for approval)
-router.get('/', async (_req, res) => {
+// GET /api/users (for assignment pickers) — only ACTIVE users in the current org
+router.get('/', async (req, res) => {
   try {
     const users = await prisma.user.findMany({
-      where: { status: 'ACTIVE' },
+      where: {
+        status: 'ACTIVE',
+        organizationMemberships: { some: { organizationId: req.organizationId } },
+      },
       select: {
         id: true,
         firstName: true,

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { useAuth as useClerkAuth, useClerk } from '@clerk/clerk-react';
+import { useAuth as useClerkAuth, useClerk, useOrganization, useOrganizationList } from '@clerk/clerk-react';
 import { apiUrl } from '@/lib/api';
 
 export interface AuthUser {
@@ -16,6 +16,12 @@ interface AuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** True while the active Clerk org is being resolved / auto-selected. */
+  orgLoading: boolean;
+  /** The active Clerk organization id (org_…), or null if none active yet. */
+  activeOrgId: string | null;
+  /** Clerk sign-in is fully resolved and there is no organization to switch to. */
+  noOrgAvailable: boolean;
   /** Clerk owns the login UI now. This is a no-op kept for source compatibility. */
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
@@ -29,14 +35,47 @@ const TOKEN_REFRESH_MS = 30_000;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn, getToken, userId } = useClerkAuth();
-  const { signOut } = useClerk();
+  const { signOut, setActive } = useClerk();
+  const { organization, isLoaded: orgLoaded } = useOrganization();
+  const { userMemberships, isLoaded: listLoaded } = useOrganizationList({
+    userMemberships: { infinite: true },
+  });
+
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [meLoading, setMeLoading] = useState(false);
+  const [autoSelectDone, setAutoSelectDone] = useState(false);
 
-  // Keep a fresh-ish Clerk token in state so existing call sites that read
-  // `auth.token` synchronously continue to work. Clerk session tokens are
-  // short-lived JWTs; a 30s refresh keeps them valid for typical flows.
+  // ── Org auto-selection ──────────────────────────────────────────────────────
+  // When a user signs in but no org is active, silently pick their first org.
+  // This covers: single-org users, and new users who just joined via Clerk invite.
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    if (!orgLoaded || !listLoaded) return;
+    if (organization) {
+      // Org already active — nothing to do.
+      setAutoSelectDone(true);
+      return;
+    }
+    const memberships = userMemberships?.data ?? [];
+    if (memberships.length === 0) {
+      // User has no orgs — can't auto-select. Surface the error in ProtectedLayout.
+      setAutoSelectDone(true);
+      return;
+    }
+    // Auto-select the first (or only) org.
+    const first = memberships[0].organization;
+    setActive({ organization: first.id }).then(() => {
+      setAutoSelectDone(true);
+    }).catch(() => {
+      setAutoSelectDone(true);
+    });
+  }, [isLoaded, isSignedIn, orgLoaded, listLoaded, organization, userMemberships, setActive]);
+
+  // ── Token refresh ───────────────────────────────────────────────────────────
+  // Keep a fresh-ish Clerk token in state. Refresh whenever org changes so the
+  // new JWT contains the updated org_id claim.
+  const activeOrgId = organization?.id ?? null;
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn) {
@@ -58,13 +97,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       clearInterval(id);
     };
-  }, [isLoaded, isSignedIn, getToken]);
+  }, [isLoaded, isSignedIn, getToken, activeOrgId]); // re-run when org changes
 
+  // ── /api/auth/me ────────────────────────────────────────────────────────────
   // Load the local user profile (role, permissions) from /api/auth/me as soon
-  // as we have a Clerk token. The local DB is the source of truth for role.
+  // as we have a Clerk token that includes an org_id claim.
   useEffect(() => {
     if (!isLoaded) return;
-    if (!isSignedIn || !token) {
+    if (!isSignedIn || !token || !activeOrgId) {
       setUser(null);
       return;
     }
@@ -88,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isLoaded, isSignedIn, token, userId]);
+  }, [isLoaded, isSignedIn, token, userId, activeOrgId]);
 
   const login = useCallback(async () => {
     return {
@@ -109,11 +149,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [getToken]);
 
+  const orgLoading = !orgLoaded || !listLoaded || (!organization && !autoSelectDone);
+  const noOrgAvailable = autoSelectDone && !organization && (userMemberships?.data?.length ?? 0) === 0;
+
   const value: AuthContextValue = {
     token,
     user,
     isAuthenticated: !!isSignedIn && !!user,
-    isLoading: !isLoaded || meLoading,
+    isLoading: !isLoaded || meLoading || orgLoading,
+    orgLoading,
+    activeOrgId,
+    noOrgAvailable,
     login,
     logout,
     getFreshToken,

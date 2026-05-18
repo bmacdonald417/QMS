@@ -14,6 +14,7 @@ import {
   getIntegrationTokenFromRequest,
   verifyIntegrationToken,
 } from './integrations/auth.js';
+import { MACTECH_DEFAULT_ORG_ID } from './lib/orgScope.js';
 import { SCOPES } from './integrations/scopes.js';
 import {
   mapDocKind,
@@ -182,12 +183,16 @@ export function mapCmmcDocumentRow(c, orgId, now) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function fetchDocsForControls(controlIds, orgId) {
+  // Integration-token routes (/api/v1/cmmc) have no authMiddleware, so
+  // req.organizationId is undefined. Fall back to the default MacTech org.
+  const effectiveOrgId = orgId ?? MACTECH_DEFAULT_ORG_ID;
+  if (!effectiveOrgId) throw new Error('[cmmcControls] No org context — set MACTECH_DEFAULT_ORG_ID');
   const now = new Date();
 
   // qms_managed
   const docs = await prisma.document.findMany({
     where: {
-      organizationId: orgId,
+      organizationId: effectiveOrgId,
       cmmcControlTags: { some: { controlId: { in: controlIds } } },
     },
     include: {
@@ -217,7 +222,7 @@ async function fetchDocsForControls(controlIds, orgId) {
   // cmmc_bundle
   const cmmcDocs = await prisma.cmmcDocument.findMany({
     where: {
-      organizationId: orgId,
+      organizationId: effectiveOrgId,
       cmmcControlTags: { some: { controlId: { in: controlIds } } },
     },
     include: {
@@ -247,7 +252,7 @@ async function fetchDocsForControls(controlIds, orgId) {
       const bucket = byControl.get(tag.controlId);
       if (!bucket) continue;
       const docWithThisTag = { ...d, cmmcControlTags: [tag] };
-      bucket.push(mapDocumentRow(docWithThisTag, orgId, now));
+      bucket.push(mapDocumentRow(docWithThisTag, effectiveOrgId, now));
     }
   }
   for (const c of cmmcDocs) {
@@ -255,7 +260,7 @@ async function fetchDocsForControls(controlIds, orgId) {
       const bucket = byControl.get(tag.controlId);
       if (!bucket) continue;
       const docWithThisTag = { ...c, cmmcControlTags: [tag] };
-      bucket.push(mapCmmcDocumentRow(docWithThisTag, orgId, now));
+      bucket.push(mapCmmcDocumentRow(docWithThisTag, effectiveOrgId, now));
     }
   }
 

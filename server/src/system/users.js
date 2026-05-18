@@ -75,7 +75,9 @@ router.get(
       const sortBy = req.query.sortBy || 'createdAt';
       const sortOrder = (req.query.sortOrder || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
 
-      const where = {};
+      const where = {
+        organizationMemberships: { some: { organizationId: req.organizationId } },
+      };
       if (status) where.status = status;
       if (roleId) where.roleId = roleId;
       if (departmentId) where.departmentId = departmentId;
@@ -172,6 +174,11 @@ router.post(
         },
         include: { role: true, department: true, site: true },
       });
+
+      // Link the new user to the current org immediately.
+      await prisma.organizationMembership.create({
+        data: { organizationId: req.organizationId, userId: user.id },
+      }).catch(() => {}); // ignore if already exists
 
       await auditFromRequest(req, {
         action: 'USER_CREATED',
@@ -282,8 +289,11 @@ router.get(
   requireSystemPermission('users:read'),
   async (req, res) => {
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: req.params.id },
+      const user = await prisma.user.findFirst({
+        where: {
+          id: req.params.id,
+          organizationMemberships: { some: { organizationId: req.organizationId } },
+        },
         include: { role: true, department: true, site: true },
       });
       if (!user) return res.status(404).json({ error: 'User not found' });
@@ -320,8 +330,11 @@ router.put(
   async (req, res) => {
     try {
       const body = updateUserSchema.parse(req.body);
-      const existing = await prisma.user.findUnique({
-        where: { id: req.params.id },
+      const existing = await prisma.user.findFirst({
+        where: {
+          id: req.params.id,
+          organizationMemberships: { some: { organizationId: req.organizationId } },
+        },
         include: { role: true, department: true, site: true },
       });
       if (!existing) return res.status(404).json({ error: 'User not found' });
@@ -408,8 +421,11 @@ router.delete(
       if (req.params.id === req.user.id) {
         return res.status(400).json({ error: 'Cannot delete your own account' });
       }
-      const user = await prisma.user.findUnique({
-        where: { id: req.params.id },
+      const user = await prisma.user.findFirst({
+        where: {
+          id: req.params.id,
+          organizationMemberships: { some: { organizationId: req.organizationId } },
+        },
         include: { role: true, department: true, site: true },
       });
       if (!user) return res.status(404).json({ error: 'User not found' });
@@ -457,7 +473,10 @@ router.post(
       if (req.params.id === req.user.id) {
         return res.status(400).json({ error: 'Cannot deactivate your own account' });
       }
-      const user = await prisma.user.findUnique({ where: { id: req.params.id }, include: { role: true } });
+      const user = await prisma.user.findFirst({
+        where: { id: req.params.id, organizationMemberships: { some: { organizationId: req.organizationId } } },
+        include: { role: true },
+      });
       if (!user) return res.status(404).json({ error: 'User not found' });
       try {
         assertCanEditTarget(req.user, user);
@@ -500,7 +519,10 @@ router.post(
   async (req, res) => {
     try {
       const { reason } = reasonSchema.parse(req.body);
-      const user = await prisma.user.findUnique({ where: { id: req.params.id }, include: { role: true } });
+      const user = await prisma.user.findFirst({
+        where: { id: req.params.id, organizationMemberships: { some: { organizationId: req.organizationId } } },
+        include: { role: true },
+      });
       if (!user) return res.status(404).json({ error: 'User not found' });
       try {
         assertCanEditTarget(req.user, user);
@@ -540,7 +562,10 @@ router.post(
       if (req.params.id === req.user.id) {
         return res.status(400).json({ error: 'Cannot lock your own account' });
       }
-      const user = await prisma.user.findUnique({ where: { id: req.params.id }, include: { role: true } });
+      const user = await prisma.user.findFirst({
+        where: { id: req.params.id, organizationMemberships: { some: { organizationId: req.organizationId } } },
+        include: { role: true },
+      });
       if (!user) return res.status(404).json({ error: 'User not found' });
       try {
         assertCanEditTarget(req.user, user);
@@ -575,7 +600,10 @@ router.post(
   async (req, res) => {
     try {
       const { reason } = reasonSchema.parse(req.body);
-      const user = await prisma.user.findUnique({ where: { id: req.params.id }, include: { role: true } });
+      const user = await prisma.user.findFirst({
+        where: { id: req.params.id, organizationMemberships: { some: { organizationId: req.organizationId } } },
+        include: { role: true },
+      });
       if (!user) return res.status(404).json({ error: 'User not found' });
       try {
         assertCanEditTarget(req.user, user);
